@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Банк</title>
+</head>
+
+<body>
+<a href="/signup" style="float:right;">
+    <b>РЕГИСТРАЦИЯ &plus;</b>
+</a>
+<br>
+<a href="/logout" style="float:right;">
+    <b>ВЫЙТИ &cudarrr;</b>
+</a>
+<table style="width:70%;margin-left:auto;margin-right:auto;">
+    <tr><td style="padding:2px;">
+        <form method="post" th:action="${'/user/'+login+'/editPassword'}">
+        <table style="width:100%;margin-left:auto;margin-right:auto;border-radius:2%;padding:10px;background-color:whitesmoke;">
+            <tr>
+                <td style="font-weight:bold;">Логин</td>
+                <td colspan="2" th:text="${login}"/>
+            </tr>
+            <tr>
+                <td style="font-weight:bold;">Изменить пароль</td>
+                <td>
+                    <p style="color:red;" th:if="${passwordErrors!=null}" th:each="passwordError : ${passwordErrors}" th:text="${passwordError}"/>
+                    <p>
+                        Пароль: <input name="password" type="password" required/>
+                    </p>
+                    <p>
+                        Повторите пароль: <input name="confirm_password" type="password" required/>
+                    </p>
+                </td>
+                <td style="text-align:right">
+                    <button>Изменить пароль</button>
+                </td>
+            </tr>
+        </table>
+        </form>
+    </td>
+    <tr><td style="padding:2px;">
+        <form method="post" th:action="${'/user/'+login+'/editUserAccount'}">
+        <table style="width:100%;margin-left:auto;margin-right:auto;border-radius:2%;padding:10px;background-color:whitesmoke;">
+            <tr th:if="${userAccountErrors!=null}" th:each="userAccountError : ${userAccountErrors}">
+                <td style="color:red;" th:text="${userAccountError}"/>
+            </tr>
+            <tr>
+                <td style="font-weight:bold;">Фамилия Имя</td>
+                <td th:text="${name}"/>
+                <td>
+                    <input name="name" type="text" style="width:100%"/>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:bold;">Дата рождения</td>
+                <td th:text="${birthdate}"/>
+                <td>
+                    <input name="birthdate" type="date" style="width:100%"/>
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align:right" colspan="3">
+                    <button>Сохранить изменения</button>
+                </td>
+            </tr>
+        </table>
+        </form>
+    </td></tr>
+    <tr><td style="padding:2px;">
+        <form method="post" th:action="${'/user/'+login+'/cash'}">
+            <table style="width:100%;margin-left:auto;margin-right:auto;border-radius:2%;padding:10px;background-color:whitesmoke;">
+                <tr th:if="${cashErrors!=null}" th:each="cashError : ${cashErrors}">
+                    <td style="color:red;" th:text="${cashError}"/>
+                </tr>
+                <tr>
+                    <td style="font-weight:bold;">Наличные</td>
+                    <td>
+                        <input name="value" type="number" style="width:100%" required/>
+                    </td>
+                    <td>
+                    <td style="text-align:right">
+                        <button name="action" value="PUT">Положить</button>
+                        <button name="action" value="GET">Снять</button>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </td></tr>
+    <tr><td style="padding:2px;">
+        <form method="post" th:action="${'/user/'+login+'/transfer'}">
+            <table style="width:100%;margin-left:auto;margin-right:auto;border-radius:2%;padding:10px;background-color:whitesmoke;">
+                <tr th:if="${transferOtherErrors!=null}" th:each="transferOtherError : ${transferOtherErrors}">
+                    <td style="color:red;" th:text="${transferOtherError}"/>
+                </tr>
+                <tr>
+                    <td style="font-weight:bold;">Перевод</td>
+                    <td>
+                        <input name="value" type="number" required/>
+                    </td>
+                    <td>
+                        Кому
+                        <select name="to_login">
+                            <option th:each="user : ${users}" th:value="${user.getLogin()}" th:text="${user.getName()}"/>
+                        </select>
+                    </td>
+                    <td style="text-align:right">
+                        <button>Перевести</button>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </td></tr>
+</table>
+</body>
+
+</html>

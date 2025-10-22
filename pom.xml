@@ -11,8 +11,9 @@
     <groupId>io.github.danjos</groupId>
     <artifactId>my-bank-app</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
     <name>my-bank-app</name>
-    <description>my-bank-app</description>
+    <description>Microservices Bank Application - Parent POM</description>
     <url/>
     <licenses>
         <license/>
