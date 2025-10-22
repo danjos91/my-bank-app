@@ -14,6 +14,17 @@
     <packaging>pom</packaging>
     <name>my-bank-app</name>
     <description>Microservices Bank Application - Parent POM</description>
+    <modules>
+        <module>eureka-server</module>
+        <module>config-server</module>
+        <module>gateway</module>
+        <module>auth-server</module>
+        <module>accounts-service</module>
+        <module>cash-service</module>
+        <module>transfer-service</module>
+        <module>notifications-service</module>
+        <module>front-ui</module>
+    </modules>
     <url/>
     <licenses>
         <license/>
