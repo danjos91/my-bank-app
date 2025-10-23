@@ -227,7 +227,6 @@ class UserServiceTest {
     void updateUserProfile_ValidData_ReturnsUpdatedUser() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(userRepository.existsByEmail("test@example.com")).thenReturn(false);
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
         // When
@@ -269,15 +268,22 @@ class UserServiceTest {
     @Test
     void updateUserProfile_EmailAlreadyExists_ThrowsException() {
         // Given
+        UserProfileDTO profileDTOWithExistingEmail = UserProfileDTO.builder()
+                .firstName("Updated")
+                .lastName("Name")
+                .email("existing@example.com") // Different email that already exists
+                .birthDate(LocalDate.of(1995, 5, 15))
+                .build();
+        
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(userRepository.existsByEmail("test@example.com")).thenReturn(true);
+        when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
 
         // When & Then
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> userService.updateUserProfile(1L, profileDTO));
+                () -> userService.updateUserProfile(1L, profileDTOWithExistingEmail));
         assertEquals("Email already exists", exception.getMessage());
         verify(userRepository).findById(1L);
-        verify(userRepository).existsByEmail("test@example.com");
+        verify(userRepository).existsByEmail("existing@example.com");
         verify(userRepository, never()).save(any(User.class));
     }
 

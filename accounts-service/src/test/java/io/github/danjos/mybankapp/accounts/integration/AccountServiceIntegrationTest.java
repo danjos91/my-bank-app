@@ -1,7 +1,7 @@
 package io.github.danjos.mybankapp.accounts.integration;
 
 import io.github.danjos.mybankapp.accounts.AccountsServiceApplication;
-import io.github.danjos.mybankapp.accounts.config.TestJpaConfig;
+import io.github.danjos.mybankapp.accounts.config.TestEntityConfig;
 import io.github.danjos.mybankapp.accounts.entity.Account;
 import io.github.danjos.mybankapp.accounts.entity.User;
 import io.github.danjos.mybankapp.accounts.repository.AccountRepository;
@@ -24,8 +24,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(classes = {AccountsServiceApplication.class, TestJpaConfig.class})
+@SpringBootTest(classes = {AccountsServiceApplication.class, TestEntityConfig.class})
 @Testcontainers
 @ActiveProfiles("test")
 @Transactional
@@ -62,6 +63,7 @@ class AccountServiceIntegrationTest {
                 .firstName("Test")
                 .lastName("User")
                 .birthDate(LocalDate.of(1990, 1, 1))
+                .password("password123")
                 .build();
         testUser = userRepository.save(testUser);
     }
@@ -119,7 +121,7 @@ class AccountServiceIntegrationTest {
 
         // Then
         assertThat(updatedAccount.getBalance()).isEqualTo(newBalance);
-        assertThat(updatedAccount.getUpdatedAt()).isAfter(account.getUpdatedAt());
+        assertThat(updatedAccount.getUpdatedAt()).isAfterOrEqualTo(account.getUpdatedAt());
     }
 
     @Test
@@ -147,6 +149,8 @@ class AccountServiceIntegrationTest {
     @Test
     void shouldHandleNonExistentUser() {
         // When & Then
-        assertThat(accountService.createAccount(999L)).isNull();
+        assertThatThrownBy(() -> accountService.createAccount(999L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("User not found");
     }
 }

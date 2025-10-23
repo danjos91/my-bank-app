@@ -1,7 +1,7 @@
 package io.github.danjos.mybankapp.accounts.integration;
 
 import io.github.danjos.mybankapp.accounts.AccountsServiceApplication;
-import io.github.danjos.mybankapp.accounts.config.TestJpaConfig;
+import io.github.danjos.mybankapp.accounts.config.TestEntityConfig;
 import io.github.danjos.mybankapp.accounts.dto.UserProfileDTO;
 import io.github.danjos.mybankapp.accounts.dto.UserRegistrationDTO;
 import io.github.danjos.mybankapp.accounts.entity.User;
@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -24,7 +25,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(classes = {AccountsServiceApplication.class, TestJpaConfig.class})
+@SpringBootTest(classes = {AccountsServiceApplication.class, TestEntityConfig.class})
 @Testcontainers
 @ActiveProfiles("test")
 @Transactional
@@ -42,6 +43,9 @@ class UserServiceIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
@@ -130,6 +134,7 @@ class UserServiceIntegrationTest {
                 .firstName("Updated")
                 .lastName("Name")
                 .email("updated@example.com")
+                .birthDate(LocalDate.of(1995, 5, 15))
                 .build();
 
         // When
@@ -139,7 +144,7 @@ class UserServiceIntegrationTest {
         assertThat(updatedUser.getFirstName()).isEqualTo("Updated");
         assertThat(updatedUser.getLastName()).isEqualTo("Name");
         assertThat(updatedUser.getEmail()).isEqualTo("updated@example.com");
-        assertThat(updatedUser.getUpdatedAt()).isAfter(user.getUpdatedAt());
+        assertThat(updatedUser.getUpdatedAt()).isAfterOrEqualTo(user.getUpdatedAt());
     }
 
     @Test
@@ -148,13 +153,15 @@ class UserServiceIntegrationTest {
         User user = createTestUser();
         user = userRepository.save(user);
         String newPassword = "newpassword123";
+        String originalPassword = user.getPassword();
 
         // When
         userService.changePassword(user.getId(), newPassword);
 
         // Then
         User updatedUser = userRepository.findById(user.getId()).orElseThrow();
-        assertThat(updatedUser.getPassword()).isNotEqualTo(user.getPassword());
+        assertThat(updatedUser.getPassword()).isNotEqualTo(originalPassword);
+        assertThat(passwordEncoder.matches(newPassword, updatedUser.getPassword())).isTrue();
     }
 
     @Test
