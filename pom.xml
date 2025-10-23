@@ -45,6 +45,7 @@
         <resilience4j.version>2.3.0</resilience4j.version>
         <testcontainers.version>1.21.3</testcontainers.version>
         <spring-boot.version>3.5.6</spring-boot.version>
+        <spring-cloud-contract.version>4.2.1</spring-cloud-contract.version>
     </properties>
     
     <dependencyManagement>
@@ -70,6 +71,13 @@
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
                 <version>1.21.3</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-contract-dependencies</artifactId>
+                <version>${spring-cloud-contract.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -177,6 +185,12 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.2.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.cloud</groupId>
+                    <artifactId>spring-cloud-contract-maven-plugin</artifactId>
+                    <version>${spring-cloud-contract.version}</version>
+                    <extensions>true</extensions>
                 </plugin>
             </plugins>
         </pluginManagement>
