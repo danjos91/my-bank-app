@@ -1,0 +1,32 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: classpath:/config
+        git:
+          uri: https://github.com/your-repo/bank-app-config.git
+          default-label: main
+          search-paths: config
+      fail-fast: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh,configprops
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.config: DEBUG
+    org.springframework.security: DEBUG
