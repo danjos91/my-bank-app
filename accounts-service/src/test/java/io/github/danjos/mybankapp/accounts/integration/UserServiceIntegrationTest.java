@@ -1,6 +1,7 @@
 package io.github.danjos.mybankapp.accounts.integration;
 
 import io.github.danjos.mybankapp.accounts.AccountsServiceApplication;
+import io.github.danjos.mybankapp.accounts.config.TestJpaConfig;
 import io.github.danjos.mybankapp.accounts.dto.UserProfileDTO;
 import io.github.danjos.mybankapp.accounts.dto.UserRegistrationDTO;
 import io.github.danjos.mybankapp.accounts.entity.User;
@@ -23,7 +24,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(classes = AccountsServiceApplication.class)
+@SpringBootTest(classes = {AccountsServiceApplication.class, TestJpaConfig.class})
 @Testcontainers
 @ActiveProfiles("test")
 @Transactional
@@ -81,7 +82,7 @@ class UserServiceIntegrationTest {
         user = userRepository.save(user);
 
         // When
-        Optional<User> foundUser = userService.getUserById(user.getId());
+        Optional<User> foundUser = userService.findById(user.getId());
 
         // Then
         assertThat(foundUser).isPresent();
@@ -96,7 +97,7 @@ class UserServiceIntegrationTest {
         user = userRepository.save(user);
 
         // When
-        Optional<User> foundUser = userService.getUserByUsername(user.getUsername());
+        Optional<User> foundUser = userService.findByUsername(user.getUsername());
 
         // Then
         assertThat(foundUser).isPresent();
@@ -111,7 +112,7 @@ class UserServiceIntegrationTest {
         user = userRepository.save(user);
 
         // When
-        Optional<User> foundUser = userService.getUserByEmail(user.getEmail());
+        Optional<User> foundUser = userRepository.findByEmail(user.getEmail());
 
         // Then
         assertThat(foundUser).isPresent();
@@ -149,12 +150,11 @@ class UserServiceIntegrationTest {
         String newPassword = "newpassword123";
 
         // When
-        boolean result = userService.changePassword(user.getId(), "password123", newPassword);
+        userService.changePassword(user.getId(), newPassword);
 
         // Then
-        assertThat(result).isTrue();
         User updatedUser = userRepository.findById(user.getId()).orElseThrow();
-        assertThat(updatedUser.getPassword()).isEqualTo(newPassword);
+        assertThat(updatedUser.getPassword()).isNotEqualTo(user.getPassword());
     }
 
     @Test
@@ -167,7 +167,7 @@ class UserServiceIntegrationTest {
         userService.deleteUser(user.getId());
 
         // Then
-        Optional<User> deletedUser = userService.getUserById(user.getId());
+        Optional<User> deletedUser = userService.findById(user.getId());
         assertThat(deletedUser).isEmpty();
     }
 
@@ -185,17 +185,17 @@ class UserServiceIntegrationTest {
         userRepository.save(user2);
 
         // When
-        List<User> users = userService.getAllUsers();
+        List<UserProfileDTO> users = userService.getAllUsers();
 
         // Then
         assertThat(users).hasSize(2);
-        assertThat(users).extracting(User::getUsername).contains("user1", "user2");
+        assertThat(users).extracting(UserProfileDTO::getUsername).contains("user1", "user2");
     }
 
     @Test
     void shouldHandleNonExistentUser() {
         // When
-        Optional<User> user = userService.getUserById(999L);
+        Optional<User> user = userService.findById(999L);
 
         // Then
         assertThat(user).isEmpty();

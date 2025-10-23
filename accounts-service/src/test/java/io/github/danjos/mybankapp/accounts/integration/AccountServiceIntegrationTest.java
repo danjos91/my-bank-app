@@ -1,6 +1,7 @@
 package io.github.danjos.mybankapp.accounts.integration;
 
 import io.github.danjos.mybankapp.accounts.AccountsServiceApplication;
+import io.github.danjos.mybankapp.accounts.config.TestJpaConfig;
 import io.github.danjos.mybankapp.accounts.entity.Account;
 import io.github.danjos.mybankapp.accounts.entity.User;
 import io.github.danjos.mybankapp.accounts.repository.AccountRepository;
@@ -24,7 +25,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(classes = AccountsServiceApplication.class)
+@SpringBootTest(classes = {AccountsServiceApplication.class, TestJpaConfig.class})
 @Testcontainers
 @ActiveProfiles("test")
 @Transactional
@@ -114,7 +115,7 @@ class AccountServiceIntegrationTest {
         BigDecimal newBalance = new BigDecimal("100.50");
 
         // When
-        Account updatedAccount = accountService.updateAccountBalance(account.getId(), newBalance);
+        Account updatedAccount = accountService.updateBalance(account.getId(), newBalance);
 
         // Then
         assertThat(updatedAccount.getBalance()).isEqualTo(newBalance);

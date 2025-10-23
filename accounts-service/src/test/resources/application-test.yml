@@ -1,4 +1,7 @@
 spring:
+  cloud:
+    config:
+      enabled: false
   datasource:
     url: jdbc:postgresql://localhost:5432/testdb
     username: test
@@ -13,10 +16,15 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: public
   
   test:
     database:
       replace: none
+
+eureka:
+  client:
+    enabled: false
 
 logging:
   level:
