@@ -31,6 +31,7 @@ public class Account {
     
     @Column(name = "balance", nullable = false, precision = 19, scale = 2)
     @DecimalMin(value = "0.00", message = "Balance cannot be negative")
+    @Builder.Default
     private BigDecimal balance = BigDecimal.ZERO;
     
     @CreationTimestamp

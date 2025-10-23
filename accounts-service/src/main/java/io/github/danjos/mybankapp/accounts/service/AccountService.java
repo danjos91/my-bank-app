@@ -28,7 +28,9 @@ public class AccountService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         
-        Account account = new Account(user);
+        Account account = Account.builder()
+                .user(user)
+                .build();
         return accountRepository.save(account);
     }
     

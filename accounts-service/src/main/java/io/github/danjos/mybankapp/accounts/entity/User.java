@@ -76,7 +76,7 @@ public class User {
     
     public double getTotalBalance() {
         return accounts.stream()
-                .mapToDouble(Account::getBalance)
+                .mapToDouble(account -> account.getBalance().doubleValue())
                 .sum();
     }
 }
