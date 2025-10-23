@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/testdb
+    username: test
+    password: test
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  
+  test:
+    database:
+      replace: none
+
+logging:
+  level:
+    org.springframework.test: DEBUG
+    org.testcontainers: DEBUG
+    io.github.danjos.mybankapp: DEBUG
