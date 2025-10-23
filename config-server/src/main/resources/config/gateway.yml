@@ -1,0 +1,68 @@
+# Gateway specific configuration
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: accounts-service
+          uri: lb://accounts-service
+          predicates:
+            - Path=/api/accounts/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: accounts-service
+                fallbackUri: forward:/fallback/accounts
+        - id: cash-service
+          uri: lb://cash-service
+          predicates:
+            - Path=/api/cash/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: cash-service
+                fallbackUri: forward:/fallback/cash
+        - id: transfer-service
+          uri: lb://transfer-service
+          predicates:
+            - Path=/api/transfer/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: transfer-service
+                fallbackUri: forward:/fallback/transfer
+        - id: notifications-service
+          uri: lb://notifications-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: notifications-service
+                fallbackUri: forward:/fallback/notifications
+        - id: front-ui
+          uri: lb://front-ui
+          predicates:
+            - Path=/**
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+
+# Gateway specific settings
+gateway:
+  service:
+    name: gateway
+    port: 8080
+  security:
+    oauth2:
+      enabled: true
+      issuer-uri: http://localhost:9000
+  fallback:
+    enabled: true
+    timeout: 5000

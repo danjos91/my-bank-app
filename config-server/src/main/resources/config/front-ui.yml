@@ -1,0 +1,41 @@
+# Front UI specific configuration
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          bank-app:
+            client-id: front-ui-client
+            client-secret: front-ui-secret
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope: read,write
+        provider:
+          bank-app:
+            authorization-uri: http://localhost:9000/oauth2/authorize
+            token-uri: http://localhost:9000/oauth2/token
+            user-info-uri: http://localhost:9000/userinfo
+            user-name-attribute: sub
+    user:
+      name-attribute: sub
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+
+# Front UI specific settings
+front-ui:
+  service:
+    name: front-ui
+    port: 8085
+  security:
+    oauth2:
+      enabled: true
+      issuer-uri: http://localhost:9000
+  ui:
+    title: "Bank Application"
+    version: "1.0.0"
+    theme: "bootstrap"
+  api:
+    base-url: http://localhost:8080
+    timeout: 30000

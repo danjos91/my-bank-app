@@ -1,0 +1,54 @@
+# Auth Server specific configuration
+spring:
+  security:
+    oauth2:
+      authorization-server:
+        issuer: http://localhost:9000
+        client:
+          registration:
+            accounts-service:
+              client-id: accounts-service-client
+              client-secret: accounts-service-secret
+              authorization-grant-type: client_credentials
+              scope: read,write
+            cash-service:
+              client-id: cash-service-client
+              client-secret: cash-service-secret
+              authorization-grant-type: client_credentials
+              scope: read,write
+            transfer-service:
+              client-id: transfer-service-client
+              client-secret: transfer-service-secret
+              authorization-grant-type: client_credentials
+              scope: read,write
+            notifications-service:
+              client-id: notifications-service-client
+              client-secret: notifications-service-secret
+              authorization-grant-type: client_credentials
+              scope: read,write
+            front-ui:
+              client-id: front-ui-client
+              client-secret: front-ui-secret
+              authorization-grant-type: authorization_code
+              redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+              scope: read,write
+        provider:
+          bank-app:
+            authorization-uri: http://localhost:9000/oauth2/authorize
+            token-uri: http://localhost:9000/oauth2/token
+            user-info-uri: http://localhost:9000/userinfo
+            user-name-attribute: sub
+
+# Auth server specific settings
+auth:
+  service:
+    name: auth-server
+    port: 9000
+  jwt:
+    issuer: http://localhost:9000
+    audience: bank-app
+    expiration: 3600
+  user:
+    password:
+      encoder: bcrypt
+      strength: 10

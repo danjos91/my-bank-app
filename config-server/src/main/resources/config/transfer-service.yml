@@ -1,0 +1,34 @@
+# Transfer Service specific configuration
+spring:
+  jpa:
+    properties:
+      hibernate:
+        default_schema: transfer_schema
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:9000
+
+# Transfer service specific settings
+transfer:
+  service:
+    name: transfer-service
+    port: 8083
+  database:
+    schema: transfer_schema
+  security:
+    jwt:
+      audience: transfer-service
+      scope: read,write
+  resilience4j:
+    circuit-breaker:
+      failure-rate-threshold: 50
+      wait-duration-in-open-state: 30s
+      sliding-window-size: 10
+    retry:
+      max-attempts: 3
+      wait-duration: 1s
+  transaction:
+    timeout: 30s
+    max-retries: 3

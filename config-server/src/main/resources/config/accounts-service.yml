@@ -1,0 +1,23 @@
+# Accounts Service specific configuration
+spring:
+  jpa:
+    properties:
+      hibernate:
+        default_schema: accounts_schema
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:9000
+
+# Accounts service specific settings
+accounts:
+  service:
+    name: accounts-service
+    port: 8081
+  database:
+    schema: accounts_schema
+  security:
+    jwt:
+      audience: accounts-service
+      scope: read,write

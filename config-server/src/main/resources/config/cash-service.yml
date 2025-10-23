@@ -1,0 +1,31 @@
+# Cash Service specific configuration
+spring:
+  jpa:
+    properties:
+      hibernate:
+        default_schema: cash_schema
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:9000
+
+# Cash service specific settings
+cash:
+  service:
+    name: cash-service
+    port: 8082
+  database:
+    schema: cash_schema
+  security:
+    jwt:
+      audience: cash-service
+      scope: read,write
+  resilience4j:
+    circuit-breaker:
+      failure-rate-threshold: 50
+      wait-duration-in-open-state: 30s
+      sliding-window-size: 10
+    retry:
+      max-attempts: 3
+      wait-duration: 1s

@@ -1,0 +1,35 @@
+# Notifications Service specific configuration
+spring:
+  jpa:
+    properties:
+      hibernate:
+        default_schema: notifications_schema
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:9000
+
+# Notifications service specific settings
+notifications:
+  service:
+    name: notifications-service
+    port: 8084
+  database:
+    schema: notifications_schema
+  security:
+    jwt:
+      audience: notifications-service
+      scope: read,write
+  email:
+    enabled: false
+    smtp:
+      host: localhost
+      port: 587
+      username: notifications@bank.com
+      password: password
+  templates:
+    deposit-success: "Deposit of ${amount} completed successfully"
+    withdrawal-success: "Withdrawal of ${amount} completed successfully"
+    transfer-sent: "Transfer of ${amount} sent to account ${toAccount}"
+    transfer-received: "Transfer of ${amount} received from account ${fromAccount}"
