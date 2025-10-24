@@ -1,0 +1,271 @@
+version: '3.8'
+
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: mybank-postgres
+    environment:
+      POSTGRES_DB: mybank
+      POSTGRES_USER: mybank
+      POSTGRES_PASSWORD: mybank123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init-database.sql:/docker-entrypoint-initdb.d/init-database.sql
+    networks:
+      - mybank-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mybank -d mybank"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: mybank-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mybank-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Config Server
+  config-server:
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
+    container_name: mybank-config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mybank-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Eureka Server
+  eureka-server:
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
+    container_name: mybank-eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      config-server:
+        condition: service_healthy
+    networks:
+      - mybank-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Auth Server
+  auth-server:
+    build:
+      context: .
+      dockerfile: auth-server/Dockerfile
+    container_name: mybank-auth-server
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - mybank-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Accounts Service
+  accounts-service:
+    build:
+      context: .
+      dockerfile: accounts-service/Dockerfile
+    container_name: mybank-accounts-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - mybank-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Cash Service
+  cash-service:
+    build:
+      context: .
+      dockerfile: cash-service/Dockerfile
+    container_name: mybank-cash-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      accounts-service:
+        condition: service_healthy
+    networks:
+      - mybank-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Transfer Service
+  transfer-service:
+    build:
+      context: .
+      dockerfile: transfer-service/Dockerfile
+    container_name: mybank-transfer-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      accounts-service:
+        condition: service_healthy
+      cash-service:
+        condition: service_healthy
+    networks:
+      - mybank-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Notifications Service
+  notifications-service:
+    build:
+      context: .
+      dockerfile: notifications-service/Dockerfile
+    container_name: mybank-notifications-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - mybank-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # API Gateway
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: mybank-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      auth-server:
+        condition: service_healthy
+      accounts-service:
+        condition: service_healthy
+      cash-service:
+        condition: service_healthy
+      transfer-service:
+        condition: service_healthy
+      notifications-service:
+        condition: service_healthy
+    networks:
+      - mybank-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Front UI
+  front-ui:
+    build:
+      context: .
+      dockerfile: front-ui/Dockerfile
+    container_name: mybank-front-ui
+    ports:
+      - "8086:8086"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - mybank-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  mybank-network:
+    driver: bridge

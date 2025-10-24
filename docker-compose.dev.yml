@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: mybank-postgres-dev
+    environment:
+      POSTGRES_DB: mybank
+      POSTGRES_USER: mybank
+      POSTGRES_PASSWORD: mybank123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./database/init-database.sql:/docker-entrypoint-initdb.d/init-database.sql
+    networks:
+      - mybank-network-dev
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: mybank-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    networks:
+      - mybank-network-dev
+
+  # Config Server
+  config-server:
+    image: openjdk:21-jre-slim
+    container_name: mybank-config-server-dev
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./config-server/target:/app
+    working_dir: /app
+    command: java -jar *.jar
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      - postgres
+    networks:
+      - mybank-network-dev
+
+  # Eureka Server
+  eureka-server:
+    image: openjdk:21-jre-slim
+    container_name: mybank-eureka-server-dev
+    ports:
+      - "8761:8761"
+    volumes:
+      - ./eureka-server/target:/app
+    working_dir: /app
+    command: java -jar *.jar
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      - config-server
+    networks:
+      - mybank-network-dev
+
+volumes:
+  postgres_data_dev:
+  redis_data_dev:
+
+networks:
+  mybank-network-dev:
+    driver: bridge
