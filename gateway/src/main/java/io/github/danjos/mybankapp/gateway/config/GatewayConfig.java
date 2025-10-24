@@ -21,7 +21,10 @@ public class GatewayConfig {
                         .filters(f -> f
                                 .stripPrefix(1)
                                 .filter(loggingFilter.apply(new LoggingGatewayFilterFactory.Config()))
-                                .filter(rateLimitingFilter.apply(c -> c.setMaxRequests(50).setWindowSizeInSeconds(60)))
+                                .filter(rateLimitingFilter.apply(c -> {
+                                    c.setMaxRequests(50);
+                                    c.setWindowSizeInSeconds(60);
+                                }))
                                 .circuitBreaker(config -> config
                                         .setName("auth-server")
                                         .setFallbackUri("forward:/fallback/auth")
@@ -35,7 +38,10 @@ public class GatewayConfig {
                         .path("/api/accounts/**")
                         .filters(f -> f
                                 .filter(loggingFilter.apply(new LoggingGatewayFilterFactory.Config()))
-                                .filter(rateLimitingFilter.apply(c -> c.setMaxRequests(100).setWindowSizeInSeconds(60)))
+                                .filter(rateLimitingFilter.apply(c -> {
+                                    c.setMaxRequests(100);
+                                    c.setWindowSizeInSeconds(60);
+                                }))
                                 .circuitBreaker(config -> config
                                         .setName("accounts-service")
                                         .setFallbackUri("forward:/fallback/accounts")
@@ -50,7 +56,10 @@ public class GatewayConfig {
                         .path("/api/cash/**")
                         .filters(f -> f
                                 .filter(loggingFilter.apply(new LoggingGatewayFilterFactory.Config()))
-                                .filter(rateLimitingFilter.apply(c -> c.setMaxRequests(80).setWindowSizeInSeconds(60)))
+                                .filter(rateLimitingFilter.apply(c -> {
+                                    c.setMaxRequests(80);
+                                    c.setWindowSizeInSeconds(60);
+                                }))
                                 .circuitBreaker(config -> config
                                         .setName("cash-service")
                                         .setFallbackUri("forward:/fallback/cash")
@@ -65,7 +74,10 @@ public class GatewayConfig {
                         .path("/api/transfers/**")
                         .filters(f -> f
                                 .filter(loggingFilter.apply(new LoggingGatewayFilterFactory.Config()))
-                                .filter(rateLimitingFilter.apply(c -> c.setMaxRequests(60).setWindowSizeInSeconds(60)))
+                                .filter(rateLimitingFilter.apply(c -> {
+                                    c.setMaxRequests(60);
+                                    c.setWindowSizeInSeconds(60);
+                                }))
                                 .circuitBreaker(config -> config
                                         .setName("transfer-service")
                                         .setFallbackUri("forward:/fallback/transfers")
@@ -80,7 +92,10 @@ public class GatewayConfig {
                         .path("/api/notifications/**")
                         .filters(f -> f
                                 .filter(loggingFilter.apply(new LoggingGatewayFilterFactory.Config()))
-                                .filter(rateLimitingFilter.apply(c -> c.setMaxRequests(200).setWindowSizeInSeconds(60)))
+                                .filter(rateLimitingFilter.apply(c -> {
+                                    c.setMaxRequests(200);
+                                    c.setWindowSizeInSeconds(60);
+                                }))
                                 .circuitBreaker(config -> config
                                         .setName("notifications-service")
                                         .setFallbackUri("forward:/fallback/notifications")
@@ -95,7 +110,10 @@ public class GatewayConfig {
                         .path("/ui/**", "/", "/login", "/register", "/dashboard", "/profile", "/transactions")
                         .filters(f -> f
                                 .filter(loggingFilter.apply(new LoggingGatewayFilterFactory.Config()))
-                                .filter(rateLimitingFilter.apply(c -> c.setMaxRequests(150).setWindowSizeInSeconds(60)))
+                                .filter(rateLimitingFilter.apply(c -> {
+                                    c.setMaxRequests(150);
+                                    c.setWindowSizeInSeconds(60);
+                                }))
                                 .circuitBreaker(config -> config
                                         .setName("front-ui")
                                         .setFallbackUri("forward:/fallback/ui")
