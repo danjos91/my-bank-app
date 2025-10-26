@@ -1,6 +1,5 @@
 package io.github.danjos.mybankapp.cash.client;
 
-import io.github.danjos.mybankapp.cash.dto.AccountBalanceDTO;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
