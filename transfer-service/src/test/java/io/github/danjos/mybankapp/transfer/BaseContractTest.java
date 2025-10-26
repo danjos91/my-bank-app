@@ -46,7 +46,7 @@ public abstract class BaseContractTest {
                 .description("Test transfer")
                 .status(Transfer.TransferStatus.COMPLETED)
                 .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .completedAt(LocalDateTime.now())
                 .build();
         testTransfer = transferRepository.save(testTransfer);
     }
