@@ -44,7 +44,7 @@ public abstract class BaseContractTest {
                 .amount(new BigDecimal("100.00"))
                 .transactionType(CashTransaction.TransactionType.DEPOSIT)
                 .description("Test deposit")
-                .transactionDate(LocalDateTime.now())
+                .timestamp(LocalDateTime.now())
                 .build();
         testTransaction = cashTransactionRepository.save(testTransaction);
     }
