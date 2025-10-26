@@ -40,12 +40,10 @@ public abstract class BaseContractTest {
         // Create a test notification
         testNotification = Notification.builder()
                 .userId(1L)
-                .type(Notification.NotificationType.INFO)
+                .notificationType(Notification.NotificationType.ACCOUNT_CREATED)
                 .title("Test Notification")
                 .message("This is a test notification")
                 .isRead(false)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
                 .build();
         testNotification = notificationRepository.save(testNotification);
     }
