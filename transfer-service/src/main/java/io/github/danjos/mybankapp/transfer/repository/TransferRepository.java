@@ -21,6 +21,8 @@ public interface TransferRepository extends JpaRepository<Transfer, Long> {
     
     List<Transfer> findByFromAccountIdOrToAccountIdOrderByCreatedAtDesc(Long fromAccountId, Long toAccountId);
     
+    Page<Transfer> findByFromAccountIdOrToAccountIdOrderByCreatedAtDesc(Long fromAccountId, Long toAccountId, Pageable pageable);
+    
     Page<Transfer> findByFromAccountIdOrderByCreatedAtDesc(Long fromAccountId, Pageable pageable);
     
     Page<Transfer> findByToAccountIdOrderByCreatedAtDesc(Long toAccountId, Pageable pageable);
