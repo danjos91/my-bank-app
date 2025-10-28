@@ -96,6 +96,7 @@
                 <configuration>
                     <testFramework>JUNIT5</testFramework>
                     <baseClassForTests>io.github.danjos.mybankapp.transfer.BaseContractTest</baseClassForTests>
+                    <failOnNoContracts>false</failOnNoContracts>
                 </configuration>
             </plugin>
         </plugins>

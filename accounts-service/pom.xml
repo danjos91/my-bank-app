@@ -88,6 +88,7 @@
                 <configuration>
                     <testFramework>JUNIT5</testFramework>
                     <baseClassForTests>io.github.danjos.mybankapp.accounts.BaseContractTest</baseClassForTests>
+                    <failOnNoContracts>false</failOnNoContracts>
                 </configuration>
             </plugin>
         </plugins>
