@@ -4,6 +4,14 @@ server:
 spring:
   application:
     name: eureka-server
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+  datasource:
+    url: ""
+    driver-class-name: ""
 
 eureka:
   instance:

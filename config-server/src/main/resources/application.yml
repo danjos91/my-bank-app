@@ -6,16 +6,21 @@ spring:
     name: config-server
   profiles:
     active: native
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
+  datasource:
+    url: ""
+    driver-class-name: ""
   cloud:
     config:
       server:
         native:
-          search-locations: classpath:/config
-        git:
-          uri: https://github.com/your-repo/bank-app-config.git
-          default-label: main
-          search-paths: config
-      fail-fast: true
+          search-locations: file:classpath:/config
 
 management:
   endpoints:

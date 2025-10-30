@@ -13,7 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init-database.sql:/docker-entrypoint-initdb.d/init-database.sql
+      - ./database:/docker-entrypoint-initdb.d
     networks:
       - mybank-network
     healthcheck:
@@ -47,7 +47,8 @@ services:
     ports:
       - "8888:8888"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_PROFILES_ACTIVE=native
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=classpath:/config
     depends_on:
       postgres:
         condition: service_healthy
@@ -116,6 +117,9 @@ services:
       - "8081:8081"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CONFIG_IMPORT=configserver:http://mybank-config-server:8888
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://mybank-postgres:5432/bank_app_db
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://mybank-eureka-server:8761/eureka/
     depends_on:
       eureka-server:
         condition: service_healthy

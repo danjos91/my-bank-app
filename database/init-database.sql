@@ -15,10 +15,10 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- This follows the Database per Service pattern
 
 -- Run all schema creation scripts
-\i schemas/accounts_schema.sql
-\i schemas/cash_schema.sql
-\i schemas/transfer_schema.sql
-\i schemas/notifications_schema.sql
+\i /docker-entrypoint-initdb.d/schemas/accounts_schema.sql
+\i /docker-entrypoint-initdb.d/schemas/cash_schema.sql
+\i /docker-entrypoint-initdb.d/schemas/transfer_schema.sql
+\i /docker-entrypoint-initdb.d/schemas/notifications_schema.sql
 
 -- Create a view for cross-schema queries (if needed for reporting)
 -- This view shows user information with their account balance

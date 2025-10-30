@@ -1,7 +1,5 @@
 # Common configuration for all microservices
 spring:
-  profiles:
-    active: dev
   cloud:
     config:
       enabled: true

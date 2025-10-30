@@ -4,11 +4,13 @@ server:
 spring:
   application:
     name: accounts-service
+  config:
+    import: configserver:http://mybank-config-server:8888
   cloud:
     config:
       enabled: true
       fail-fast: true
-      uri: http://localhost:8888
+      uri: http://mybank-config-server:8888
   datasource:
     url: jdbc:postgresql://localhost:5432/bank_app_db
     username: bank_app_user
