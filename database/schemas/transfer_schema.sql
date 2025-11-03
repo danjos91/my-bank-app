@@ -43,7 +43,6 @@ CREATE TABLE IF NOT EXISTS transfer_events (
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_transfers_from_account ON transfers(from_account_id);
 CREATE INDEX IF NOT EXISTS idx_transfers_to_account ON transfers(to_account_id);
-CREATE INDEX IF NOT EXISTS idx_transfers_status ON transfers(status);
 CREATE INDEX IF NOT EXISTS idx_transfers_created_at ON transfers(created_at);
 CREATE INDEX IF NOT EXISTS idx_transfer_events_transfer_id ON transfer_events(transfer_id);
 CREATE INDEX IF NOT EXISTS idx_transfer_events_timestamp ON transfer_events(timestamp);
