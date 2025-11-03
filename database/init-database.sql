@@ -53,11 +53,6 @@ LEFT JOIN accounts_schema.accounts a ON u.id = a.user_id;
 -- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA transfer_schema TO bank_app_user;
 -- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA notifications_schema TO bank_app_user;
 
--- Create indexes for cross-schema performance
-CREATE INDEX IF NOT EXISTS idx_cash_transactions_account_id ON cash_schema.cash_transactions(account_id);
-CREATE INDEX IF NOT EXISTS idx_transfers_from_account ON transfer_schema.transfers(from_account_id);
-CREATE INDEX IF NOT EXISTS idx_transfers_to_account ON transfer_schema.transfers(to_account_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications_schema.notifications_log(user_id);
 
 -- Insert some sample data for testing
 -- This will be used for development and testing purposes

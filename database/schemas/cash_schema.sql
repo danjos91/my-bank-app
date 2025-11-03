@@ -21,10 +21,9 @@ CREATE TABLE IF NOT EXISTS cash_transactions (
     CONSTRAINT cash_transactions_amount_positive CHECK (amount > 0)
 );
 
--- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_cash_transactions_account_id ON cash_transactions(account_id);
-CREATE INDEX IF NOT EXISTS idx_cash_transactions_timestamp ON cash_transactions(timestamp);
-CREATE INDEX IF NOT EXISTS idx_cash_transactions_type ON cash_transactions(transaction_type);
+CREATE INDEX IF NOT EXISTS idx_cash_transactions_account_timestamp ON cash_transactions(account_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_cash_transactions_account_type ON cash_transactions(account_id, transaction_type);
 
 -- Function to validate account exists (will be called from service)
 CREATE OR REPLACE FUNCTION validate_account_exists(account_id_param BIGINT)
