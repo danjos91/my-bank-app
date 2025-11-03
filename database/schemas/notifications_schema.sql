@@ -48,10 +48,7 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications_log(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications_log(notification_type);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications_log(created_at);
-CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications_log(is_read);
-CREATE INDEX IF NOT EXISTS idx_notification_preferences_user_id ON notification_preferences(user_id);
 
 -- Trigger for updated_at timestamp
 CREATE OR REPLACE FUNCTION update_notification_preferences_updated_at()
