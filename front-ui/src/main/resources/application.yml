@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: front-ui
+  config:
+    import: configserver:http://localhost:8888
   cloud:
     config:
       enabled: true

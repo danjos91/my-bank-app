@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: cash-service
+  config:
+    import: configserver:http://localhost:8888
   cloud:
     config:
       enabled: true
