@@ -38,20 +38,20 @@ FROM accounts_schema.users u
 LEFT JOIN accounts_schema.accounts a ON u.id = a.user_id;
 
 -- Grant permissions (adjust as needed for your security requirements)
--- GRANT USAGE ON SCHEMA accounts_schema TO bank_app_user;
--- GRANT USAGE ON SCHEMA cash_schema TO bank_app_user;
--- GRANT USAGE ON SCHEMA transfer_schema TO bank_app_user;
--- GRANT USAGE ON SCHEMA notifications_schema TO bank_app_user;
+GRANT USAGE ON SCHEMA accounts_schema TO bank_app_user;
+GRANT USAGE ON SCHEMA cash_schema TO bank_app_user;
+GRANT USAGE ON SCHEMA transfer_schema TO bank_app_user;
+GRANT USAGE ON SCHEMA notifications_schema TO bank_app_user;
 
--- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA accounts_schema TO bank_app_user;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA cash_schema TO bank_app_user;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA transfer_schema TO bank_app_user;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA notifications_schema TO bank_app_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA accounts_schema TO bank_app_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA cash_schema TO bank_app_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA transfer_schema TO bank_app_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA notifications_schema TO bank_app_user;
 
--- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA accounts_schema TO bank_app_user;
--- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA cash_schema TO bank_app_user;
--- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA transfer_schema TO bank_app_user;
--- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA notifications_schema TO bank_app_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA accounts_schema TO bank_app_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA cash_schema TO bank_app_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA transfer_schema TO bank_app_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA notifications_schema TO bank_app_user;
 
 
 -- Insert some sample data for testing
