@@ -120,11 +120,15 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_CONFIG_IMPORT=configserver:http://mybank-config-server:8888
       - SPRING_DATASOURCE_URL=jdbc:postgresql://mybank-postgres:5432/bank_app_db
+      - SPRING_DATA_REDIS_HOST=mybank-redis
+      - SPRING_DATA_REDIS_PORT=6379
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://mybank-eureka-server:8761/eureka/
     depends_on:
       eureka-server:
         condition: service_healthy
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mybank-network
