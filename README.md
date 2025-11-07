@@ -33,6 +33,8 @@ This application follows a microservices architecture pattern with the following
 - **PostgreSQL** (Port 5432) - Primary database
 - **Redis** (Port 6379) - Caching and session storage
 
+Look for data flow diagram at the end of this readme.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -171,3 +173,26 @@ curl -X POST http://localhost:8085/oauth/token \
 | Config | 8888 | Configuration Server |
 | PostgreSQL | 5432 | Database |
 | Redis | 6379 | Cache |
+
+## 📊 **DATA FLOW DIAGRAM**
+
+```
+Client Request
+    ↓
+Front UI (8086)
+    ↓
+Gateway (8080) [Routes + Security + Circuit Breaker]
+    ↓
+    ├─→ Accounts Service (8081) ──→ PostgreSQL (accounts_schema)
+    ├─→ Cash Service (8082) ──→ PostgreSQL (cash_schema)
+    │                              └─→ Accounts Service
+    ├─→ Transfer Service (8083) ─→ PostgreSQL (transfer_schema)
+    │                              └─→ Accounts Service
+    └─→ Notifications Service (8084) ─→ PostgreSQL (notifications_schema)
+
+All services discover each other via Eureka (8761)
+All services get config from Config Server (8888)
+Auth Server (8085) validates tokens
+```
+
+---
