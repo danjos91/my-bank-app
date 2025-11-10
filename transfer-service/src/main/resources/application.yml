@@ -6,6 +6,9 @@ spring:
     name: transfer-service
   config:
     import: configserver:http://localhost:8888
+  autoconfigure:
+    exclude:
+      - io.github.resilience4j.springboot3.fallback.autoconfigure.FallbackAutoConfiguration
   cloud:
     config:
       enabled: true
@@ -40,6 +43,8 @@ eureka:
     prefer-ip-address: true
 
 resilience4j:
+  fallback:
+    enabled: false
   circuitbreaker:
     instances:
       accounts-service:
