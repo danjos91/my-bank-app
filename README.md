@@ -14,26 +14,7 @@
 
 A comprehensive microservices-based banking application built with Spring Boot, featuring user management, account operations, money transfers, and real-time notifications.
 
-## 🏗️ Architecture
 
-This application follows a microservices architecture pattern with the following components:
-
-### Core Services
-- **Gateway Service** (Port 8080) - API Gateway with routing and load balancing
-- **Accounts Service** (Port 8081) - User and account management
-- **Cash Service** (Port 8082) - Deposit and withdrawal operations
-- **Transfer Service** (Port 8083) - Money transfers between accounts
-- **Notifications Service** (Port 8084) - Real-time notifications
-- **Auth Server** (Port 8085) - OAuth2 authentication and authorization
-- **Front UI** (Port 8086) - Web-based user interface
-
-### Infrastructure Services
-- **Eureka Server** (Port 8761) - Service discovery and registration
-- **Config Server** (Port 8888) - Centralized configuration management
-- **PostgreSQL** (Port 5432) - Primary database
-- **Redis** (Port 6379) - Caching and session storage
-
-Look for data flow diagram at the end of this readme.
 
 ## 🚀 Quick Start
 
@@ -143,6 +124,26 @@ make dev-up
 # Stop development services
 make dev-down
 ```
+## 🏗️ Architecture
+
+This application follows a microservices architecture pattern with the following components:
+
+### Core Services
+- **Gateway Service** (Port 8080) - API Gateway with routing and load balancing
+- **Accounts Service** (Port 8081) - User and account management
+- **Cash Service** (Port 8082) - Deposit and withdrawal operations
+- **Transfer Service** (Port 8083) - Money transfers between accounts
+- **Notifications Service** (Port 8084) - Real-time notifications
+- **Auth Server** (Port 8085) - OAuth2 authentication and authorization
+- **Front UI** (Port 8086) - Web-based user interface
+
+### Infrastructure Services
+- **Eureka Server** (Port 8761) - Service discovery and registration
+- **Config Server** (Port 8888) - Centralized configuration management
+- **PostgreSQL** (Port 5432) - Primary database
+- **Redis** (Port 6379) - Caching and session storage
+
+Look for data flow diagram at the end of this readme.
 
 ## 📊 API Documentation
 
