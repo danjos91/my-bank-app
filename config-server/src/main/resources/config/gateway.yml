@@ -62,7 +62,7 @@ gateway:
   security:
     oauth2:
       enabled: true
-      issuer-uri: http://localhost:9000
+      issuer-uri: http://auth-server:8085
   fallback:
     enabled: true
     timeout: 5000

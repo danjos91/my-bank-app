@@ -4,8 +4,6 @@ server:
 spring:
   application:
     name: gateway
-  config:
-    import: configserver:http://localhost:8888
   autoconfigure:
     exclude:
       - io.github.resilience4j.springboot3.fallback.autoconfigure.FallbackAutoConfiguration
@@ -13,7 +11,6 @@ spring:
     config:
       enabled: true
       fail-fast: true
-      uri: http://localhost:8888
     gateway:
       routes:
         - id: accounts-service
@@ -58,7 +55,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://eureka-server:8761/eureka/
   instance:
     prefer-ip-address: true
 

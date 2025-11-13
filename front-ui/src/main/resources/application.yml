@@ -4,13 +4,10 @@ server:
 spring:
   application:
     name: front-ui
-  config:
-    import: configserver:http://localhost:8888
   cloud:
     config:
       enabled: true
       fail-fast: true
-      uri: http://localhost:8888
   security:
     oauth2:
       client:
@@ -23,9 +20,9 @@ spring:
             scope: read,write
         provider:
           bank-app:
-            authorization-uri: http://localhost:9000/oauth2/authorize
-            token-uri: http://localhost:9000/oauth2/token
-            user-info-uri: http://localhost:9000/userinfo
+            authorization-uri: http://auth-server:8085/oauth2/authorize
+            token-uri: http://auth-server:8085/oauth2/token
+            user-info-uri: http://auth-server:8085/userinfo
             user-name-attribute: sub
     user:
       name-attribute: sub
@@ -37,7 +34,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://eureka-server:8761/eureka/
   instance:
     prefer-ip-address: true
 

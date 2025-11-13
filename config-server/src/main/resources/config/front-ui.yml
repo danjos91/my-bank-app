@@ -12,9 +12,9 @@ spring:
             scope: read,write
         provider:
           bank-app:
-            authorization-uri: http://localhost:9000/oauth2/authorize
-            token-uri: http://localhost:9000/oauth2/token
-            user-info-uri: http://localhost:9000/userinfo
+            authorization-uri: http://auth-server:8085/oauth2/authorize
+            token-uri: http://auth-server:8085/oauth2/token
+            user-info-uri: http://auth-server:8085/userinfo
             user-name-attribute: sub
     user:
       name-attribute: sub
@@ -31,11 +31,11 @@ front-ui:
   security:
     oauth2:
       enabled: true
-      issuer-uri: http://localhost:9000
+      issuer-uri: http://auth-server:8085
   ui:
     title: "Bank Application"
     version: "1.0.0"
     theme: "bootstrap"
   api:
-    base-url: http://localhost:8080
+    base-url: http://gateway:8080
     timeout: 30000

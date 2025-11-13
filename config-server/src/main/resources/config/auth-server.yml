@@ -3,7 +3,7 @@ spring:
   security:
     oauth2:
       authorization-server:
-        issuer: http://localhost:9000
+        issuer: http://auth-server:8085
         client:
           registration:
             accounts-service:
@@ -34,9 +34,11 @@ spring:
               scope: read,write
         provider:
           bank-app:
-            authorization-uri: http://localhost:9000/oauth2/authorize
-            token-uri: http://localhost:9000/oauth2/token
-            user-info-uri: http://localhost:9000/userinfo
+
+
+            authorization-uri: http://auth-server:8085/oauth2/authorize
+            token-uri: http://auth-server:8085/oauth2/token
+            user-info-uri: http://auth-server:8085/userinfo
             user-name-attribute: sub
 
 # Auth server specific settings
@@ -45,7 +47,7 @@ auth:
     name: auth-server
     port: 9000
   jwt:
-    issuer: http://localhost:9000
+    issuer: http://auth-server:8085
     audience: bank-app
     expiration: 3600
   user:
