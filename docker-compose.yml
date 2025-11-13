@@ -47,9 +47,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=native
       - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=classpath:/config
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # No dependencies - config-server is standalone (file-based configuration)
     networks:
       - mybank-network
     healthcheck:
