@@ -7,6 +7,9 @@ spring:
   autoconfigure:
     exclude:
       - io.github.resilience4j.springboot3.fallback.autoconfigure.FallbackAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration
   cloud:
     config:
       enabled: true

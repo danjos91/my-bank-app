@@ -21,3 +21,4 @@ eureka:
 gateway:
   url: http://gateway:8080
 
+
