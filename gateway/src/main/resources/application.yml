@@ -4,12 +4,19 @@ server:
 spring:
   application:
     name: gateway
+  main:
+    web-application-type: reactive
   autoconfigure:
     exclude:
       - io.github.resilience4j.springboot3.fallback.autoconfigure.FallbackAutoConfiguration
       - org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration
       - org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration
       - org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.jdbc.JdbcRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
   cloud:
     config:
       enabled: true
