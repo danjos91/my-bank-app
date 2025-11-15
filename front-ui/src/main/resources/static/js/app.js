@@ -7,15 +7,23 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 
-    // Form validation
+    // Form validation and submit handling
     const forms = document.querySelectorAll('.needs-validation');
     Array.from(forms).forEach(form => {
         form.addEventListener('submit', event => {
             if (!form.checkValidity()) {
                 event.preventDefault();
                 event.stopPropagation();
+                form.classList.add('was-validated');
+            } else {
+                // Form is valid, show loading state but don't prevent submit
+                const submitButton = form.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Обработка...';
+                    submitButton.disabled = true;
+                }
+                // Allow form to submit normally
             }
-            form.classList.add('was-validated');
         });
     });
 
@@ -84,16 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
         animateValue(balanceElement, 0, parseFloat(balanceElement.textContent) || 0, 1000);
     }
 
-    // Loading states for forms
-    const submitButtons = document.querySelectorAll('button[type="submit"]');
-    submitButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            if (this.form && this.form.checkValidity()) {
-                this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Обработка...';
-                this.disabled = true;
-            }
-        });
-    });
+    // Loading states for forms - handled in form submit event above
 });
 
 // Utility functions

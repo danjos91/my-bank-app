@@ -284,6 +284,8 @@ services:
         condition: service_healthy
       gateway:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
     networks:
       - mybank-network
     healthcheck:

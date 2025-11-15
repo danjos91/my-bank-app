@@ -26,7 +26,7 @@
                             <span class="fw-bold">*</span> Все поля обязательны для заполнения
                         </div>
 
-                        <form th:action="${'/signup'}" method="post">
+                        <form th:action="${'/signup'}" method="post" class="needs-validation" novalidate>
                             <!-- Error Messages -->
                             <div th:if="${errors}" class="alert alert-danger">
                                 <ul class="mb-0">
