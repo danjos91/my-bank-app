@@ -29,12 +29,69 @@ public class BankService {
 
     public UserDataDTO getUserData(String username) {
         try {
-            String url = gatewayUrl + "/api/accounts/user/" + username;
-            return restTemplate.getForObject(url, UserDataDTO.class);
+            // Get user profile
+            String userUrl = gatewayUrl + "/api/accounts/users/username/" + username;
+            log.debug("Fetching user profile from: {}", userUrl);
+            var userProfileResponse = restTemplate.exchange(userUrl, HttpMethod.GET, null,
+                new ParameterizedTypeReference<Map<String, Object>>() {});
+            Map<String, Object> userProfile = userProfileResponse.getBody();
+            
+            // Get user accounts (to get balance)
+            String accountsUrl = gatewayUrl + "/api/accounts/username/" + username;
+            log.debug("Fetching accounts from: {}", accountsUrl);
+            var accounts = restTemplate.exchange(accountsUrl, HttpMethod.GET, null,
+                new ParameterizedTypeReference<List<Map<String, Object>>>() {}).getBody();
+            
+            if (userProfile == null) {
+                throw new RuntimeException("User not found: " + username);
+            }
+            
+            // Combine data into UserDataDTO
+            UserDataDTO userData = new UserDataDTO();
+            userData.setId(getLongValue(userProfile.get("id")));
+            userData.setUsername((String) userProfile.get("username"));
+            userData.setFirstName((String) userProfile.get("firstName"));
+            userData.setLastName((String) userProfile.get("lastName"));
+            userData.setEmail((String) userProfile.get("email"));
+            
+            // Parse birthDate
+            if (userProfile.get("birthDate") != null) {
+                String birthDateStr = userProfile.get("birthDate").toString();
+                userData.setBirthDate(java.time.LocalDate.parse(birthDateStr));
+            }
+            
+            // Get balance from first account (or sum all accounts)
+            BigDecimal totalBalance = BigDecimal.ZERO;
+            Long accountId = null;
+            if (accounts != null && !accounts.isEmpty()) {
+                Map<String, Object> firstAccount = accounts.get(0);
+                accountId = getLongValue(firstAccount.get("id"));
+                Object balanceObj = firstAccount.get("balance");
+                if (balanceObj != null) {
+                    if (balanceObj instanceof Number) {
+                        totalBalance = BigDecimal.valueOf(((Number) balanceObj).doubleValue());
+                    } else {
+                        totalBalance = new BigDecimal(balanceObj.toString());
+                    }
+                }
+            }
+            
+            userData.setAccountId(accountId);
+            userData.setBalance(totalBalance);
+            
+            return userData;
         } catch (Exception e) {
             log.error("Error getting user data for: {}", username, e);
             throw new RuntimeException("Ошибка получения данных пользователя: " + e.getMessage());
         }
+    }
+    
+    private Long getLongValue(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return Long.parseLong(value.toString());
     }
 
     public List<UserDataDTO> getAllUsers() {

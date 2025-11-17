@@ -32,7 +32,7 @@ public class AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccess
         String password = (String) session.getAttribute("temp_password");
         
         if (password != null) {
-            log.info("User {} logged in successfully, obtaining OAuth2 token", username);
+            log.info("User {} logged in successfully, obtaining OAuth2 token. Session ID: {}", username, session.getId());
             
             // Obtain OAuth2 token
             String accessToken = oAuth2TokenService.getAccessToken(username, password);
@@ -40,15 +40,16 @@ public class AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccess
             if (accessToken != null) {
                 // Store token in session
                 session.setAttribute("oauth2_access_token", accessToken);
-                log.info("OAuth2 token stored in session for user: {}", username);
+                log.info("OAuth2 token stored in session for user: {}. Session ID: {}. Token length: {}", 
+                    username, session.getId(), accessToken.length());
             } else {
-                log.warn("Failed to obtain OAuth2 token for user: {}", username);
+                log.error("Failed to obtain OAuth2 token for user: {}. Session ID: {}", username, session.getId());
             }
             
             // Remove temporary password from session
             session.removeAttribute("temp_password");
         } else {
-            log.warn("Password not found in session for user: {}", username);
+            log.error("Password not found in session for user: {}. Session ID: {}", username, session.getId());
         }
         
         super.onAuthenticationSuccess(request, response, authentication);

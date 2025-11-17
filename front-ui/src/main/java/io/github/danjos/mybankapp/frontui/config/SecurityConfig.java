@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -16,11 +17,19 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
     private final AuthenticationSuccessHandler authenticationSuccessHandler;
+    private final PasswordCaptureFilter passwordCaptureFilter;
 
     public SecurityConfig(CustomUserDetailsService userDetailsService,
-                         AuthenticationSuccessHandler authenticationSuccessHandler) {
+                         AuthenticationSuccessHandler authenticationSuccessHandler,
+                         PasswordCaptureFilter passwordCaptureFilter) {
         this.userDetailsService = userDetailsService;
         this.authenticationSuccessHandler = authenticationSuccessHandler;
+        this.passwordCaptureFilter = passwordCaptureFilter;
+    }
+    
+    @Bean
+    public PasswordCaptureFilter passwordCaptureFilter() {
+        return new PasswordCaptureFilter();
     }
 
     @Bean
@@ -40,6 +49,8 @@ public class SecurityConfig {
                 .requestMatchers("/login", "/signup").permitAll()
                 .anyRequest().authenticated()
             )
+            // Add password capture filter BEFORE Spring Security's authentication filter
+            .addFilterBefore(passwordCaptureFilter, UsernamePasswordAuthenticationFilter.class)
             .authenticationProvider(authenticationProvider(passwordEncoder()))
             .formLogin(form -> form
                 .loginPage("/login")
