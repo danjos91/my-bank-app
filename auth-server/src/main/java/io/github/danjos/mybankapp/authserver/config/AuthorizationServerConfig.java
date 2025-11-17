@@ -123,6 +123,7 @@ public class AuthorizationServerConfig {
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                .authorizationGrantType(AuthorizationGrantType.PASSWORD)
                 .redirectUri("http://localhost:8085/login/oauth2/code/front-ui-client")
                 .scope(OidcScopes.OPENID)
                 .scope(OidcScopes.PROFILE)
