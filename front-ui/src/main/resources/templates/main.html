@@ -43,6 +43,22 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
 
+        <div th:if="${cashErrors}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <ul class="mb-0">
+                <li th:each="error : ${cashErrors}" th:text="${error}"></li>
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${transferOtherErrors}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <ul class="mb-0">
+                <li th:each="error : ${transferOtherErrors}" th:text="${error}"></li>
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
         <!-- Account Overview -->
         <div class="row mb-4">
             <div class="col-12">
@@ -184,6 +200,11 @@
                 </div>
                 <form method="post" th:action="${'/user/'+login+'/cash'}">
                     <div class="modal-body">
+                        <div th:if="${cashErrors}" class="alert alert-danger mb-3">
+                            <ul class="mb-0">
+                                <li th:each="error : ${cashErrors}" th:text="${error}"></li>
+                            </ul>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Сумма для пополнения</label>
                             <input name="value" type="number" class="form-control" step="0.01" min="0.01" required>
@@ -213,6 +234,11 @@
                 </div>
                 <form method="post" th:action="${'/user/'+login+'/cash'}">
                     <div class="modal-body">
+                        <div th:if="${cashErrors}" class="alert alert-danger mb-3">
+                            <ul class="mb-0">
+                                <li th:each="error : ${cashErrors}" th:text="${error}"></li>
+                            </ul>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Сумма для снятия</label>
                             <input name="value" type="number" class="form-control" step="0.01" min="0.01" required>
@@ -242,6 +268,11 @@
                 </div>
                 <form method="post" th:action="${'/user/'+login+'/transfer'}">
                     <div class="modal-body">
+                        <div th:if="${transferOtherErrors}" class="alert alert-danger mb-3">
+                            <ul class="mb-0">
+                                <li th:each="error : ${transferOtherErrors}" th:text="${error}"></li>
+                            </ul>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Сумма перевода</label>
                             <input name="value" type="number" class="form-control" step="0.01" min="0.01" required>
