@@ -56,3 +56,5 @@ logging:
   level:
     org.springframework.security: DEBUG
     org.springframework.web: DEBUG
+    org.springframework.security.authentication: DEBUG
+    org.springframework.security.authentication.dao: DEBUG
