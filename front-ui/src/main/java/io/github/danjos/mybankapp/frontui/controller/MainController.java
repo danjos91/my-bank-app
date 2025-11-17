@@ -9,7 +9,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -24,7 +23,12 @@ public class MainController {
     private final BankService bankService;
 
     @GetMapping("/")
-    public String home(Model model) {
+    public String home() {
+        return "redirect:/main";
+    }
+
+    @GetMapping("/main")
+    public String main(Model model) {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
@@ -32,7 +36,7 @@ public class MainController {
             }
 
             String username = auth.getName();
-            log.info("Loading home page for user: {}", username);
+            log.info("Loading main page for user: {}", username);
 
             // Get user data
             var userData = bankService.getUserData(username);
@@ -45,9 +49,12 @@ public class MainController {
             var users = bankService.getAllUsers();
             model.addAttribute("users", users);
 
+            // Flash attributes for errors are automatically added to model by Spring
+            // They will be null if not set, which is the expected behavior
+
             return "main";
         } catch (Exception e) {
-            log.error("Error loading home page", e);
+            log.error("Error loading main page", e);
             model.addAttribute("errorMessage", "Ошибка загрузки данных: " + e.getMessage());
             return "main";
         }
@@ -66,7 +73,7 @@ public class MainController {
             log.error("Error updating user account", e);
             redirectAttributes.addFlashAttribute("userAccountErrors", List.of(e.getMessage()));
         }
-        return "redirect:/";
+        return "redirect:/main";
     }
 
     @PostMapping("/user/{login}/editPassword")
@@ -80,7 +87,7 @@ public class MainController {
             if (!password.equals(confirm_password)) {
                 redirectAttributes.addFlashAttribute("passwordErrors", 
                     List.of("Пароли не совпадают"));
-                return "redirect:/";
+                return "redirect:/main";
             }
 
             bankService.updatePassword(login, password);
@@ -89,7 +96,7 @@ public class MainController {
             log.error("Error updating password", e);
             redirectAttributes.addFlashAttribute("passwordErrors", List.of(e.getMessage()));
         }
-        return "redirect:/";
+        return "redirect:/main";
     }
 
     @PostMapping("/user/{login}/cash")
@@ -116,7 +123,7 @@ public class MainController {
             log.error("Error processing cash operation", e);
             redirectAttributes.addFlashAttribute("cashErrors", List.of(e.getMessage()));
         }
-        return "redirect:/";
+        return "redirect:/main";
     }
 
     @PostMapping("/user/{login}/transfer")
@@ -131,7 +138,7 @@ public class MainController {
             if (login.equals(to_login)) {
                 redirectAttributes.addFlashAttribute("transferOtherErrors", 
                     List.of("Нельзя переводить средства самому себе"));
-                return "redirect:/";
+                return "redirect:/main";
             }
 
             bankService.transfer(login, to_login, value);
@@ -141,7 +148,7 @@ public class MainController {
             log.error("Error processing transfer", e);
             redirectAttributes.addFlashAttribute("transferOtherErrors", List.of(e.getMessage()));
         }
-        return "redirect:/";
+        return "redirect:/main";
     }
 
     @GetMapping("/login")
@@ -179,7 +186,7 @@ public class MainController {
             bankService.registerUser(login, password, name, birthdate);
             redirectAttributes.addFlashAttribute("successMessage", 
                 "Регистрация успешно завершена. Теперь вы можете войти в систему.");
-            return "redirect:/login";
+            return "redirect:/main";
         } catch (Exception e) {
             log.error("Error during registration", e);
             model.addAttribute("errors", List.of(e.getMessage()));
