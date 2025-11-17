@@ -59,10 +59,11 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA notifications_schema TO bank_app_
 
 -- Sample users (passwords are hashed with BCrypt)
 -- Password for all test users is 'password123'
+-- Using dollar-quoted strings to properly escape BCrypt hashes
 INSERT INTO accounts_schema.users (username, password, first_name, last_name, email, birth_date) VALUES
-('john.doe', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', 'John', 'Doe', 'john.doe@example.com', '1985-05-15'),
-('jane.smith', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', 'Jane', 'Smith', 'jane.smith@example.com', '1990-08-22'),
-('bob.wilson', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', 'Bob', 'Wilson', 'bob.wilson@example.com', '1988-12-03')
+('john.doe', $hash$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy$hash, 'John', 'Doe', 'john.doe@example.com', '1985-05-15'),
+('jane.smith', $hash$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy$hash, 'Jane', 'Smith', 'jane.smith@example.com', '1990-08-22'),
+('bob.wilson', $hash$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy$hash, 'Bob', 'Wilson', 'bob.wilson@example.com', '1988-12-03')
 ON CONFLICT (username) DO NOTHING;
 
 -- Create accounts for sample users
