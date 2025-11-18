@@ -25,7 +25,7 @@ Contract.make {
             contentType(applicationJson())
         }
         body([
-            message: "User registered successfully with ID: 1"
+            message: $(regex("User registered successfully with ID: \\d+"))
         ])
     }
 }

@@ -26,11 +26,11 @@ public class UserController {
     public ResponseEntity<?> registerUser(@Valid @RequestBody UserRegistrationDTO registrationDTO) {
         try {
             User user = userService.registerUser(registrationDTO);
-            return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully with ID: " + user.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(java.util.Map.of("message", "User registered successfully with ID: " + user.getId()));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of("error", "Registration failed: " + e.getMessage()));
         }
     }
     

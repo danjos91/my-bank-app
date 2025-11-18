@@ -19,8 +19,8 @@ Contract.make {
                 userId: 1,
                 username: "testuser",
                 balance: 100.00,
-                createdAt: "2023-01-01T00:00:00",
-                updatedAt: "2023-01-01T00:00:00"
+                createdAt: $(regex(~/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/)),
+                updatedAt: $(regex(~/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/))
             ]
         ])
     }

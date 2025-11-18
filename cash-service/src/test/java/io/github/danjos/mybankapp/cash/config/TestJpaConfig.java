@@ -1,4 +1,4 @@
-package io.github.danjos.mybankapp.accounts.config;
+package io.github.danjos.mybankapp.cash.config;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -18,7 +18,7 @@ public class TestJpaConfig {
     public LocalContainerEntityManagerFactoryBean entityManagerFactory(DataSource dataSource) {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource);
-        em.setPackagesToScan("io.github.danjos.mybankapp.accounts.entity");
+        em.setPackagesToScan("io.github.danjos.mybankapp.cash.entity");
 
         JpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         em.setJpaVendorAdapter(vendorAdapter);
@@ -28,10 +28,11 @@ public class TestJpaConfig {
         properties.setProperty("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
         properties.setProperty("hibernate.show_sql", "true");
         properties.setProperty("hibernate.format_sql", "true");
-        properties.setProperty("hibernate.default_schema", "accounts_schema");
-        properties.setProperty("hibernate.physical_naming_strategy", "org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy");
+        properties.setProperty("hibernate.default_schema", "public");
+        properties.setProperty("hibernate.hbm2ddl.create_namespaces", "true");
         em.setJpaProperties(properties);
 
         return em;
     }
 }
+

@@ -94,7 +94,10 @@ class AccountControllerTest {
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("User not found", response.getBody());
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, String> body = (java.util.Map<String, String>) response.getBody();
+        assertNotNull(body);
+        assertEquals("User not found", body.get("error"));
         verify(accountService).createAccount(1L);
     }
 
@@ -280,7 +283,10 @@ class AccountControllerTest {
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Account not found", response.getBody());
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, String> body = (java.util.Map<String, String>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Account not found", body.get("error"));
         verify(accountService).updateBalance(1L, newBalance);
     }
 

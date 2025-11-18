@@ -23,11 +23,11 @@ public class AccountController {
     public ResponseEntity<?> createAccount(@PathVariable Long userId) {
         try {
             Account account = accountService.createAccount(userId);
-            return ResponseEntity.status(201).body("Account created successfully with ID: " + account.getId());
+            return ResponseEntity.status(201).body(java.util.Map.of("message", "Account created successfully with ID: " + account.getId()));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error creating account: " + e.getMessage());
+            return ResponseEntity.status(500).body(java.util.Map.of("error", "Error creating account: " + e.getMessage()));
         }
     }
     
@@ -99,11 +99,11 @@ public class AccountController {
     public ResponseEntity<?> updateBalance(@PathVariable Long accountId, @RequestBody BigDecimal newBalance) {
         try {
             Account account = accountService.updateBalance(accountId, newBalance);
-            return ResponseEntity.ok("Balance updated successfully to: " + account.getBalance());
+            return ResponseEntity.ok(java.util.Map.of("message", "Balance updated successfully to: " + account.getBalance()));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error updating balance: " + e.getMessage());
+            return ResponseEntity.status(500).body(java.util.Map.of("error", "Error updating balance: " + e.getMessage()));
         }
     }
     

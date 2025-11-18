@@ -25,7 +25,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(classes = {AccountsServiceApplication.class, TestEntityConfig.class})
+@SpringBootTest(classes = {AccountsServiceApplication.class, TestEntityConfig.class, io.github.danjos.mybankapp.accounts.config.TestSecurityConfig.class})
 @Testcontainers
 @ActiveProfiles("test")
 @Transactional

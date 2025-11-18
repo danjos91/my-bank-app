@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -215,6 +214,7 @@ public class TransferService {
                 .description(transfer.getDescription())
                 .status(transfer.getStatus())
                 .createdAt(transfer.getCreatedAt())
+                .updatedAt(transfer.getUpdatedAt())
                 .completedAt(transfer.getCompletedAt())
                 .build();
     }

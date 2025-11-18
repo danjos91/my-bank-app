@@ -25,7 +25,7 @@ public class TestEntityConfig {
         properties.put("hibernate.hbm2ddl.auto", "create-drop");
         properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
         properties.put("hibernate.format_sql", "true");
-        properties.put("hibernate.default_schema", "public");
+        properties.put("hibernate.default_schema", "accounts_schema");
         properties.put("hibernate.hbm2ddl.create_namespaces", "true");
         properties.put("hibernate.physical_naming_strategy", "org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl");
         

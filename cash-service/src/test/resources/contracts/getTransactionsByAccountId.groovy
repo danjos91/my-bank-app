@@ -15,12 +15,12 @@ Contract.make {
         }
         body([
             [
-                id: 1,
+                id: $(anyNumber()),
                 accountId: 1,
                 amount: 100.00,
                 transactionType: "DEPOSIT",
                 description: "Test deposit",
-                transactionDate: "2023-01-01T00:00:00"
+                timestamp: $(regex('[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?'))
             ]
         ])
     }

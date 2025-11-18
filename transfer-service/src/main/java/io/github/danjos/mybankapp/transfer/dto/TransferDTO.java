@@ -18,6 +18,7 @@ public class TransferDTO {
     private String description;
     private Transfer.TransferStatus status;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private LocalDateTime completedAt;
     
     // Business methods
@@ -43,6 +44,10 @@ public class TransferDTO {
     
     public String getFormattedCreatedAt() {
         return createdAt.toString();
+    }
+    
+    public String getFormattedUpdatedAt() {
+        return updatedAt != null ? updatedAt.toString() : null;
     }
     
     public String getFormattedCompletedAt() {

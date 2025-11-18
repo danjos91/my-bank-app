@@ -97,7 +97,10 @@ class UserControllerTest {
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Username already exists", response.getBody());
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, String> body = (java.util.Map<String, String>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Username already exists", body.get("error"));
         verify(userService).registerUser(registrationDTO);
     }
 

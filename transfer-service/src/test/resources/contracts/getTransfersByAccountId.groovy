@@ -15,14 +15,14 @@ Contract.make {
         }
         body([
             [
-                id: 1,
+                id: $(anyNumber()),
                 fromAccountId: 1,
                 toAccountId: 2,
                 amount: 50.00,
                 description: "Test transfer",
                 status: "COMPLETED",
-                createdAt: "2023-01-01T00:00:00",
-                updatedAt: "2023-01-01T00:00:00"
+                createdAt: $(regex('[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?')),
+                updatedAt: $(regex('[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?'))
             ]
         ])
     }

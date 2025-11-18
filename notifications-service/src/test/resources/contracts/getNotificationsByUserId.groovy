@@ -17,12 +17,14 @@ Contract.make {
             [
                 id: 1,
                 userId: 1,
-                type: "INFO",
+                notificationType: "ACCOUNT_CREATED",
                 title: "Test Notification",
                 message: "This is a test notification",
                 isRead: false,
-                createdAt: "2023-01-01T00:00:00",
-                updatedAt: "2023-01-01T00:00:00"
+                createdAt: $(regex('[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?')),
+                readAt: null,
+                formattedCreatedAt: $(regex('.*')),
+                formattedReadAt: null
             ]
         ])
     }
