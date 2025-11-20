@@ -54,13 +54,13 @@ A comprehensive microservices-based banking application built with Spring Boot, 
 
    
    # Run individual services (in separate terminals)
-   cd accounts-service && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
-   cd cash-service && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
-   cd transfer-service && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
-   cd notifications-service && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
-   cd auth-server && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
-   cd gateway && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
-   cd front-ui && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
+   cd auth-server; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
+   cd accounts-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
+   cd notifications-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
+   cd cash-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
+   cd transfer-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
+   cd gateway; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
+   cd front-ui; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
    ```
 
 ## 🧪 Testing
@@ -74,7 +74,6 @@ mvn clean test
 
 ## 🐳 Docker Commands
 
-### Production Commands
 ```bash
 # Build all images
 docker-compose build

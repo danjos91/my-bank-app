@@ -1,21 +1,24 @@
-version: '3.8'
-
 services:
   # Database
   postgres:
     image: postgres:15-alpine
     container_name: mybank-postgres-dev
     environment:
-      POSTGRES_DB: mybank
-      POSTGRES_USER: mybank
-      POSTGRES_PASSWORD: mybank123
+      POSTGRES_DB: bank_app_db
+      POSTGRES_USER: bank_app_user
+      POSTGRES_PASSWORD: bank_app_password
     ports:
       - "5432:5432"
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
-      - ./database/init-database.sql:/docker-entrypoint-initdb.d/init-database.sql
+      - ./database:/docker-entrypoint-initdb.d
     networks:
       - mybank-network-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bank_app_user -d bank_app_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis for caching
   redis:
@@ -27,40 +30,53 @@ services:
       - redis_data_dev:/data
     networks:
       - mybank-network-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Config Server
   config-server:
-    image: openjdk:21-jre-slim
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
     container_name: mybank-config-server-dev
     ports:
       - "8888:8888"
-    volumes:
-      - ./config-server/target:/app
-    working_dir: /app
-    command: java -jar *.jar
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
-    depends_on:
-      - postgres
+      - SPRING_PROFILES_ACTIVE=native
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=classpath:/config
     networks:
       - mybank-network-dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # Eureka Server
   eureka-server:
-    image: openjdk:21-jre-slim
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
     container_name: mybank-eureka-server-dev
     ports:
       - "8761:8761"
-    volumes:
-      - ./eureka-server/target:/app
-    working_dir: /app
-    command: java -jar *.jar
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_PROFILES_ACTIVE=docker
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
     networks:
       - mybank-network-dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 volumes:
   postgres_data_dev:

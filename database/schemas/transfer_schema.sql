@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS transfers (
     description VARCHAR(255),
     status VARCHAR(20) DEFAULT 'PENDING' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
     completed_at TIMESTAMP,
     
     -- Constraints
@@ -46,6 +47,19 @@ CREATE INDEX IF NOT EXISTS idx_transfers_to_account ON transfers(to_account_id);
 CREATE INDEX IF NOT EXISTS idx_transfers_created_at ON transfers(created_at);
 CREATE INDEX IF NOT EXISTS idx_transfer_events_transfer_id ON transfer_events(transfer_id);
 CREATE INDEX IF NOT EXISTS idx_transfer_events_timestamp ON transfer_events(timestamp);
+
+-- Triggers for updated_at timestamps
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_transfers_updated_at 
+    BEFORE UPDATE ON transfers 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to validate accounts exist
 CREATE OR REPLACE FUNCTION validate_accounts_exist(from_account BIGINT, to_account BIGINT)

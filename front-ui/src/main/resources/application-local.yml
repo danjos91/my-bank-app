@@ -4,9 +4,14 @@
 spring:
   cloud:
     config:
-      uri: http://localhost:8888
+      enabled: false
+      import-check:
+        enabled: false
   datasource:
     url: jdbc:postgresql://localhost:5432/bank_app_db
+    username: bank_app_user
+    password: bank_app_password
+    driver-class-name: org.postgresql.Driver
   security:
     oauth2:
       client:
