@@ -1,0 +1,26 @@
+# Local profile configuration - for running service locally while infrastructure is in Docker
+# Use with: SPRING_PROFILES_ACTIVE=local or mvn spring-boot:run -Dspring-boot.run.profiles=local
+
+spring:
+  cloud:
+    config:
+      uri: http://localhost:8888
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bank_app_db
+  security:
+    oauth2:
+      client:
+        provider:
+          bank-app:
+            authorization-uri: http://localhost:8085/oauth2/authorize
+            token-uri: http://localhost:8085/auth/token
+            user-info-uri: http://localhost:8085/userinfo
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: false
+    hostname: localhost
+
