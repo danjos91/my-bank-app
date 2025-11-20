@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -161,6 +162,42 @@ class UserControllerTest {
     }
 
     @Test
+    void updateUserProfileByUsername_WithOnlyFirstName_ReturnsSuccess() {
+        // Given
+        java.util.Map<String, String> profileData = new java.util.HashMap<>();
+        profileData.put("name", "OnlyFirst");
+        when(userService.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(userService.updateUserProfile(eq(1L), any(UserProfileDTO.class))).thenReturn(testUser);
+
+        // When
+        ResponseEntity<?> response = userController.updateUserProfileByUsername("testuser", profileData, authentication);
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("User profile updated successfully", response.getBody());
+        verify(userService).findByUsername("testuser");
+        verify(userService).updateUserProfile(eq(1L), any(UserProfileDTO.class));
+    }
+
+    @Test
+    void updateUserProfileByUsername_WithOnlyBirthdate_ReturnsSuccess() {
+        // Given
+        java.util.Map<String, String> profileData = new java.util.HashMap<>();
+        profileData.put("birthdate", "2000-01-01");
+        when(userService.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(userService.updateUserProfile(eq(1L), any(UserProfileDTO.class))).thenReturn(testUser);
+
+        // When
+        ResponseEntity<?> response = userController.updateUserProfileByUsername("testuser", profileData, authentication);
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("User profile updated successfully", response.getBody());
+        verify(userService).findByUsername("testuser");
+        verify(userService).updateUserProfile(eq(1L), any(UserProfileDTO.class));
+    }
+
+    @Test
     void getUserByUsername_ValidUsername_ReturnsUser() {
         // Given
         when(userService.findByUsername("testuser")).thenReturn(Optional.of(testUser));
@@ -202,165 +239,183 @@ class UserControllerTest {
     }
 
     @Test
-    void updateUserProfile_ValidData_ReturnsSuccess() {
+    void updateUserProfileByUsername_ValidData_ReturnsSuccess() {
         // Given
-        when(userService.updateUserProfile(1L, profileDTO)).thenReturn(testUser);
+        java.util.Map<String, String> profileData = new java.util.HashMap<>();
+        profileData.put("name", "Updated First Updated Last");
+        profileData.put("birthdate", "1995-05-15");
+        when(userService.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(userService.updateUserProfile(eq(1L), any(UserProfileDTO.class))).thenReturn(testUser);
 
         // When
-        ResponseEntity<?> response = userController.updateUserProfile(1L, profileDTO, authentication);
+        ResponseEntity<?> response = userController.updateUserProfileByUsername("testuser", profileData, authentication);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("User profile updated successfully", response.getBody());
-        verify(userService).updateUserProfile(1L, profileDTO);
+        verify(userService).findByUsername("testuser");
+        verify(userService).updateUserProfile(eq(1L), any(UserProfileDTO.class));
     }
 
     @Test
-    void updateUserProfile_InvalidData_ReturnsBadRequest() {
+    void updateUserProfileByUsername_UserNotFound_ReturnsNotFound() {
         // Given
-        when(userService.updateUserProfile(1L, profileDTO))
+        java.util.Map<String, String> profileData = new java.util.HashMap<>();
+        profileData.put("name", "Updated Name");
+        when(userService.findByUsername("nonexistent")).thenReturn(Optional.empty());
+
+        // When
+        ResponseEntity<?> response = userController.updateUserProfileByUsername("nonexistent", profileData, authentication);
+
+        // Then
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(userService).findByUsername("nonexistent");
+        verify(userService, never()).updateUserProfile(anyLong(), any(UserProfileDTO.class));
+    }
+
+    @Test
+    void updateUserProfileByUsername_InvalidData_ReturnsBadRequest() {
+        // Given
+        java.util.Map<String, String> profileData = new java.util.HashMap<>();
+        profileData.put("name", "Updated Name");
+        when(userService.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(userService.updateUserProfile(eq(1L), any(UserProfileDTO.class)))
                 .thenThrow(new IllegalArgumentException("Email already exists"));
 
         // When
-        ResponseEntity<?> response = userController.updateUserProfile(1L, profileDTO, authentication);
+        ResponseEntity<?> response = userController.updateUserProfileByUsername("testuser", profileData, authentication);
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Email already exists", response.getBody());
-        verify(userService).updateUserProfile(1L, profileDTO);
+        verify(userService).findByUsername("testuser");
+        verify(userService).updateUserProfile(eq(1L), any(UserProfileDTO.class));
     }
 
     @Test
-    void updateUserProfile_ServiceException_ReturnsInternalServerError() {
+    void updateUserProfileByUsername_ServiceException_ReturnsInternalServerError() {
         // Given
-        when(userService.updateUserProfile(1L, profileDTO))
+        java.util.Map<String, String> profileData = new java.util.HashMap<>();
+        profileData.put("name", "Updated Name");
+        when(userService.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(userService.updateUserProfile(eq(1L), any(UserProfileDTO.class)))
                 .thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = userController.updateUserProfile(1L, profileDTO, authentication);
+        ResponseEntity<?> response = userController.updateUserProfileByUsername("testuser", profileData, authentication);
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertTrue(response.getBody().toString().contains("Error updating user"));
-        verify(userService).updateUserProfile(1L, profileDTO);
+        verify(userService).findByUsername("testuser");
+        verify(userService).updateUserProfile(eq(1L), any(UserProfileDTO.class));
     }
 
     @Test
-    void changePassword_ValidData_ReturnsSuccess() {
+    void changePasswordByUsername_ValidData_ReturnsSuccess() {
         // Given
+        java.util.Map<String, String> passwordData = new java.util.HashMap<>();
+        passwordData.put("password", "newPassword");
+        when(userService.findByUsername("testuser")).thenReturn(Optional.of(testUser));
         doNothing().when(userService).changePassword(1L, "newPassword");
 
         // When
-        ResponseEntity<?> response = userController.changePassword(1L, "newPassword", authentication);
+        ResponseEntity<?> response = userController.changePasswordByUsername("testuser", passwordData, authentication);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Password changed successfully", response.getBody());
+        verify(userService).findByUsername("testuser");
         verify(userService).changePassword(1L, "newPassword");
     }
 
     @Test
-    void changePassword_InvalidData_ReturnsBadRequest() {
+    void changePasswordByUsername_UserNotFound_ReturnsNotFound() {
         // Given
-        doThrow(new IllegalArgumentException("Password cannot be empty"))
-                .when(userService).changePassword(1L, "");
+        java.util.Map<String, String> passwordData = new java.util.HashMap<>();
+        passwordData.put("password", "newPassword");
+        when(userService.findByUsername("nonexistent")).thenReturn(Optional.empty());
 
         // When
-        ResponseEntity<?> response = userController.changePassword(1L, "", authentication);
+        ResponseEntity<?> response = userController.changePasswordByUsername("nonexistent", passwordData, authentication);
+
+        // Then
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(userService).findByUsername("nonexistent");
+        verify(userService, never()).changePassword(anyLong(), anyString());
+    }
+
+    @Test
+    void changePasswordByUsername_EmptyPassword_ReturnsBadRequest() {
+        // Given
+        java.util.Map<String, String> passwordData = new java.util.HashMap<>();
+        passwordData.put("password", "");
+        when(userService.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+
+        // When
+        ResponseEntity<?> response = userController.changePasswordByUsername("testuser", passwordData, authentication);
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Password cannot be empty", response.getBody());
-        verify(userService).changePassword(1L, "");
+        verify(userService).findByUsername("testuser");
+        verify(userService, never()).changePassword(anyLong(), anyString());
     }
 
     @Test
-    void changePassword_ServiceException_ReturnsInternalServerError() {
+    void changePasswordByUsername_NullPassword_ReturnsBadRequest() {
         // Given
-        doThrow(new RuntimeException("Database error"))
+        java.util.Map<String, String> passwordData = new java.util.HashMap<>();
+        when(userService.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+
+        // When
+        ResponseEntity<?> response = userController.changePasswordByUsername("testuser", passwordData, authentication);
+
+        // Then
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Password cannot be empty", response.getBody());
+        verify(userService).findByUsername("testuser");
+        verify(userService, never()).changePassword(anyLong(), anyString());
+    }
+
+    @Test
+    void changePasswordByUsername_InvalidData_ReturnsBadRequest() {
+        // Given
+        java.util.Map<String, String> passwordData = new java.util.HashMap<>();
+        passwordData.put("password", "newPassword");
+        when(userService.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        doThrow(new IllegalArgumentException("Password does not meet requirements"))
                 .when(userService).changePassword(1L, "newPassword");
 
         // When
-        ResponseEntity<?> response = userController.changePassword(1L, "newPassword", authentication);
+        ResponseEntity<?> response = userController.changePasswordByUsername("testuser", passwordData, authentication);
 
         // Then
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error changing password"));
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Password does not meet requirements", response.getBody());
+        verify(userService).findByUsername("testuser");
         verify(userService).changePassword(1L, "newPassword");
     }
 
     @Test
-    void deleteUser_ValidId_ReturnsSuccess() {
+    void changePasswordByUsername_ServiceException_ReturnsInternalServerError() {
         // Given
-        doNothing().when(userService).deleteUser(1L);
-
-        // When
-        ResponseEntity<?> response = userController.deleteUser(1L, authentication);
-
-        // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("User deleted successfully", response.getBody());
-        verify(userService).deleteUser(1L);
-    }
-
-    @Test
-    void deleteUser_InvalidData_ReturnsBadRequest() {
-        // Given
-        doThrow(new IllegalArgumentException("Cannot delete user with existing balance"))
-                .when(userService).deleteUser(1L);
-
-        // When
-        ResponseEntity<?> response = userController.deleteUser(1L, authentication);
-
-        // Then
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Cannot delete user with existing balance", response.getBody());
-        verify(userService).deleteUser(1L);
-    }
-
-    @Test
-    void deleteUser_ServiceException_ReturnsInternalServerError() {
-        // Given
+        java.util.Map<String, String> passwordData = new java.util.HashMap<>();
+        passwordData.put("password", "newPassword");
+        when(userService.findByUsername("testuser")).thenReturn(Optional.of(testUser));
         doThrow(new RuntimeException("Database error"))
-                .when(userService).deleteUser(1L);
+                .when(userService).changePassword(1L, "newPassword");
 
         // When
-        ResponseEntity<?> response = userController.deleteUser(1L, authentication);
+        ResponseEntity<?> response = userController.changePasswordByUsername("testuser", passwordData, authentication);
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error deleting user"));
-        verify(userService).deleteUser(1L);
+        assertTrue(response.getBody().toString().contains("Error changing password"));
+        verify(userService).findByUsername("testuser");
+        verify(userService).changePassword(1L, "newPassword");
     }
 
-    @Test
-    void searchUsersByName_ValidName_ReturnsUsers() {
-        // Given
-        List<User> users = Arrays.asList(testUser);
-        when(userService.findByNameContaining("Test")).thenReturn(users);
-
-        // When
-        ResponseEntity<?> response = userController.searchUsersByName("Test");
-
-        // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue(response.getBody() instanceof List);
-        verify(userService).findByNameContaining("Test");
-    }
-
-    @Test
-    void searchUsersByName_ServiceException_ReturnsInternalServerError() {
-        // Given
-        when(userService.findByNameContaining("Test")).thenThrow(new RuntimeException("Database error"));
-
-        // When
-        ResponseEntity<?> response = userController.searchUsersByName("Test");
-
-        // Then
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error searching users"));
-        verify(userService).findByNameContaining("Test");
-    }
 
     @Test
     void getAllUsers_ReturnsAllUsers() {
