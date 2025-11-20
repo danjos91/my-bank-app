@@ -39,3 +39,6 @@ front-ui:
   api:
     base-url: http://gateway:8080
     timeout: 30000
+
+logging:
+  time-zone: Europe/Moscow

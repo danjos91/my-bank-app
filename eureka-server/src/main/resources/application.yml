@@ -35,6 +35,7 @@ management:
       show-details: always
 
 logging:
+  time-zone: Europe/Moscow
   level:
     com.netflix: INFO
     org.springframework.cloud: DEBUG

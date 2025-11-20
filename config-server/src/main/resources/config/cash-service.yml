@@ -29,3 +29,6 @@ cash:
     retry:
       max-attempts: 3
       wait-duration: 1s
+
+logging:
+  time-zone: Europe/Moscow

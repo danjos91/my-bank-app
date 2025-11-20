@@ -32,6 +32,7 @@ management:
       show-details: always
 
 logging:
+  time-zone: Europe/Moscow
   level:
     org.springframework.cloud.config: DEBUG
     org.springframework.security: DEBUG

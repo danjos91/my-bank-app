@@ -1,5 +1,10 @@
 # Gateway specific configuration
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth-server:8085
   cloud:
     gateway:
       routes:
@@ -47,12 +52,14 @@ spring:
           uri: lb://front-ui
           predicates:
             - Path=/**
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOrigins: "*"
-            allowedMethods: "*"
-            allowedHeaders: "*"
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: "*"
+                allowedMethods: "*"
+                allowedHeaders: "*"
 
 # Gateway specific settings
 gateway:
@@ -66,3 +73,6 @@ gateway:
   fallback:
     enabled: true
     timeout: 5000
+
+logging:
+  time-zone: Europe/Moscow

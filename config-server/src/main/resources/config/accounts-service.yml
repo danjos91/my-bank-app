@@ -21,3 +21,6 @@ accounts:
     jwt:
       audience: accounts-service
       scope: read,write
+
+logging:
+  time-zone: Europe/Moscow

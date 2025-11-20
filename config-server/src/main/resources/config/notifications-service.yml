@@ -33,3 +33,6 @@ notifications:
     withdrawal-success: "Withdrawal of ${amount} completed successfully"
     transfer-sent: "Transfer of ${amount} sent to account ${toAccount}"
     transfer-received: "Transfer of ${amount} received from account ${fromAccount}"
+
+logging:
+  time-zone: Europe/Moscow

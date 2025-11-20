@@ -71,6 +71,7 @@ management:
       show-details: always
 
 logging:
+  time-zone: Europe/Moscow
   level:
     org.springframework.security: DEBUG
     org.springframework.web: DEBUG

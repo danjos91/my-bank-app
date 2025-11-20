@@ -52,3 +52,6 @@ auth:
     password:
       encoder: bcrypt
       strength: 10
+
+logging:
+  time-zone: Europe/Moscow
