@@ -61,22 +61,22 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA notifications_schema TO bank_app_
 -- Password for all test users is 'password123'
 -- Using empty dollar-quoted string ($$) to include leading $ in BCrypt hash
 INSERT INTO accounts_schema.users (username, password, first_name, last_name, email, birth_date) VALUES
-('john.doe', $$$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy$$, 'John', 'Doe', 'john.doe@example.com', '1985-05-15'),
-('jane.smith', $$$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy$$, 'Jane', 'Smith', 'jane.smith@example.com', '1990-08-22'),
-('bob.wilson', $$$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy$$, 'Bob', 'Wilson', 'bob.wilson@example.com', '1988-12-03')
+('john', $$$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy$$, 'John', 'Doe', 'john.doe@example.com', '1985-05-15'),
+('jane', $$$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy$$, 'Jane', 'Smith', 'jane.smith@example.com', '1990-08-22'),
+('bob', $$$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy$$, 'Bob', 'Wilson', 'bob.wilson@example.com', '1988-12-03')
 ON CONFLICT (username) DO NOTHING;
 
 -- Create accounts for sample users
 INSERT INTO accounts_schema.accounts (user_id, balance) 
-SELECT id, 5000.00 FROM accounts_schema.users WHERE username = 'john.doe'
+SELECT id, 5000.00 FROM accounts_schema.users WHERE username = 'john'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO accounts_schema.accounts (user_id, balance) 
-SELECT id, 7500.00 FROM accounts_schema.users WHERE username = 'jane.smith'
+SELECT id, 7500.00 FROM accounts_schema.users WHERE username = 'jane'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO accounts_schema.accounts (user_id, balance) 
-SELECT id, 3000.00 FROM accounts_schema.users WHERE username = 'bob.wilson'
+SELECT id, 3000.00 FROM accounts_schema.users WHERE username = 'bob'
 ON CONFLICT DO NOTHING;
 
 -- Sample notifications
