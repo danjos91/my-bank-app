@@ -6,7 +6,7 @@ spring:
     name: auth-server
   cloud:
     config:
-      enabled: true
+      enabled: false
       fail-fast: false
   datasource:
     url: jdbc:postgresql://localhost:5432/bank_app_db

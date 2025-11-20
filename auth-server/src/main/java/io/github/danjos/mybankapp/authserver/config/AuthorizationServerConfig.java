@@ -36,6 +36,9 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -55,9 +58,18 @@ public class AuthorizationServerConfig {
     @Order(1)
     public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http)
             throws Exception {
+        // Only apply OAuth2 authorization server security to OAuth2 endpoints, not /auth/token
+        http.securityMatcher(new OrRequestMatcher(
+                new AntPathRequestMatcher("/oauth2/**"),
+                new AntPathRequestMatcher("/.well-known/**")
+        ));
+        
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
         http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
-                .oidc(Customizer.withDefaults());
+                .oidc(Customizer.withDefaults())
+                .authorizationServerSettings(AuthorizationServerSettings.builder()
+                        .issuer(issuerUri)
+                        .build());
 
         http
                 .exceptionHandling((exceptions) -> exceptions
@@ -73,6 +85,8 @@ public class AuthorizationServerConfig {
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http)
             throws Exception {
         http
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/auth/token"))
                 .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers("/login", "/error", "/webjars/**", "/auth/token").permitAll()
                         .anyRequest().authenticated()

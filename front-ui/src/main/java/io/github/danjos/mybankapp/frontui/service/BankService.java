@@ -28,6 +28,10 @@ public class BankService {
     private String gatewayUrl;
 
     public UserDataDTO getUserData(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            log.error("Username is null or empty when trying to get user data");
+            throw new RuntimeException("Имя пользователя не указано");
+        }
         try {
             // Get user profile
             String userUrl = gatewayUrl + "/api/accounts/users/username/" + username;
@@ -38,9 +42,24 @@ public class BankService {
             
             // Get user accounts (to get balance)
             String accountsUrl = gatewayUrl + "/api/accounts/username/" + username;
-            log.debug("Fetching accounts from: {}", accountsUrl);
-            var accounts = restTemplate.exchange(accountsUrl, HttpMethod.GET, null,
-                new ParameterizedTypeReference<List<Map<String, Object>>>() {}).getBody();
+            log.info("Fetching accounts from: {} for user: {}", accountsUrl, username);
+            List<Map<String, Object>> accounts = null;
+            try {
+                var accountsResponse = restTemplate.exchange(accountsUrl, HttpMethod.GET, null,
+                    new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+                accounts = accountsResponse.getBody();
+                log.info("Accounts response status: {}, accounts count: {}", 
+                    accountsResponse.getStatusCode(), accounts != null ? accounts.size() : 0);
+            } catch (org.springframework.web.client.HttpClientErrorException e) {
+                log.error("HTTP error fetching accounts for user: {}. Status: {}, Response: {}", 
+                    username, e.getStatusCode(), e.getResponseBodyAsString(), e);
+                // Continue with empty accounts list - user might not have an account yet
+                accounts = null;
+            } catch (Exception e) {
+                log.error("Error fetching accounts for user: {}", username, e);
+                // Continue with empty accounts list
+                accounts = null;
+            }
             
             if (userProfile == null) {
                 throw new RuntimeException("User not found: " + username);
@@ -73,7 +92,12 @@ public class BankService {
                     } else {
                         totalBalance = new BigDecimal(balanceObj.toString());
                     }
+                    log.info("Found balance {} for user: {}, accountId: {}", totalBalance, username, accountId);
+                } else {
+                    log.warn("Balance is null in account data for user: {}", username);
                 }
+            } else {
+                log.warn("No accounts found for user: {}. Balance will be 0.00", username);
             }
             
             userData.setAccountId(accountId);
@@ -143,6 +167,14 @@ public class BankService {
     }
 
     public void deposit(String username, BigDecimal amount) {
+        if (username == null || username.trim().isEmpty()) {
+            log.error("Username is null or empty for deposit operation");
+            throw new RuntimeException("Имя пользователя не указано");
+        }
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            log.error("Invalid amount for deposit: {}", amount);
+            throw new RuntimeException("Неверная сумма для пополнения");
+        }
         try {
             String url = gatewayUrl + "/api/cash/deposit";
             
@@ -156,13 +188,24 @@ public class BankService {
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(depositData, headers);
             
             restTemplate.postForObject(url, request, Void.class);
+        } catch (RuntimeException e) {
+            // Re-throw runtime exceptions as-is
+            throw e;
         } catch (Exception e) {
-            log.error("Error processing deposit for: {}", username, e);
+            log.error("Error processing deposit for username: {}", username, e);
             throw new RuntimeException("Ошибка пополнения счета: " + e.getMessage());
         }
     }
 
     public void withdraw(String username, BigDecimal amount) {
+        if (username == null || username.trim().isEmpty()) {
+            log.error("Username is null or empty for withdraw operation");
+            throw new RuntimeException("Имя пользователя не указано");
+        }
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            log.error("Invalid amount for withdrawal: {}", amount);
+            throw new RuntimeException("Неверная сумма для снятия");
+        }
         try {
             String url = gatewayUrl + "/api/cash/withdraw";
             
@@ -176,8 +219,11 @@ public class BankService {
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(withdrawalData, headers);
             
             restTemplate.postForObject(url, request, Void.class);
+        } catch (RuntimeException e) {
+            // Re-throw runtime exceptions as-is
+            throw e;
         } catch (Exception e) {
-            log.error("Error processing withdrawal for: {}", username, e);
+            log.error("Error processing withdrawal for username: {}", username, e);
             throw new RuntimeException("Ошибка снятия средств: " + e.getMessage());
         }
     }
@@ -227,11 +273,27 @@ public class BankService {
     }
 
     private Long getAccountId(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            log.error("Username is null or empty when trying to get account ID");
+            throw new RuntimeException("Имя пользователя не указано");
+        }
         try {
             UserDataDTO userData = getUserData(username);
-            return userData.getAccountId();
+            if (userData == null) {
+                log.error("User data is null for username: {}", username);
+                throw new RuntimeException("Пользователь не найден: " + username);
+            }
+            Long accountId = userData.getAccountId();
+            if (accountId == null) {
+                log.error("Account ID is null for username: {}", username);
+                throw new RuntimeException("Счет не найден для пользователя: " + username);
+            }
+            return accountId;
+        } catch (RuntimeException e) {
+            // Re-throw runtime exceptions as-is
+            throw e;
         } catch (Exception e) {
-            log.error("Error getting account ID for: {}", username, e);
+            log.error("Error getting account ID for username: {}", username, e);
             throw new RuntimeException("Ошибка получения ID счета: " + e.getMessage());
         }
     }

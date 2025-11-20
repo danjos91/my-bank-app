@@ -17,20 +17,23 @@ public class OAuth2TokenService {
 
     private final RestTemplate tokenRestTemplate;
     
-    @Value("${spring.security.oauth2.client.provider.bank-app.token-uri:http://auth-server:8085/oauth2/token}")
+    @Value("${spring.security.oauth2.client.provider.bank-app.token-uri:http://auth-server:8085/auth/token}")
     private String tokenUri;
-    
-    @Value("${spring.security.oauth2.client.registration.bank-app.client-id:front-ui-client}")
-    private String clientId;
-    
-    @Value("${spring.security.oauth2.client.registration.bank-app.client-secret:front-ui-secret}")
-    private String clientSecret;
 
     public OAuth2TokenService(@Qualifier("tokenRestTemplate") RestTemplate tokenRestTemplate) {
         this.tokenRestTemplate = tokenRestTemplate;
     }
 
     public String getAccessToken(String username, String password) {
+        if (username == null || username.trim().isEmpty()) {
+            log.error("Username is null or empty when requesting OAuth2 token");
+            return null;
+        }
+        if (password == null || password.trim().isEmpty()) {
+            log.error("Password is null or empty when requesting OAuth2 token for user: {}", username);
+            return null;
+        }
+        
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -40,12 +43,16 @@ public class OAuth2TokenService {
             body.add("username", username);
             body.add("password", password);
             body.add("scope", "read write");
-            body.add("client_id", clientId);
-            body.add("client_secret", clientSecret);
 
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
             
-            log.info("Requesting OAuth2 token from: {}", tokenUri);
+            // Ensure we're using the correct endpoint
+            if (tokenUri == null || tokenUri.isEmpty()) {
+                tokenUri = "http://auth-server:8085/auth/token";
+                log.warn("Token URI was null or empty, using default: {}", tokenUri);
+            }
+            
+            log.info("Requesting OAuth2 token from: {} for user: {}", tokenUri, username);
             ResponseEntity<Map<String, Object>> response = tokenRestTemplate.exchange(
                 tokenUri,
                 HttpMethod.POST,
@@ -53,14 +60,29 @@ public class OAuth2TokenService {
                 new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
             );
             
-            log.info("OAuth2 token response status: {}", response.getStatusCode());
+            log.info("OAuth2 token response status: {} for user: {}", response.getStatusCode(), username);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Object token = response.getBody().get("access_token");
-                return token != null ? token.toString() : null;
+                if (token != null) {
+                    log.info("Successfully obtained OAuth2 token for user: {}", username);
+                    return token.toString();
+                } else {
+                    log.error("OAuth2 token response body does not contain access_token for user: {}. Response body: {}", 
+                        username, response.getBody());
+                }
+            } else {
+                log.error("OAuth2 token request failed with status: {} for user: {}. Response body: {}", 
+                    response.getStatusCode(), username, response.getBody());
             }
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("HTTP error obtaining OAuth2 token for user: {}. Status: {}, Response: {}", 
+                username, e.getStatusCode(), e.getResponseBodyAsString(), e);
+        } catch (org.springframework.web.client.ResourceAccessException e) {
+            log.error("Network error connecting to OAuth2 token endpoint for user: {}. Token URI: {}. Error: {}", 
+                username, tokenUri, e.getMessage(), e);
         } catch (Exception e) {
-            log.error("Error obtaining OAuth2 token for user: {}", username, e);
+            log.error("Unexpected error obtaining OAuth2 token for user: {}", username, e);
         }
         return null;
     }

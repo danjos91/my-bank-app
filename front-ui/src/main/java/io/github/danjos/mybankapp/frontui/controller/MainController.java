@@ -8,6 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -61,7 +62,7 @@ public class MainController {
     }
 
     @PostMapping("/user/{login}/editUserAccount")
-    public String editUserAccount(@RequestParam String login,
+    public String editUserAccount(@PathVariable String login,
                                  @RequestParam String name,
                                  @RequestParam String birthdate,
                                  RedirectAttributes redirectAttributes) {
@@ -77,7 +78,7 @@ public class MainController {
     }
 
     @PostMapping("/user/{login}/editPassword")
-    public String editPassword(@RequestParam String login,
+    public String editPassword(@PathVariable String login,
                               @RequestParam String password,
                               @RequestParam String confirm_password,
                               RedirectAttributes redirectAttributes) {
@@ -100,7 +101,7 @@ public class MainController {
     }
 
     @PostMapping("/user/{login}/cash")
-    public String cashOperation(@RequestParam String login,
+    public String cashOperation(@PathVariable String login,
                                @RequestParam String action,
                                @RequestParam BigDecimal value,
                                RedirectAttributes redirectAttributes) {
@@ -127,7 +128,7 @@ public class MainController {
     }
 
     @PostMapping("/user/{login}/transfer")
-    public String transfer(@RequestParam String login,
+    public String transfer(@PathVariable String login,
                           @RequestParam String to_login,
                           @RequestParam BigDecimal value,
                           RedirectAttributes redirectAttributes) {

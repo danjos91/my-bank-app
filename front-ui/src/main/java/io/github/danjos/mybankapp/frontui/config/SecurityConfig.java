@@ -17,14 +17,11 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
     private final AuthenticationSuccessHandler authenticationSuccessHandler;
-    private final PasswordCaptureFilter passwordCaptureFilter;
 
     public SecurityConfig(CustomUserDetailsService userDetailsService,
-                         AuthenticationSuccessHandler authenticationSuccessHandler,
-                         PasswordCaptureFilter passwordCaptureFilter) {
+                         AuthenticationSuccessHandler authenticationSuccessHandler) {
         this.userDetailsService = userDetailsService;
         this.authenticationSuccessHandler = authenticationSuccessHandler;
-        this.passwordCaptureFilter = passwordCaptureFilter;
     }
     
     @Bean
@@ -41,7 +38,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, PasswordCaptureFilter passwordCaptureFilter) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authz -> authz

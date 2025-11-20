@@ -10,6 +10,13 @@ spring:
     username: bank_app_user
     password: bank_app_password
     driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        hbm2ddl:
+          create_namespaces: true
   data:
     redis:
       host: redis

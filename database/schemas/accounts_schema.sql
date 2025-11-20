@@ -58,9 +58,9 @@ CREATE TRIGGER update_accounts_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert default admin user for testing (password: password123)
--- Using dollar-quoted string to properly escape BCrypt hash
+-- Using empty dollar-quoted string ($$) to include leading $ in BCrypt hash
 INSERT INTO users (username, password, first_name, last_name, email, birth_date) 
-VALUES ('admin', $hash$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy$hash, 'Admin', 'User', 'admin@bank.com', '1990-01-01')
+VALUES ('admin', $$$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy$$, 'Admin', 'User', 'admin@bank.com', '1990-01-01')
 ON CONFLICT (username) DO NOTHING;
 
 -- Create account for admin user

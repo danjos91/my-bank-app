@@ -13,7 +13,7 @@ spring:
         provider:
           bank-app:
             authorization-uri: http://auth-server:8085/oauth2/authorize
-            token-uri: http://auth-server:8085/oauth2/token
+            token-uri: http://auth-server:8085/auth/token
             user-info-uri: http://auth-server:8085/userinfo
             user-name-attribute: sub
     user:
