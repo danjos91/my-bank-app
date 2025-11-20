@@ -38,11 +38,6 @@ A comprehensive microservices-based banking application built with Spring Boot, 
    docker-compose up -d
    ```
 
-3. **Check service health**
-   ```bash
-   make health
-   ```
-
 4. **Access the application**
    - Frontend: http://localhost:8086
    - API Gateway: http://localhost:8080
@@ -52,44 +47,28 @@ A comprehensive microservices-based banking application built with Spring Boot, 
 ### Option 2: Local Development
 
 1. **Start infrastructure services**
-   ```bash
-   make dev-up
-   ```
+      docker-compose -f docker-compose.dev.yml up -d
 
 2. **Build and run services locally**
    ```bash
-   # Build all services
-   mvn clean install -DskipTests
+
    
    # Run individual services (in separate terminals)
-   cd accounts-service && mvn spring-boot:run
-   cd cash-service && mvn spring-boot:run
-   cd transfer-service && mvn spring-boot:run
-   cd notifications-service && mvn spring-boot:run
-   cd auth-server && mvn spring-boot:run
-   cd gateway && mvn spring-boot:run
-   cd front-ui && mvn spring-boot:run
+   cd accounts-service && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
+   cd cash-service && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
+   cd transfer-service && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
+   cd notifications-service && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
+   cd auth-server && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
+   cd gateway && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
+   cd front-ui && mvn spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
    ```
 
 ## 🧪 Testing
 
 ### Run All Tests
 ```bash
-make test
-# or
+
 mvn clean test
-```
-
-### Run Specific Test Types
-```bash
-# Unit tests only
-make test-unit
-
-# Integration tests only
-make test-integration
-
-# Contract tests only
-make test-contracts
 ```
 
 
@@ -98,32 +77,34 @@ make test-contracts
 ### Production Commands
 ```bash
 # Build all images
-make build
+docker-compose build
 
 # Start all services
-make up
+docker-compose up -d
 
 # Stop all services
-make down
+docker-compose down
 
 # View logs
-make logs
+docker-compose logs -f
 
 # Clean up resources
-make clean
+docker-compose down -v --remove-orphans
 ```
 
-### Development Commands
-```bash
-# Build development images
-make dev-build
+## 👤 Test Users
 
-# Start development infrastructure
-make dev-up
+The following test users are available for testing the application functionality:
 
-# Stop development services
-make dev-down
-```
+| Username | Password | Initial Balance | Full Name | Email |
+|----------|----------|-----------------|-----------|-------|
+| `admin` | `password123` | $10,000.00 | Admin User | admin@bank.com |
+| `john` | `password123` | $5,000.00 | John Doe | john.doe@example.com |
+| `jane` | `password123` | $7,500.00 | Jane Smith | jane.smith@example.com |
+| `bob` | `password123` | $3,000.00 | Bob Wilson | bob.wilson@example.com |
+
+> **Note:** All test users share the same password: `password123`. These users are automatically created when you initialize the database.
+
 ## 🏗️ Architecture
 
 This application follows a microservices architecture pattern with the following components:
@@ -144,17 +125,6 @@ This application follows a microservices architecture pattern with the following
 - **Redis** (Port 6379) - Caching and session storage
 
 Look for data flow diagram at the end of this readme.
-
-## 📊 API Documentation
-
-### Authentication
-All API endpoints require authentication via OAuth2. Obtain a token from the auth server:
-
-```bash
-curl -X POST http://localhost:8085/oauth/token \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password&username=user&password=password&client_id=mybank&client_secret=secret"
-```
 
 ## 🔧 Configuration
 
