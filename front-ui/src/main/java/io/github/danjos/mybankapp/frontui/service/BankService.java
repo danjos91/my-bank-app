@@ -10,7 +10,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -253,12 +255,21 @@ public class BankService {
         try {
             String url = gatewayUrl + "/api/accounts/users/register";
             
+            // Split name into first and last name
+            String[] nameParts = name.trim().split("\\s+", 2);
+            String firstName = nameParts[0];
+            String lastName = nameParts.length > 1 ? nameParts[1] : "";
+            
+            // Generate email from username, removing spaces
+            String cleanUsername = username.replaceAll("\\s+", "");
+            String email = cleanUsername + "@bank.local";
+            
             Map<String, String> userData = new HashMap<>();
             userData.put("username", username);
             userData.put("password", password);
-            userData.put("firstName", name.split(" ")[0]);
-            userData.put("lastName", name.split(" ").length > 1 ? name.split(" ")[1] : "");
-            userData.put("email", username + "@bank.local");
+            userData.put("firstName", firstName);
+            userData.put("lastName", lastName);
+            userData.put("email", email);
             userData.put("birthDate", birthdate);
             
             HttpHeaders headers = new HttpHeaders();
@@ -266,6 +277,36 @@ public class BankService {
             HttpEntity<Map<String, String>> request = new HttpEntity<>(userData, headers);
             
             restTemplate.postForObject(url, request, Void.class);
+        } catch (HttpClientErrorException e) {
+            log.error("HTTP error registering user: {}. Status: {}, Response: {}", 
+                username, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            
+            // Try to extract validation errors from response
+            String errorMessage = "Ошибка регистрации";
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, Object> errorResponse = mapper.readValue(e.getResponseBodyAsString(), Map.class);
+                
+                // Check if there are detailed validation errors
+                if (errorResponse.containsKey("errors") && errorResponse.get("errors") instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<String> errors = (List<String>) errorResponse.get("errors");
+                    if (!errors.isEmpty()) {
+                        errorMessage = String.join("; ", errors);
+                    }
+                } else if (errorResponse.containsKey("error")) {
+                    errorMessage = errorResponse.get("error").toString();
+                }
+            } catch (Exception parseException) {
+                log.warn("Could not parse error response, using default message", parseException);
+                // Use the raw response if parsing fails
+                String responseBody = e.getResponseBodyAsString();
+                if (responseBody != null && !responseBody.isEmpty()) {
+                    errorMessage = "Ошибка регистрации: " + responseBody;
+                }
+            }
+            
+            throw new RuntimeException(errorMessage);
         } catch (Exception e) {
             log.error("Error registering user: {}", username, e);
             throw new RuntimeException("Ошибка регистрации: " + e.getMessage());

@@ -176,8 +176,28 @@ public class MainController {
         try {
             log.info("Processing registration for user: {}", login);
 
-            if (!password.equals(confirm_password)) {
-                model.addAttribute("errors", List.of("Пароли не совпадают"));
+            // Client-side validation
+            List<String> validationErrors = new java.util.ArrayList<>();
+            
+            if (password == null || password.length() < 6) {
+                validationErrors.add("Пароль должен содержать минимум 6 символов");
+            }
+            
+            if (password != null && confirm_password != null && !password.equals(confirm_password)) {
+                validationErrors.add("Пароли не совпадают");
+            }
+            
+            if (name == null || name.trim().isEmpty()) {
+                validationErrors.add("Фамилия и имя обязательны для заполнения");
+            } else {
+                String[] nameParts = name.trim().split("\\s+");
+                if (nameParts.length < 2) {
+                    validationErrors.add("Пожалуйста, укажите и фамилию, и имя (через пробел)");
+                }
+            }
+            
+            if (!validationErrors.isEmpty()) {
+                model.addAttribute("errors", validationErrors);
                 model.addAttribute("login", login);
                 model.addAttribute("name", name);
                 model.addAttribute("birthdate", birthdate);

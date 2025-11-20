@@ -9,12 +9,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/accounts/users")
@@ -30,10 +33,42 @@ public class UserController {
             User user = userService.registerUser(registrationDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(java.util.Map.of("message", "User registered successfully with ID: " + user.getId()));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage(), "errors", List.of(e.getMessage())));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of("error", "Registration failed: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of("error", "Registration failed: " + e.getMessage(), "errors", List.of("Registration failed: " + e.getMessage())));
         }
+    }
+    
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, Object> errors = new HashMap<>();
+        List<String> errorMessages = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(error -> {
+                    String fieldName = error.getField();
+                    String errorMessage = error.getDefaultMessage();
+                    // Translate field names to user-friendly messages
+                    String translatedField = translateFieldName(fieldName);
+                    return translatedField + ": " + errorMessage;
+                })
+                .collect(Collectors.toList());
+        
+        errors.put("error", "Validation failed");
+        errors.put("errors", errorMessages);
+        return ResponseEntity.badRequest().body(errors);
+    }
+    
+    private String translateFieldName(String fieldName) {
+        Map<String, String> translations = Map.of(
+            "username", "Логин",
+            "password", "Пароль",
+            "firstName", "Имя",
+            "lastName", "Фамилия",
+            "email", "Email",
+            "birthDate", "Дата рождения"
+        );
+        return translations.getOrDefault(fieldName, fieldName);
     }
     
     @GetMapping("/{id}")
