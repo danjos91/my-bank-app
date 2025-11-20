@@ -33,5 +33,12 @@ transfer:
     timeout: 30s
     max-retries: 3
 
+# Service URLs for inter-service communication
+services:
+  accounts:
+    url: http://accounts-service:8081
+  notifications:
+    url: http://notifications-service:8084
+
 logging:
   time-zone: Europe/Moscow

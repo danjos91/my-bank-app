@@ -30,5 +30,12 @@ cash:
       max-attempts: 3
       wait-duration: 1s
 
+# Service URLs for inter-service communication
+services:
+  accounts:
+    url: http://accounts-service:8081
+  notifications:
+    url: http://notifications-service:8084
+
 logging:
   time-zone: Europe/Moscow
