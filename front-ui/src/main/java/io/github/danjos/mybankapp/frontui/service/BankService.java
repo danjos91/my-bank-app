@@ -131,7 +131,7 @@ public class BankService {
 
     public void updateUserProfile(String username, String name, String birthdate) {
         try {
-            String url = gatewayUrl + "/api/accounts/user/" + username + "/profile";
+            String url = gatewayUrl + "/api/accounts/users/username/" + username + "/profile";
             
             Map<String, String> profileData = new HashMap<>();
             profileData.put("name", name);
@@ -150,7 +150,7 @@ public class BankService {
 
     public void updatePassword(String username, String password) {
         try {
-            String url = gatewayUrl + "/api/accounts/user/" + username + "/password";
+            String url = gatewayUrl + "/api/accounts/users/username/" + username + "/password";
             
             Map<String, String> passwordData = new HashMap<>();
             passwordData.put("password", password);

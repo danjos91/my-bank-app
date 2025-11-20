@@ -11,7 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -79,10 +81,45 @@ public class UserController {
         }
     }
     
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateUserProfile(@PathVariable Long id, @Valid @RequestBody UserProfileDTO profileDTO, Authentication authentication) {
+    @PutMapping("/username/{username}/profile")
+    public ResponseEntity<?> updateUserProfileByUsername(@PathVariable String username, @RequestBody Map<String, String> profileData, Authentication authentication) {
         try {
-            User updatedUser = userService.updateUserProfile(id, profileDTO);
+            Optional<User> userOpt = userService.findByUsername(username);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            User user = userOpt.get();
+            
+            // Parse name field (format: "FirstName LastName" or just "FirstName")
+            String name = profileData.get("name");
+            String firstName = user.getFirstName();
+            String lastName = user.getLastName();
+            
+            if (name != null && !name.trim().isEmpty()) {
+                String[] nameParts = name.trim().split("\\s+", 2);
+                firstName = nameParts[0];
+                lastName = nameParts.length > 1 ? nameParts[1] : "";
+            }
+            
+            // Parse birthdate
+            String birthdateStr = profileData.get("birthdate");
+            LocalDate birthDate = user.getBirthDate();
+            if (birthdateStr != null && !birthdateStr.trim().isEmpty()) {
+                birthDate = LocalDate.parse(birthdateStr);
+            }
+            
+            // Create UserProfileDTO with existing email (front-UI doesn't send email)
+            UserProfileDTO profileDTO = new UserProfileDTO(
+                    user.getId(),
+                    firstName,
+                    lastName,
+                    user.getEmail(), // Keep existing email
+                    birthDate,
+                    user.getUsername()
+            );
+            
+            userService.updateUserProfile(user.getId(), profileDTO);
             return ResponseEntity.ok("User profile updated successfully");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -91,47 +128,25 @@ public class UserController {
         }
     }
     
-    @PutMapping("/{id}/password")
-    public ResponseEntity<?> changePassword(@PathVariable Long id, @RequestBody String newPassword, Authentication authentication) {
+    @PutMapping("/username/{username}/password")
+    public ResponseEntity<?> changePasswordByUsername(@PathVariable String username, @RequestBody Map<String, String> passwordData, Authentication authentication) {
         try {
-            userService.changePassword(id, newPassword);
+            Optional<User> userOpt = userService.findByUsername(username);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            String newPassword = passwordData.get("password");
+            if (newPassword == null || newPassword.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Password cannot be empty");
+            }
+            
+            userService.changePassword(userOpt.get().getId(), newPassword);
             return ResponseEntity.ok("Password changed successfully");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error changing password: " + e.getMessage());
-        }
-    }
-    
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id, Authentication authentication) {
-        try {
-            userService.deleteUser(id);
-            return ResponseEntity.ok("User deleted successfully");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting user: " + e.getMessage());
-        }
-    }
-    
-    @GetMapping("/search")
-    public ResponseEntity<?> searchUsersByName(@RequestParam String name) {
-        try {
-            List<User> users = userService.findByNameContaining(name);
-            List<UserProfileDTO> profileDTOs = users.stream()
-                    .map(user -> new UserProfileDTO(
-                            user.getId(),
-                            user.getFirstName(),
-                            user.getLastName(),
-                            user.getEmail(),
-                            user.getBirthDate(),
-                            user.getUsername()
-                    ))
-                    .toList();
-            return ResponseEntity.ok(profileDTOs);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error searching users: " + e.getMessage());
         }
     }
     
