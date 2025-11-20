@@ -326,8 +326,10 @@ public class BankService {
             }
             Long accountId = userData.getAccountId();
             if (accountId == null) {
-                log.error("Account ID is null for username: {}", username);
-                throw new RuntimeException("Счет не найден для пользователя: " + username);
+                log.info("No account found for user: {}. Creating new account automatically.", username);
+                // Auto-create an account for the user
+                accountId = createAccountForUser(userData.getId());
+                log.info("Account created successfully for user: {}. Account ID: {}", username, accountId);
             }
             return accountId;
         } catch (RuntimeException e) {
@@ -336,6 +338,46 @@ public class BankService {
         } catch (Exception e) {
             log.error("Error getting account ID for username: {}", username, e);
             throw new RuntimeException("Ошибка получения ID счета: " + e.getMessage());
+        }
+    }
+
+    private Long createAccountForUser(Long userId) {
+        try {
+            String url = gatewayUrl + "/api/accounts/users/" + userId + "/accounts";
+            log.debug("Creating account for user ID: {} at URL: {}", userId, url);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(new HashMap<>(), headers);
+            
+            var response = restTemplate.exchange(url, HttpMethod.POST, request, 
+                new ParameterizedTypeReference<Map<String, Object>>() {});
+            
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("message")) {
+
+                String message = responseBody.get("message").toString();
+                String[] parts = message.split(": ");
+                if (parts.length > 1) {
+                    return Long.parseLong(parts[parts.length - 1]);
+                }
+            }
+            
+            String accountsUrl = gatewayUrl + "/api/accounts/users/" + userId + "/accounts";
+            var accountsResponse = restTemplate.exchange(accountsUrl, HttpMethod.GET, null,
+                new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+            
+            List<Map<String, Object>> accounts = accountsResponse.getBody();
+            if (accounts != null && !accounts.isEmpty()) {
+                // Get last created account
+                Map<String, Object> latestAccount = accounts.get(accounts.size() - 1);
+                return getLongValue(latestAccount.get("id"));
+            }
+            
+            throw new RuntimeException("Failed to create account: Unable to retrieve account ID");
+        } catch (Exception e) {
+            log.error("Error creating account for user ID: {}", userId, e);
+            throw new RuntimeException("Ошибка создания счета: " + e.getMessage());
         }
     }
 }
