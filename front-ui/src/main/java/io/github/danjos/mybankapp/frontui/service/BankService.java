@@ -251,7 +251,7 @@ public class BankService {
 
     public void registerUser(String username, String password, String name, String birthdate) {
         try {
-            String url = gatewayUrl + "/api/accounts/register";
+            String url = gatewayUrl + "/api/accounts/users/register";
             
             Map<String, String> userData = new HashMap<>();
             userData.put("username", username);

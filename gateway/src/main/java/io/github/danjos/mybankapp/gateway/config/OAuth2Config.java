@@ -32,7 +32,7 @@ public class OAuth2Config {
                 .csrf(csrf -> csrf.disable())
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/auth/**", "/actuator/**", "/health", "/fallback/**").permitAll()
-                        .pathMatchers("/api/accounts/register", "/api/accounts/login").permitAll()
+                        .pathMatchers("/api/accounts/users/register", "/api/accounts/login").permitAll()
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
