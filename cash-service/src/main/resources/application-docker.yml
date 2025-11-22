@@ -1,0 +1,25 @@
+spring:
+  config:
+    import: configserver:http://config-server:8888
+  cloud:
+    config:
+      uri: http://config-server:8888
+  datasource:
+    url: jdbc:postgresql://postgres:5432/bank_app_db
+    username: bank_app_user
+    password: bank_app_password
+  data:
+    redis:
+      host: redis
+      port: 6379
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth-server:8085
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+

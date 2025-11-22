@@ -1,0 +1,45 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration
+  cloud:
+    config:
+      enabled: false
+  datasource:
+    url: jdbc:postgresql://localhost:5432/testdb
+    username: test
+    password: test
+    driver-class-name: org.postgresql.Driver
+    initialization-mode: always
+    schema: classpath:schema.sql
+    continue-on-error: false
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: accounts_schema
+    hbm2ddl:
+      create_namespaces: true
+  
+  test:
+    database:
+      replace: none
+
+eureka:
+  client:
+    enabled: false
+
+logging:
+  level:
+    org.springframework.test: DEBUG
+    org.testcontainers: DEBUG
+    io.github.danjos.mybankapp: DEBUG
