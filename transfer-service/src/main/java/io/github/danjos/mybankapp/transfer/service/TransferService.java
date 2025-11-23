@@ -6,7 +6,6 @@ import io.github.danjos.mybankapp.transfer.dto.CreateNotificationDTO;
 import io.github.danjos.mybankapp.transfer.dto.TransferDTO;
 import io.github.danjos.mybankapp.transfer.dto.TransferRequestDTO;
 import io.github.danjos.mybankapp.transfer.entity.Transfer;
-import io.github.danjos.mybankapp.transfer.exception.NotFoundException;
 import io.github.danjos.mybankapp.transfer.repository.TransferRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -18,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.NoSuchElementException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -92,7 +92,7 @@ public class TransferService {
     @Transactional(readOnly = true)
     public TransferDTO getTransferById(Long transferId) {
         Transfer transfer = transferRepository.findById(transferId)
-                .orElseThrow(() -> new NotFoundException("Transfer not found"));
+                .orElseThrow(() -> new NoSuchElementException("No transfer found with id: " + transferId));
         return convertToDTO(transfer);
     }
     
@@ -147,7 +147,7 @@ public class TransferService {
     @Transactional
     public TransferDTO cancelTransfer(Long transferId) {
         Transfer transfer = transferRepository.findById(transferId)
-                .orElseThrow(() -> new NotFoundException("Transfer not found"));
+                .orElseThrow(() -> new NoSuchElementException("No transfer found with id: " + transferId));
         
         if (!transfer.isPending()) {
             throw new IllegalArgumentException("Only pending transfers can be cancelled");
@@ -163,7 +163,7 @@ public class TransferService {
     @Transactional
     public TransferDTO retryFailedTransfer(Long transferId) {
         Transfer transfer = transferRepository.findById(transferId)
-                .orElseThrow(() -> new NotFoundException("Transfer not found"));
+                .orElseThrow(() -> new NoSuchElementException("No transfer found with id: " + transferId + "when retrying failed transfer"));
         
         if (!transfer.isFailed()) {
             throw new IllegalArgumentException("Only failed transfers can be retried");
