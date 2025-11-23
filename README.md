@@ -35,7 +35,7 @@ A comprehensive microservices-based banking application built with Spring Boot, 
 
 2. **Start all services**
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 4. **Access the application**
@@ -47,7 +47,7 @@ A comprehensive microservices-based banking application built with Spring Boot, 
 ### Option 2: Local Development
 
 1. **Start infrastructure services**
-      docker-compose -f docker-compose.dev.yml up -d
+      docker compose -f docker-compose.dev.yml up -d
 
 2. **Build and run services locally**
    ```bash
@@ -76,19 +76,19 @@ mvn clean test
 
 ```bash
 # Build all images
-docker-compose build
+docker compose build
 
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # Stop all services
-docker-compose down
+docker compose down
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Clean up resources
-docker-compose down -v --remove-orphans
+docker compose down -v --remove-orphans
 ```
 
 ## 👤 Test Users
