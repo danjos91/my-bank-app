@@ -1,0 +1,56 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: exchange-service
+  autoconfigure:
+    exclude:
+      - io.github.resilience4j.springboot3.fallback.autoconfigure.FallbackAutoConfiguration
+  cloud:
+    config:
+      enabled: true
+      fail-fast: true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bank_app_db
+    username: bank_app_user
+    password: bank_app_password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_schema: exchange_schema
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth-server:8085
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  time-zone: Europe/Moscow
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+

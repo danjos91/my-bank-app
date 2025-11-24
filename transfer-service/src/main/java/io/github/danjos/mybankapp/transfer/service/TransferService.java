@@ -29,6 +29,7 @@ public class TransferService {
     private final TransferRepository transferRepository;
     private final AccountsClient accountsClient;
     private final NotificationsClient notificationsClient;
+    private final io.github.danjos.mybankapp.transfer.client.BlockerClient blockerClient;
     
     @Transactional
     @CircuitBreaker(name = "transfer-service", fallbackMethod = "createTransferFallback")
@@ -55,6 +56,19 @@ public class TransferService {
         BigDecimal currentBalance = accountsClient.getAccountBalance(requestDTO.getFromAccountId());
         if (currentBalance.compareTo(requestDTO.getAmount()) < 0) {
             throw new IllegalArgumentException("Insufficient balance for transfer");
+        }
+        
+        // Check with blocker service (using RUB as default currency for now)
+        try {
+            io.github.danjos.mybankapp.transfer.dto.BlockResponseDTO blockResponse = 
+                    blockerClient.checkTransaction(requestDTO.getAmount(), "RUB");
+            if (blockResponse != null && blockResponse.getDecision() == 
+                    io.github.danjos.mybankapp.transfer.dto.BlockResponseDTO.Decision.BLOCKED) {
+                throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
+            }
+        } catch (Exception e) {
+            log.warn("Blocker service check failed, proceeding with transfer: {}", e.getMessage());
+            // Continue with transfer if blocker is unavailable (fallback behavior)
         }
         
         // Create transfer record

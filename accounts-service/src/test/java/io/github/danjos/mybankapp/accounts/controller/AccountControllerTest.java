@@ -64,6 +64,7 @@ class AccountControllerTest {
                 1L,
                 1L,
                 "testuser",
+                io.github.danjos.mybankapp.accounts.entity.Currency.RUB,
                 BigDecimal.valueOf(1000.00),
                 LocalDateTime.now(),
                 LocalDateTime.now()

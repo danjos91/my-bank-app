@@ -30,9 +30,23 @@ public class CashService {
     private final CashTransactionRepository cashTransactionRepository;
     private final AccountsClient accountsClient;
     private final NotificationsClient notificationsClient;
+    private final io.github.danjos.mybankapp.cash.client.BlockerClient blockerClient;
     
     public CashTransactionDTO deposit(DepositRequestDTO depositRequest) {
         log.info("Processing deposit for account {}: {}", depositRequest.getAccountId(), depositRequest.getAmount());
+        
+        // Check with blocker service (using RUB as default currency for now)
+        try {
+            io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
+                    blockerClient.checkTransaction(depositRequest.getAmount(), "RUB");
+            if (blockResponse != null && blockResponse.getDecision() == 
+                    io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
+                throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
+            }
+        } catch (Exception e) {
+            log.warn("Blocker service check failed, proceeding with deposit: {}", e.getMessage());
+            // Continue with deposit if blocker is unavailable (fallback behavior)
+        }
         
         // Create transaction record
         CashTransaction transaction = CashTransaction.builder()
@@ -68,6 +82,19 @@ public class CashService {
         BigDecimal currentBalance = accountsClient.getAccountBalance(withdrawalRequest.getAccountId());
         if (currentBalance.compareTo(withdrawalRequest.getAmount()) < 0) {
             throw new IllegalArgumentException("Insufficient balance. Available: " + currentBalance + ", Requested: " + withdrawalRequest.getAmount());
+        }
+        
+        // Check with blocker service (using RUB as default currency for now)
+        try {
+            io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
+                    blockerClient.checkTransaction(withdrawalRequest.getAmount(), "RUB");
+            if (blockResponse != null && blockResponse.getDecision() == 
+                    io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
+                throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
+            }
+        } catch (Exception e) {
+            log.warn("Blocker service check failed, proceeding with withdrawal: {}", e.getMessage());
+            // Continue with withdrawal if blocker is unavailable (fallback behavior)
         }
         
         // Create transaction record

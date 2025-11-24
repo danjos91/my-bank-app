@@ -2,6 +2,7 @@ package io.github.danjos.mybankapp.accounts.service;
 
 import io.github.danjos.mybankapp.accounts.dto.AccountDTO;
 import io.github.danjos.mybankapp.accounts.entity.Account;
+import io.github.danjos.mybankapp.accounts.entity.Currency;
 import io.github.danjos.mybankapp.accounts.entity.User;
 import io.github.danjos.mybankapp.accounts.repository.AccountRepository;
 import io.github.danjos.mybankapp.accounts.repository.UserRepository;
@@ -25,11 +26,22 @@ public class AccountService {
     private UserRepository userRepository;
     
     public Account createAccount(Long userId) {
+        return createAccount(userId, Currency.RUB);
+    }
+    
+    public Account createAccount(Long userId, Currency currency) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         
+        // Check if account with this currency already exists
+        Optional<Account> existingAccount = accountRepository.findByUserIdAndCurrency(userId, currency);
+        if (existingAccount.isPresent()) {
+            throw new IllegalArgumentException("Account with currency " + currency + " already exists for this user");
+        }
+        
         Account account = Account.builder()
                 .user(user)
+                .currency(currency)
                 .build();
         return accountRepository.save(account);
     }
@@ -122,11 +134,17 @@ public class AccountService {
                 .collect(Collectors.toList());
     }
     
+    @Transactional(readOnly = true)
+    public Optional<Account> getAccountByUserIdAndCurrency(Long userId, Currency currency) {
+        return accountRepository.findByUserIdAndCurrency(userId, currency);
+    }
+    
     private AccountDTO convertToDTO(Account account) {
         return new AccountDTO(
                 account.getId(),
                 account.getUser().getId(),
                 account.getUser().getUsername(),
+                account.getCurrency(),
                 account.getBalance(),
                 account.getCreatedAt(),
                 account.getUpdatedAt()

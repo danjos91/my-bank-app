@@ -33,6 +33,7 @@ public class AccountController {
                         account.getId(),
                         account.getUser().getId(),
                         account.getUser().getUsername(),
+                        account.getCurrency(),
                         account.getBalance(),
                         account.getCreatedAt(),
                         account.getUpdatedAt()
@@ -49,6 +50,7 @@ public class AccountController {
                     account.get().getId(),
                     account.get().getUser().getId(),
                     account.get().getUser().getUsername(),
+                    account.get().getCurrency(),
                     account.get().getBalance(),
                     account.get().getCreatedAt(),
                     account.get().getUpdatedAt()

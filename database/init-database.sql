@@ -19,6 +19,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 \i /docker-entrypoint-initdb.d/schemas/cash_schema.sql
 \i /docker-entrypoint-initdb.d/schemas/transfer_schema.sql
 \i /docker-entrypoint-initdb.d/schemas/notifications_schema.sql
+\i /docker-entrypoint-initdb.d/schemas/exchange_schema.sql
+\i /docker-entrypoint-initdb.d/schemas/blocker_schema.sql
 
 -- Create a view for cross-schema queries (if needed for reporting)
 -- This view shows user information with their account balance
@@ -42,16 +44,22 @@ GRANT USAGE ON SCHEMA accounts_schema TO bank_app_user;
 GRANT USAGE ON SCHEMA cash_schema TO bank_app_user;
 GRANT USAGE ON SCHEMA transfer_schema TO bank_app_user;
 GRANT USAGE ON SCHEMA notifications_schema TO bank_app_user;
+GRANT USAGE ON SCHEMA exchange_schema TO bank_app_user;
+GRANT USAGE ON SCHEMA blocker_schema TO bank_app_user;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA accounts_schema TO bank_app_user;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA cash_schema TO bank_app_user;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA transfer_schema TO bank_app_user;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA notifications_schema TO bank_app_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA exchange_schema TO bank_app_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA blocker_schema TO bank_app_user;
 
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA accounts_schema TO bank_app_user;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA cash_schema TO bank_app_user;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA transfer_schema TO bank_app_user;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA notifications_schema TO bank_app_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA exchange_schema TO bank_app_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA blocker_schema TO bank_app_user;
 
 
 -- Insert some sample data for testing
@@ -67,17 +75,17 @@ INSERT INTO accounts_schema.users (username, password, first_name, last_name, em
 ON CONFLICT (username) DO NOTHING;
 
 -- Create accounts for sample users
-INSERT INTO accounts_schema.accounts (user_id, balance) 
-SELECT id, 5000.00 FROM accounts_schema.users WHERE username = 'john'
-ON CONFLICT DO NOTHING;
+INSERT INTO accounts_schema.accounts (user_id, currency, balance) 
+SELECT id, 'RUB', 5000.00 FROM accounts_schema.users WHERE username = 'john'
+ON CONFLICT (user_id, currency) DO NOTHING;
 
-INSERT INTO accounts_schema.accounts (user_id, balance) 
-SELECT id, 7500.00 FROM accounts_schema.users WHERE username = 'jane'
-ON CONFLICT DO NOTHING;
+INSERT INTO accounts_schema.accounts (user_id, currency, balance) 
+SELECT id, 'RUB', 7500.00 FROM accounts_schema.users WHERE username = 'jane'
+ON CONFLICT (user_id, currency) DO NOTHING;
 
-INSERT INTO accounts_schema.accounts (user_id, balance) 
-SELECT id, 3000.00 FROM accounts_schema.users WHERE username = 'bob'
-ON CONFLICT DO NOTHING;
+INSERT INTO accounts_schema.accounts (user_id, currency, balance) 
+SELECT id, 'RUB', 3000.00 FROM accounts_schema.users WHERE username = 'bob'
+ON CONFLICT (user_id, currency) DO NOTHING;
 
 -- Sample notifications
 INSERT INTO notifications_schema.notifications_log (user_id, notification_type, title, message) 
