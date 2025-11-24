@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -81,10 +82,11 @@ public class ExchangeService {
         
         // Convert to RUB first
         BigDecimal amountInRUB;
+        ExchangeRate fromRate = null;
         if (fromCurrency == Currency.RUB) {
             amountInRUB = amount;
         } else {
-            ExchangeRate fromRate = exchangeRateRepository.findByCurrency(fromCurrency)
+            fromRate = exchangeRateRepository.findByCurrency(fromCurrency)
                     .orElseThrow(() -> new IllegalArgumentException("Exchange rate not found for currency: " + fromCurrency));
             // To convert to RUB, we use sell rate (selling foreign currency to get RUB)
             amountInRUB = amount.multiply(fromRate.getSellRate()).setScale(2, RoundingMode.HALF_UP);
@@ -102,9 +104,12 @@ public class ExchangeService {
             // To convert from RUB, we use buy rate (buying foreign currency with RUB)
             convertedAmount = amountInRUB.divide(toRate.getBuyRate(), 2, RoundingMode.HALF_UP);
             // Calculate effective exchange rate
-            exchangeRate = fromCurrency == Currency.RUB 
-                    ? toRate.getBuyRate() 
-                    : fromRate.getSellRate().divide(toRate.getBuyRate(), 6, RoundingMode.HALF_UP);
+            if (fromCurrency == Currency.RUB) {
+                exchangeRate = toRate.getBuyRate();
+            } else {
+                exchangeRate = Objects.requireNonNull(fromRate, "fromRate should not be null when fromCurrency is not RUB")
+                        .getSellRate().divide(toRate.getBuyRate(), 6, RoundingMode.HALF_UP);
+            }
         }
         
         return ConversionResponseDTO.builder()
