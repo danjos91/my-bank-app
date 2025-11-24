@@ -3,6 +3,7 @@ package io.github.danjos.mybankapp.accounts.controller;
 import io.github.danjos.mybankapp.accounts.dto.AccountDTO;
 import io.github.danjos.mybankapp.accounts.entity.Account;
 import io.github.danjos.mybankapp.accounts.entity.User;
+import io.github.danjos.mybankapp.accounts.exception.GlobalExceptionHandler;
 import io.github.danjos.mybankapp.accounts.service.AccountService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,6 +35,8 @@ class AccountControllerTest {
 
     @InjectMocks
     private AccountController accountController;
+    
+    private GlobalExceptionHandler exceptionHandler;
 
     private User testUser;
     private Account testAccount;
@@ -40,6 +44,8 @@ class AccountControllerTest {
 
     @BeforeEach
     void setUp() {
+        exceptionHandler = new GlobalExceptionHandler();
+        
         testUser = User.builder()
                 .id(1L)
                 .username("testuser")
@@ -70,6 +76,16 @@ class AccountControllerTest {
                 LocalDateTime.now()
         );
     }
+    
+    private ResponseEntity<?> invokeControllerWithExceptionHandling(java.util.function.Supplier<ResponseEntity<?>> controllerMethod) {
+        try {
+            return controllerMethod.get();
+        } catch (IllegalArgumentException e) {
+            return exceptionHandler.handleIllegalArgumentException(e);
+        } catch (Exception e) {
+            return exceptionHandler.handleException(e);
+        }
+    }
 
     @Test
     void createAccount_ValidUserId_ReturnsCreatedResponse() {
@@ -91,12 +107,12 @@ class AccountControllerTest {
         when(accountService.createAccount(1L)).thenThrow(new IllegalArgumentException("User not found"));
 
         // When
-        ResponseEntity<?> response = accountController.createAccount(1L);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.createAccount(1L));
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         @SuppressWarnings("unchecked")
-        java.util.Map<String, String> body = (java.util.Map<String, String>) response.getBody();
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
         assertNotNull(body);
         assertEquals("User not found", body.get("error"));
         verify(accountService).createAccount(1L);
@@ -108,11 +124,14 @@ class AccountControllerTest {
         when(accountService.createAccount(1L)).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = accountController.createAccount(1L);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.createAccount(1L));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error creating account"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(accountService).createAccount(1L);
     }
 
@@ -137,11 +156,14 @@ class AccountControllerTest {
         when(accountService.getAccountsByUserId(1L)).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = accountController.getAccountsByUserId(1L);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.getAccountsByUserId(1L));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error retrieving accounts"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(accountService).getAccountsByUserId(1L);
     }
 
@@ -178,11 +200,14 @@ class AccountControllerTest {
         when(accountService.getAccountById(1L)).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = accountController.getAccountById(1L);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.getAccountById(1L));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error retrieving account"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(accountService).getAccountById(1L);
     }
 
@@ -207,11 +232,14 @@ class AccountControllerTest {
         when(accountService.getBalance(1L)).thenThrow(new IllegalArgumentException("Account not found"));
 
         // When
-        ResponseEntity<?> response = accountController.getBalance(1L);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.getBalance(1L));
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Account not found", response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Account not found", body.get("error"));
         verify(accountService).getBalance(1L);
     }
 
@@ -221,11 +249,14 @@ class AccountControllerTest {
         when(accountService.getBalance(1L)).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = accountController.getBalance(1L);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.getBalance(1L));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error retrieving balance"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(accountService).getBalance(1L);
     }
 
@@ -250,11 +281,14 @@ class AccountControllerTest {
         when(accountService.getTotalBalanceByUserId(1L)).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = accountController.getTotalBalanceByUserId(1L);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.getTotalBalanceByUserId(1L));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error retrieving total balance"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(accountService).getTotalBalanceByUserId(1L);
     }
 
@@ -280,12 +314,12 @@ class AccountControllerTest {
         when(accountService.updateBalance(1L, newBalance)).thenThrow(new IllegalArgumentException("Account not found"));
 
         // When
-        ResponseEntity<?> response = accountController.updateBalance(1L, newBalance);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.updateBalance(1L, newBalance));
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         @SuppressWarnings("unchecked")
-        java.util.Map<String, String> body = (java.util.Map<String, String>) response.getBody();
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
         assertNotNull(body);
         assertEquals("Account not found", body.get("error"));
         verify(accountService).updateBalance(1L, newBalance);
@@ -298,11 +332,14 @@ class AccountControllerTest {
         when(accountService.updateBalance(1L, newBalance)).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = accountController.updateBalance(1L, newBalance);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.updateBalance(1L, newBalance));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error updating balance"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(accountService).updateBalance(1L, newBalance);
     }
 
@@ -328,11 +365,14 @@ class AccountControllerTest {
         when(accountService.addToBalance(1L, amount)).thenThrow(new IllegalArgumentException("Account not found"));
 
         // When
-        ResponseEntity<?> response = accountController.addToBalance(1L, amount);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.addToBalance(1L, amount));
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Account not found", response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Account not found", body.get("error"));
         verify(accountService).addToBalance(1L, amount);
     }
 
@@ -343,11 +383,14 @@ class AccountControllerTest {
         when(accountService.addToBalance(1L, amount)).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = accountController.addToBalance(1L, amount);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.addToBalance(1L, amount));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error adding to balance"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(accountService).addToBalance(1L, amount);
     }
 
@@ -373,11 +416,14 @@ class AccountControllerTest {
         when(accountService.subtractFromBalance(1L, amount)).thenThrow(new IllegalArgumentException("Account not found"));
 
         // When
-        ResponseEntity<?> response = accountController.subtractFromBalance(1L, amount);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.subtractFromBalance(1L, amount));
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Account not found", response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Account not found", body.get("error"));
         verify(accountService).subtractFromBalance(1L, amount);
     }
 
@@ -388,11 +434,14 @@ class AccountControllerTest {
         when(accountService.subtractFromBalance(1L, amount)).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = accountController.subtractFromBalance(1L, amount);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.subtractFromBalance(1L, amount));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error subtracting from balance"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(accountService).subtractFromBalance(1L, amount);
     }
 
@@ -416,11 +465,14 @@ class AccountControllerTest {
         doThrow(new IllegalArgumentException("Account not found")).when(accountService).deleteAccount(1L);
 
         // When
-        ResponseEntity<?> response = accountController.deleteAccount(1L);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.deleteAccount(1L));
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Account not found", response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Account not found", body.get("error"));
         verify(accountService).deleteAccount(1L);
     }
 
@@ -430,11 +482,14 @@ class AccountControllerTest {
         doThrow(new RuntimeException("Database error")).when(accountService).deleteAccount(1L);
 
         // When
-        ResponseEntity<?> response = accountController.deleteAccount(1L);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.deleteAccount(1L));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error deleting account"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(accountService).deleteAccount(1L);
     }
 
@@ -459,11 +514,14 @@ class AccountControllerTest {
         when(accountService.getAccountsByUsername("testuser")).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = accountController.getAccountsByUsername("testuser");
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.getAccountsByUsername("testuser"));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error retrieving accounts"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(accountService).getAccountsByUsername("testuser");
     }
 
@@ -488,11 +546,14 @@ class AccountControllerTest {
         when(accountService.getAllAccounts()).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = accountController.getAllAccounts();
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.getAllAccounts());
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error retrieving accounts"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(accountService).getAllAccounts();
     }
 }

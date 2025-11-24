@@ -98,9 +98,9 @@ class AccountServiceIntegrationTest {
 
     @Test
     void shouldFindAccountsByUserId() {
-        // Given
-        Account account1 = accountService.createAccount(testUser.getId());
-        Account account2 = accountService.createAccount(testUser.getId());
+        // Given - create accounts with different currencies to avoid unique constraint violation
+        Account account1 = accountService.createAccount(testUser.getId(), io.github.danjos.mybankapp.accounts.entity.Currency.RUB);
+        Account account2 = accountService.createAccount(testUser.getId(), io.github.danjos.mybankapp.accounts.entity.Currency.USD);
 
         // When
         List<Account> accounts = accountService.getAccountsByUserId(testUser.getId());
