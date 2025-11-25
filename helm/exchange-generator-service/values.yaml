@@ -1,0 +1,28 @@
+global:
+  env: dev
+
+replicaCount: 1
+
+image:
+  repository: exchange-generator-service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8088
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+services:
+  exchange: http://exchange-service:8087
+

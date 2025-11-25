@@ -1,0 +1,33 @@
+global:
+  env: dev
+
+replicaCount: 1
+
+image:
+  repository: auth-server
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8085
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# Auth server uses accounts-service DB for user data
+db:
+  host: accounts-service-db
+  port: 5432
+  username: bank_app_user
+  database: bank_app_db
+  secretName: accounts-service-db-secret
+

@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "blocker-service.fullname" . }}-db-init
+  labels:
+    {{- include "blocker-service.labels" . | nindent 4 }}
+data:
+  init.sql: |
+    -- Blocker Service Database Schema
+    CREATE SCHEMA IF NOT EXISTS blocker_schema;
+    SET search_path TO blocker_schema;
+
+    CREATE TABLE IF NOT EXISTS blocked_transactions (
+        id BIGSERIAL PRIMARY KEY,
+        transaction_id VARCHAR(255),
+        service_name VARCHAR(50) NOT NULL,
+        amount DECIMAL(19,2) NOT NULL,
+        currency VARCHAR(3),
+        reason VARCHAR(255),
+        decision VARCHAR(20) NOT NULL,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT blocked_transactions_amount_positive CHECK (amount > 0),
+        CONSTRAINT blocked_transactions_decision_check CHECK (decision IN ('BLOCKED', 'APPROVED'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_blocked_transactions_service_name ON blocked_transactions(service_name);
+    CREATE INDEX IF NOT EXISTS idx_blocked_transactions_decision ON blocked_transactions(decision);
+    CREATE INDEX IF NOT EXISTS idx_blocked_transactions_timestamp ON blocked_transactions(timestamp);
+
