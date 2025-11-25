@@ -41,9 +41,3 @@ db:
 
 auth:
   issuerUri: http://auth-server:8085
-
-blocker:
-  threshold:
-    amount: 10000
-    currency: RUB
-

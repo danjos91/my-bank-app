@@ -15,6 +15,16 @@ service:
   type: ClusterIP
   port: 8086
 
+ingress:
+  enabled: true
+  className: ""
+  annotations: {}
+  hosts:
+    - host: bank-app.local
+      paths:
+        - path: /
+          pathType: Prefix
+
 resources:
   limits:
     cpu: 500m
@@ -24,22 +34,16 @@ resources:
     memory: 256Mi
 
 auth:
-  issuerUri: http://auth-server:8085
+  serverUrl: http://auth-server:8085
 
-# Only for front-ui - ingress configuration
-ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  hosts:
-    - host: chart-example.local
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
-
+# DB config for session or small data (Front UI connects to DB in code but usually for session/user data?)
+# Based on application.yml it connects to DB. Assuming shared accounts DB or its own.
+# application.yml shows: url: jdbc:postgresql://localhost:5432/bank_app_db
+# It seems front-ui connects to the SAME DB as accounts/auth or a main DB.
+# Let's point it to accounts-service-db to be safe as it shares user data.
+db:
+  host: accounts-service-db
+  port: 5432
+  username: bank_app_user
+  database: bank_app_db
+  secretName: accounts-service-db-secret

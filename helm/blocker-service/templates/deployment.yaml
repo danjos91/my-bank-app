@@ -36,10 +36,5 @@ spec:
                   key: password
             - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
               value: {{ .Values.auth.issuerUri }}
-            - name: BLOCKER_THRESHOLD_AMOUNT
-              value: {{ .Values.blocker.threshold.amount | quote }}
-            - name: BLOCKER_THRESHOLD_CURRENCY
-              value: {{ .Values.blocker.threshold.currency }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-

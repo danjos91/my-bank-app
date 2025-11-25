@@ -26,4 +26,3 @@ data:
     CREATE INDEX IF NOT EXISTS idx_blocked_transactions_service_name ON blocked_transactions(service_name);
     CREATE INDEX IF NOT EXISTS idx_blocked_transactions_decision ON blocked_transactions(decision);
     CREATE INDEX IF NOT EXISTS idx_blocked_transactions_timestamp ON blocked_transactions(timestamp);
-

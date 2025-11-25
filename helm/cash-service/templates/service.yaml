@@ -13,4 +13,3 @@ spec:
       name: http
   selector:
     {{- include "cash-service.selectorLabels" . | nindent 4 }}
-

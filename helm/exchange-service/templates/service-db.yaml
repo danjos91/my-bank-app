@@ -15,4 +15,3 @@ spec:
     {{- include "exchange-service.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: database
   clusterIP: None
-

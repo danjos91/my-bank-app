@@ -17,12 +17,12 @@ service:
 
 resources:
   limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
     cpu: 200m
     memory: 256Mi
-  requests:
-    cpu: 100m
-    memory: 128Mi
 
 services:
-  exchange: http://exchange-service:8087
-
+  exchange:
+    url: http://exchange-service:8087

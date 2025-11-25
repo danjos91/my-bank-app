@@ -13,4 +13,3 @@ spec:
       name: http
   selector:
     {{- include "notifications-service.selectorLabels" . | nindent 4 }}
-

@@ -13,4 +13,3 @@ spec:
       name: http
   selector:
     {{- include "auth-server.selectorLabels" . | nindent 4 }}
-

@@ -13,4 +13,3 @@ spec:
       name: http
   selector:
     {{- include "blocker-service.selectorLabels" . | nindent 4 }}
-

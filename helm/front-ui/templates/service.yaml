@@ -13,4 +13,3 @@ spec:
       name: http
   selector:
     {{- include "front-ui.selectorLabels" . | nindent 4 }}
-

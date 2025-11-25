@@ -77,4 +77,3 @@ data:
         RETURN from_account != to_account;
     END;
     $$ LANGUAGE plpgsql;
-

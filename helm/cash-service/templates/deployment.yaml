@@ -38,4 +38,3 @@ spec:
               value: {{ .Values.auth.issuerUri }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-

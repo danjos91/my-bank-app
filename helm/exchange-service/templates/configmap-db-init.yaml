@@ -42,4 +42,3 @@ data:
         ('USD', 100.0, 95.0),
         ('CNY', 14.0, 13.0)
     ON CONFLICT (currency) DO NOTHING;
-

@@ -13,4 +13,3 @@ spec:
       name: http
   selector:
     {{- include "transfer-service.selectorLabels" . | nindent 4 }}
-

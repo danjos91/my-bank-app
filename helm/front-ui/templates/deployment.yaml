@@ -25,12 +25,20 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "docker"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://{{ .Values.db.host }}:{{ .Values.db.port }}/{{ .Values.db.database }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.db.username }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: password
             - name: SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_BANK_APP_AUTHORIZATION_URI
-              value: {{ .Values.auth.issuerUri }}/oauth2/authorize
+              value: {{ .Values.auth.serverUrl }}/oauth2/authorize
             - name: SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_BANK_APP_TOKEN_URI
-              value: {{ .Values.auth.issuerUri }}/oauth2/token
+              value: {{ .Values.auth.serverUrl }}/oauth2/token
             - name: SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_BANK_APP_USER_INFO_URI
-              value: {{ .Values.auth.issuerUri }}/userinfo
+              value: {{ .Values.auth.serverUrl }}/userinfo
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-

@@ -41,9 +41,3 @@ db:
 
 auth:
   issuerUri: http://auth-server:8085
-
-services:
-  accounts: http://accounts-service:8081
-  exchange: http://exchange-service:8087
-  blocker: http://blocker-service:8089
-

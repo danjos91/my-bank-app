@@ -36,12 +36,5 @@ spec:
                   key: password
             - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
               value: {{ .Values.auth.issuerUri }}
-            - name: SERVICES_ACCOUNTS_URL
-              value: {{ .Values.services.accounts }}
-            - name: SERVICES_EXCHANGE_URL
-              value: {{ .Values.services.exchange }}
-            - name: SERVICES_BLOCKER_URL
-              value: {{ .Values.services.blocker }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-

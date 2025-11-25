@@ -38,4 +38,3 @@ data:
     INSERT INTO cash_transactions (account_id, amount, transaction_type, description) 
     VALUES (1, 1000.00, 'DEPOSIT', 'Initial deposit for testing')
     ON CONFLICT DO NOTHING;
-
