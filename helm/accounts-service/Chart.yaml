@@ -1,0 +1,7 @@
+apiVersion: v2
+name: accounts-service
+description: A Helm chart for Accounts Service with PostgreSQL StatefulSet
+type: application
+version: 0.1.0
+appVersion: "0.0.1"
+
