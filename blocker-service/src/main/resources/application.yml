@@ -7,10 +7,6 @@ spring:
   autoconfigure:
     exclude:
       - io.github.resilience4j.springboot3.fallback.autoconfigure.FallbackAutoConfiguration
-  cloud:
-    config:
-      enabled: true
-      fail-fast: true
   datasource:
     url: jdbc:postgresql://localhost:5432/bank_app_db
     username: bank_app_user
@@ -37,13 +33,6 @@ blocker:
     amount: 10000
     currency: RUB
 
-eureka:
-  client:
-    service-url:
-      defaultZone: http://eureka-server:8761/eureka/
-  instance:
-    prefer-ip-address: true
-
 management:
   endpoints:
     web:
@@ -58,4 +47,3 @@ logging:
   level:
     org.springframework.security: DEBUG
     org.springframework.web: DEBUG
-

@@ -4,21 +4,10 @@ server:
 spring:
   application:
     name: exchange-generator-service
-  cloud:
-    config:
-      enabled: true
-      fail-fast: true
 
 services:
   exchange:
     url: http://localhost:8087
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://eureka-server:8761/eureka/
-  instance:
-    prefer-ip-address: true
 
 management:
   endpoints:
@@ -34,4 +23,3 @@ logging:
   level:
     org.springframework.web: DEBUG
     io.github.danjos.mybankapp.exchangegenerator: DEBUG
-
