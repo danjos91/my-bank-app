@@ -1,0 +1,37 @@
+# Default values for my-bank-app umbrella chart.
+# This file allows you to override values for subcharts.
+
+global:
+  env: dev
+
+accounts-service:
+  replicaCount: 1
+
+auth-server:
+  replicaCount: 1
+
+blocker-service:
+  replicaCount: 1
+
+cash-service:
+  replicaCount: 1
+
+exchange-generator-service:
+  replicaCount: 1
+
+exchange-service:
+  replicaCount: 1
+
+front-ui:
+  replicaCount: 1
+  ingress:
+    enabled: true
+    hosts:
+      - host: bank.local
+        paths:
+          - path: /
+            pathType: Prefix
+
+notifications-service:
+  replicaCount: 1
+

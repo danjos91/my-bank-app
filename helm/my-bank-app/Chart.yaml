@@ -1,0 +1,33 @@
+apiVersion: v2
+name: my-bank-app
+description: Umbrella Helm Chart for My Bank App Microservices
+type: application
+version: 0.1.0
+appVersion: "0.0.1"
+
+dependencies:
+  - name: accounts-service
+    version: 0.1.0
+    repository: "file://../accounts-service"
+  - name: auth-server
+    version: 0.1.0
+    repository: "file://../auth-server"
+  - name: blocker-service
+    version: 0.1.0
+    repository: "file://../blocker-service"
+  - name: cash-service
+    version: 0.1.0
+    repository: "file://../cash-service"
+  - name: exchange-generator-service
+    version: 0.1.0
+    repository: "file://../exchange-generator-service"
+  - name: exchange-service
+    version: 0.1.0
+    repository: "file://../exchange-service"
+  - name: front-ui
+    version: 0.1.0
+    repository: "file://../front-ui"
+  - name: notifications-service
+    version: 0.1.0
+    repository: "file://../notifications-service"
+
