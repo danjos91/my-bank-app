@@ -84,6 +84,47 @@
             </div>
         </div>
 
+        <!-- Exchange Rates -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-exchange-alt me-2"></i>Курсы валют
+                            <small class="float-end">
+                                <i class="fas fa-sync-alt" id="exchangeRatesRefreshIcon" style="cursor: pointer;" onclick="refreshExchangeRates()"></i>
+                            </small>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="exchangeRatesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Валюта</th>
+                                        <th>Покупка</th>
+                                        <th>Продажа</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="exchangeRatesBody">
+                                    <tr th:each="rate : ${exchangeRates}">
+                                        <td th:text="${rate.currency}">RUB</td>
+                                        <td th:text="${#numbers.formatDecimal(rate.buyRate, 1, 6)}">1.000000</td>
+                                        <td th:text="${#numbers.formatDecimal(rate.sellRate, 1, 6)}">1.000000</td>
+                                    </tr>
+                                    <tr th:if="${exchangeRates == null || exchangeRates.isEmpty()}">
+                                        <td colspan="3" class="text-center text-muted">
+                                            <i class="fas fa-spinner fa-spin me-2"></i>Загрузка курсов валют...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Quick Actions -->
         <div class="row mb-4">
             <div class="col-md-4">
@@ -298,6 +339,77 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script th:src="@{/js/app.js}"></script>
+    <script>
+        // Function to refresh exchange rates via AJAX
+        function refreshExchangeRates() {
+            const icon = document.getElementById('exchangeRatesRefreshIcon');
+            const tbody = document.getElementById('exchangeRatesBody');
+            
+            // Add spinning animation
+            if (icon) {
+                icon.classList.add('fa-spin');
+            }
+            
+            // Show loading state
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Загрузка курсов валют...</td></tr>';
+            }
+            
+            fetch('/api/exchange/rates')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Ошибка загрузки курсов валют');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (tbody) {
+                        if (data && data.length > 0) {
+                            tbody.innerHTML = data.map(rate => {
+                                const buyRate = parseFloat(rate.buyRate || 0).toFixed(6);
+                                const sellRate = parseFloat(rate.sellRate || 0).toFixed(6);
+                                return `<tr>
+                                    <td>${rate.currency || 'N/A'}</td>
+                                    <td>${buyRate}</td>
+                                    <td>${sellRate}</td>
+                                </tr>`;
+                            }).join('');
+                        } else {
+                            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Курсы валют недоступны</td></tr>';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching exchange rates:', error);
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Ошибка загрузки курсов валют</td></tr>';
+                    }
+                })
+                .finally(() => {
+                    // Remove spinning animation
+                    if (icon) {
+                        icon.classList.remove('fa-spin');
+                    }
+                });
+        }
+        
+        // Auto-refresh exchange rates every 10 seconds
+        let exchangeRatesInterval;
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial refresh after 2 seconds
+            setTimeout(refreshExchangeRates, 2000);
+            
+            // Set up interval for auto-refresh every 10 seconds
+            exchangeRatesInterval = setInterval(refreshExchangeRates, 10000);
+        });
+        
+        // Clean up interval on page unload
+        window.addEventListener('beforeunload', function() {
+            if (exchangeRatesInterval) {
+                clearInterval(exchangeRatesInterval);
+            }
+        });
+    </script>
 </body>
 
 </html>

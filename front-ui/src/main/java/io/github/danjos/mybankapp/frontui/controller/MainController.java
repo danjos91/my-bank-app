@@ -50,6 +50,10 @@ public class MainController {
             var users = bankService.getAllUsers();
             model.addAttribute("users", users);
 
+            // Get exchange rates
+            var exchangeRates = bankService.getExchangeRates();
+            model.addAttribute("exchangeRates", exchangeRates);
+
             // Flash attributes for errors are automatically added to model by Spring
             // They will be null if not set, which is the expected behavior
 

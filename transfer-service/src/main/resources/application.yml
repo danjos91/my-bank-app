@@ -39,12 +39,24 @@ eureka:
   instance:
     prefer-ip-address: true
 
+services:
+  accounts:
+    url: http://accounts-service:8081
+  exchange:
+    url: http://exchange-service:8087
+  blocker:
+    url: http://blocker-service:8089
+
 resilience4j:
   fallback:
     enabled: false
   circuitbreaker:
     instances:
       accounts-service:
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        sliding-window-size: 10
+      exchange-service:
         failure-rate-threshold: 50
         wait-duration-in-open-state: 30s
         sliding-window-size: 10
@@ -55,6 +67,9 @@ resilience4j:
   retry:
     instances:
       accounts-service:
+        max-attempts: 3
+        wait-duration: 1s
+      exchange-service:
         max-attempts: 3
         wait-duration: 1s
       notifications-service:

@@ -20,8 +20,15 @@ public class AccountController {
     private AccountService accountService;
     
     @PostMapping("/users/{userId}/accounts")
-    public ResponseEntity<?> createAccount(@PathVariable Long userId) {
-        Account account = accountService.createAccount(userId);
+    public ResponseEntity<?> createAccount(
+            @PathVariable Long userId,
+            @RequestParam(required = false) io.github.danjos.mybankapp.accounts.entity.Currency currency) {
+        Account account;
+        if (currency != null) {
+            account = accountService.createAccount(userId, currency);
+        } else {
+            account = accountService.createAccount(userId);
+        }
         return ResponseEntity.status(201).body(java.util.Map.of("message", "Account created successfully with ID: " + account.getId()));
     }
     

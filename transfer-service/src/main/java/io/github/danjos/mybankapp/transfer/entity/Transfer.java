@@ -36,6 +36,19 @@ public class Transfer {
     @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
     private BigDecimal amount;
     
+    @Enumerated(EnumType.STRING)
+    @Column(name = "from_currency", nullable = false, length = 3)
+    @Builder.Default
+    private Currency fromCurrency = Currency.RUB;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "to_currency", nullable = false, length = 3)
+    @Builder.Default
+    private Currency toCurrency = Currency.RUB;
+    
+    @Column(name = "converted_amount", precision = 19, scale = 2)
+    private BigDecimal convertedAmount;
+    
     @Column(name = "description", length = 255)
     @Size(max = 255, message = "Description must not exceed 255 characters")
     private String description;

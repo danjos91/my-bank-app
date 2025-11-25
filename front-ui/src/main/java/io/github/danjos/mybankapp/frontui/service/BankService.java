@@ -120,6 +120,20 @@ public class BankService {
         return Long.parseLong(value.toString());
     }
 
+    public List<Map<String, Object>> getExchangeRates() {
+        try {
+            String url = gatewayUrl + "/api/exchange/rates";
+            log.debug("Fetching exchange rates from: {}", url);
+            var response = restTemplate.exchange(url, HttpMethod.GET, null,
+                new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Error getting exchange rates", e);
+            // Return empty list on error - frontend will handle it
+            return List.of();
+        }
+    }
+
     public List<UserDataDTO> getAllUsers() {
         try {
             String url = gatewayUrl + "/api/accounts/users";
