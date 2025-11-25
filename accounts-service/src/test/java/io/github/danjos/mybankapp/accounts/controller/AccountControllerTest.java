@@ -93,7 +93,7 @@ class AccountControllerTest {
         when(accountService.createAccount(1L)).thenReturn(testAccount);
 
         // When
-        ResponseEntity<?> response = accountController.createAccount(1L);
+        ResponseEntity<?> response = accountController.createAccount(1L, null);
 
         // Then
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -107,7 +107,7 @@ class AccountControllerTest {
         when(accountService.createAccount(1L)).thenThrow(new IllegalArgumentException("User not found"));
 
         // When
-        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.createAccount(1L));
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.createAccount(1L, null));
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -124,7 +124,7 @@ class AccountControllerTest {
         when(accountService.createAccount(1L)).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.createAccount(1L));
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> accountController.createAccount(1L, null));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
