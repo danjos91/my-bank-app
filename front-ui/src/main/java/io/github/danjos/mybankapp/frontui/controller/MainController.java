@@ -54,6 +54,10 @@ public class MainController {
             var exchangeRates = bankService.getExchangeRates();
             model.addAttribute("exchangeRates", exchangeRates);
 
+            // Get all user accounts with currencies
+            var accounts = bankService.getUserAccounts(username);
+            model.addAttribute("accounts", accounts);
+
             // Flash attributes for errors are automatically added to model by Spring
             // They will be null if not set, which is the expected behavior
 
@@ -133,12 +137,14 @@ public class MainController {
 
     @PostMapping("/user/{login}/transfer")
     public String transfer(@PathVariable String login,
+                          @RequestParam(required = false) Long fromAccountId,
                           @RequestParam String to_login,
+                          @RequestParam(required = false) Long toAccountId,
                           @RequestParam BigDecimal value,
                           RedirectAttributes redirectAttributes) {
         try {
-            log.info("Processing transfer from {} to {} for amount {}", 
-                    login, to_login, value);
+            log.info("Processing transfer from account {} to account {} for amount {}", 
+                    fromAccountId, toAccountId, value);
 
             if (login.equals(to_login)) {
                 redirectAttributes.addFlashAttribute("transferOtherErrors", 
@@ -146,12 +152,35 @@ public class MainController {
                 return "redirect:/main";
             }
 
-            bankService.transfer(login, to_login, value);
+            bankService.transfer(fromAccountId, toAccountId, to_login, value);
             redirectAttributes.addFlashAttribute("successMessage", 
                 "Перевод успешно выполнен");
         } catch (Exception e) {
             log.error("Error processing transfer", e);
             redirectAttributes.addFlashAttribute("transferOtherErrors", List.of(e.getMessage()));
+        }
+        return "redirect:/main";
+    }
+
+    @PostMapping("/user/{login}/createAccount")
+    public String createAccount(@PathVariable String login,
+                               @RequestParam String currency,
+                               RedirectAttributes redirectAttributes) {
+        try {
+            log.info("Creating account for user: {} with currency: {}", login, currency);
+            
+            if (currency == null || currency.trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("accountErrors", 
+                    List.of("Необходимо выбрать валюту"));
+                return "redirect:/main";
+            }
+
+            bankService.createAccount(login, currency);
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Счет в валюте " + currency + " успешно создан");
+        } catch (Exception e) {
+            log.error("Error creating account", e);
+            redirectAttributes.addFlashAttribute("accountErrors", List.of(e.getMessage()));
         }
         return "redirect:/main";
     }

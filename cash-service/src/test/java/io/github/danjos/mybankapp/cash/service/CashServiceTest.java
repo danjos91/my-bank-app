@@ -2,11 +2,13 @@ package io.github.danjos.mybankapp.cash.service;
 
 import io.github.danjos.mybankapp.cash.client.AccountsClient;
 import io.github.danjos.mybankapp.cash.client.NotificationsClient;
+import io.github.danjos.mybankapp.cash.dto.AccountDTO;
 import io.github.danjos.mybankapp.cash.dto.CashTransactionDTO;
 import io.github.danjos.mybankapp.cash.dto.CreateNotificationDTO;
 import io.github.danjos.mybankapp.cash.dto.DepositRequestDTO;
 import io.github.danjos.mybankapp.cash.dto.WithdrawalRequestDTO;
 import io.github.danjos.mybankapp.cash.entity.CashTransaction;
+import io.github.danjos.mybankapp.cash.entity.Currency;
 import io.github.danjos.mybankapp.cash.repository.CashTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -76,6 +78,16 @@ class CashServiceTest {
     @Test
     void deposit_ValidRequest_ReturnsTransactionDTO() {
         // Given
+        AccountDTO accountDTO = AccountDTO.builder()
+                .id(1L)
+                .userId(1L)
+                .username("testuser")
+                .currency(Currency.RUB)
+                .balance(new BigDecimal("1000.00"))
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        when(accountsClient.getAccount(1L)).thenReturn(accountDTO);
         when(cashTransactionRepository.save(any(CashTransaction.class))).thenReturn(testTransaction);
         doNothing().when(accountsClient).addToAccountBalance(anyLong(), any(BigDecimal.class));
         doNothing().when(notificationsClient).createNotification(any(CreateNotificationDTO.class));
@@ -97,6 +109,16 @@ class CashServiceTest {
     @Test
     void deposit_AccountsClientThrowsException_ThrowsRuntimeException() {
         // Given
+        AccountDTO accountDTO = AccountDTO.builder()
+                .id(1L)
+                .userId(1L)
+                .username("testuser")
+                .currency(Currency.RUB)
+                .balance(new BigDecimal("1000.00"))
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        when(accountsClient.getAccount(1L)).thenReturn(accountDTO);
         when(cashTransactionRepository.save(any(CashTransaction.class))).thenReturn(testTransaction);
         doThrow(new RuntimeException("Account service unavailable"))
                 .when(accountsClient).addToAccountBalance(anyLong(), any(BigDecimal.class));
@@ -112,7 +134,16 @@ class CashServiceTest {
     @Test
     void withdraw_ValidRequestWithSufficientBalance_ReturnsTransactionDTO() {
         // Given
-        when(accountsClient.getAccountBalance(1L)).thenReturn(new BigDecimal("200.00"));
+        AccountDTO accountDTO = AccountDTO.builder()
+                .id(1L)
+                .userId(1L)
+                .username("testuser")
+                .currency(Currency.RUB)
+                .balance(new BigDecimal("200.00"))
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        when(accountsClient.getAccount(1L)).thenReturn(accountDTO);
         when(cashTransactionRepository.save(any(CashTransaction.class))).thenReturn(testTransaction);
         doNothing().when(accountsClient).subtractFromAccountBalance(anyLong(), any(BigDecimal.class));
         doNothing().when(notificationsClient).createNotification(any(CreateNotificationDTO.class));
@@ -122,7 +153,7 @@ class CashServiceTest {
 
         // Then
         assertNotNull(result);
-        verify(accountsClient).getAccountBalance(1L);
+        verify(accountsClient).getAccount(1L);
         verify(cashTransactionRepository).save(any(CashTransaction.class));
         verify(accountsClient).subtractFromAccountBalance(1L, new BigDecimal("50.00"));
         verify(notificationsClient).createNotification(any(CreateNotificationDTO.class));
@@ -131,13 +162,22 @@ class CashServiceTest {
     @Test
     void withdraw_InsufficientBalance_ThrowsIllegalArgumentException() {
         // Given
-        when(accountsClient.getAccountBalance(1L)).thenReturn(new BigDecimal("30.00"));
+        AccountDTO accountDTO = AccountDTO.builder()
+                .id(1L)
+                .userId(1L)
+                .username("testuser")
+                .currency(Currency.RUB)
+                .balance(new BigDecimal("30.00"))
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        when(accountsClient.getAccount(1L)).thenReturn(accountDTO);
 
         // When & Then
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> cashService.withdraw(withdrawalRequest));
         assertTrue(exception.getMessage().contains("Insufficient balance"));
-        verify(accountsClient).getAccountBalance(1L);
+        verify(accountsClient).getAccount(1L);
         verify(cashTransactionRepository, never()).save(any(CashTransaction.class));
         verify(accountsClient, never()).subtractFromAccountBalance(anyLong(), any(BigDecimal.class));
     }
@@ -145,7 +185,16 @@ class CashServiceTest {
     @Test
     void withdraw_AccountsClientThrowsException_ThrowsRuntimeException() {
         // Given
-        when(accountsClient.getAccountBalance(1L)).thenReturn(new BigDecimal("200.00"));
+        AccountDTO accountDTO = AccountDTO.builder()
+                .id(1L)
+                .userId(1L)
+                .username("testuser")
+                .currency(Currency.RUB)
+                .balance(new BigDecimal("200.00"))
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        when(accountsClient.getAccount(1L)).thenReturn(accountDTO);
         when(cashTransactionRepository.save(any(CashTransaction.class))).thenReturn(testTransaction);
         doThrow(new RuntimeException("Account service unavailable"))
                 .when(accountsClient).subtractFromAccountBalance(anyLong(), any(BigDecimal.class));
@@ -154,7 +203,7 @@ class CashServiceTest {
         RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> cashService.withdraw(withdrawalRequest));
         assertTrue(exception.getMessage().contains("Withdrawal failed"));
-        verify(accountsClient).getAccountBalance(1L);
+        verify(accountsClient).getAccount(1L);
         verify(cashTransactionRepository).save(any(CashTransaction.class));
         verify(accountsClient).subtractFromAccountBalance(1L, new BigDecimal("50.00"));
     }

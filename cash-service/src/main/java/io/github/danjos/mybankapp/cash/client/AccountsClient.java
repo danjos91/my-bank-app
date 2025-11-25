@@ -82,6 +82,20 @@ public class AccountsClient {
         }
     }
     
+    @CircuitBreaker(name = "accounts-service", fallbackMethod = "getAccountFallback")
+    @Retry(name = "accounts-service")
+    public io.github.danjos.mybankapp.cash.dto.AccountDTO getAccount(Long accountId) {
+        try {
+            String url = accountsServiceUrl + "/api/accounts/" + accountId;
+            ResponseEntity<io.github.danjos.mybankapp.cash.dto.AccountDTO> response = 
+                    restTemplate.getForEntity(url, io.github.danjos.mybankapp.cash.dto.AccountDTO.class);
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Error getting account {}: {}", accountId, e.getMessage());
+            throw e;
+        }
+    }
+    
     // Fallback methods
     public BigDecimal getBalanceFallback(Long accountId, Exception ex) {
         log.warn("Fallback: Unable to get balance for account {}, returning 0", accountId);
@@ -101,5 +115,10 @@ public class AccountsClient {
     public void subtractFromBalanceFallback(Long accountId, BigDecimal amount, Exception ex) {
         log.warn("Fallback: Unable to subtract from balance for account {}", accountId);
         throw new RuntimeException("Unable to subtract from account balance");
+    }
+    
+    public io.github.danjos.mybankapp.cash.dto.AccountDTO getAccountFallback(Long accountId, Exception ex) {
+        log.warn("Fallback: Unable to get account {}", accountId);
+        throw new RuntimeException("Unable to get account: " + accountId);
     }
 }

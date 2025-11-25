@@ -2,7 +2,9 @@ package io.github.danjos.mybankapp.cash;
 
 import io.github.danjos.mybankapp.cash.client.AccountsClient;
 import io.github.danjos.mybankapp.cash.client.NotificationsClient;
+import io.github.danjos.mybankapp.cash.dto.AccountDTO;
 import io.github.danjos.mybankapp.cash.entity.CashTransaction;
+import io.github.danjos.mybankapp.cash.entity.Currency;
 import io.github.danjos.mybankapp.cash.repository.CashTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +60,19 @@ public abstract class BaseContractTest {
         // Setup RestAssuredMockMvc
         mockMvc(mockMvc);
 
+        // Mock AccountDTO for getAccount calls
+        AccountDTO accountDTO = AccountDTO.builder()
+                .id(1L)
+                .userId(1L)
+                .username("testuser")
+                .currency(Currency.RUB)
+                .balance(new BigDecimal("1000.00"))
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
         // Mock external clients
+        when(accountsClient.getAccount(anyLong())).thenReturn(accountDTO);
         when(accountsClient.getAccountBalance(anyLong())).thenReturn(new BigDecimal("1000.00"));
         doNothing().when(accountsClient).addToAccountBalance(anyLong(), any(BigDecimal.class));
         doNothing().when(accountsClient).subtractFromAccountBalance(anyLong(), any(BigDecimal.class));

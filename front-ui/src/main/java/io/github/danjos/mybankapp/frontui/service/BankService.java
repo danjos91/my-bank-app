@@ -134,6 +134,45 @@ public class BankService {
         }
     }
 
+    public List<Map<String, Object>> getUserAccounts(String username) {
+        try {
+            String url = gatewayUrl + "/api/accounts/username/" + username;
+            log.debug("Fetching accounts from: {}", url);
+            var response = restTemplate.exchange(url, HttpMethod.GET, null,
+                new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+            return response.getBody() != null ? response.getBody() : List.of();
+        } catch (Exception e) {
+            log.error("Error getting user accounts for: {}", username, e);
+            return List.of();
+        }
+    }
+
+    public void createAccount(String username, String currency) {
+        try {
+            UserDataDTO userData = getUserData(username);
+            if (userData == null || userData.getId() == null) {
+                throw new RuntimeException("Пользователь не найден");
+            }
+            
+            String url = gatewayUrl + "/api/accounts/users/" + userData.getId() + "/accounts";
+            if (currency != null && !currency.isEmpty()) {
+                url += "?currency=" + currency;
+            }
+            
+            log.debug("Creating account for user: {} with currency: {} at URL: {}", username, currency, url);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(new HashMap<>(), headers);
+            
+            restTemplate.exchange(url, HttpMethod.POST, request, 
+                new ParameterizedTypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            log.error("Error creating account for user: {} with currency: {}", username, currency, e);
+            throw new RuntimeException("Ошибка создания счета: " + e.getMessage());
+        }
+    }
+
     public List<UserDataDTO> getAllUsers() {
         try {
             String url = gatewayUrl + "/api/accounts/users";
@@ -244,13 +283,24 @@ public class BankService {
         }
     }
 
-    public void transfer(String fromUsername, String toUsername, BigDecimal amount) {
+    public void transfer(Long fromAccountId, Long toAccountId, String toUsername, BigDecimal amount) {
         try {
             String url = gatewayUrl + "/api/transfers";
             
+            // If account IDs are not provided, get them from usernames
+            if (fromAccountId == null) {
+                throw new RuntimeException("Необходимо выбрать счет отправителя");
+            }
+            if (toAccountId == null) {
+                if (toUsername == null || toUsername.trim().isEmpty()) {
+                    throw new RuntimeException("Необходимо указать получателя");
+                }
+                toAccountId = getAccountId(toUsername);
+            }
+            
             Map<String, Object> transferData = new HashMap<>();
-            transferData.put("fromAccountId", getAccountId(fromUsername));
-            transferData.put("toAccountId", getAccountId(toUsername));
+            transferData.put("fromAccountId", fromAccountId);
+            transferData.put("toAccountId", toAccountId);
             transferData.put("amount", amount);
             transferData.put("description", "Перевод через веб-интерфейс");
             
@@ -260,7 +310,7 @@ public class BankService {
             
             restTemplate.postForObject(url, request, Void.class);
         } catch (Exception e) {
-            log.error("Error processing transfer from {} to {}", fromUsername, toUsername, e);
+            log.error("Error processing transfer from account {} to account {}", fromAccountId, toAccountId, e);
             throw new RuntimeException("Ошибка перевода: " + e.getMessage());
         }
     }

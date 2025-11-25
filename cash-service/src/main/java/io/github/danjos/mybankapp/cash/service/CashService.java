@@ -35,10 +35,18 @@ public class CashService {
     public CashTransactionDTO deposit(DepositRequestDTO depositRequest) {
         log.info("Processing deposit for account {}: {}", depositRequest.getAccountId(), depositRequest.getAmount());
         
-        // Check with blocker service (using RUB as default currency for now)
+        // Get account information to determine currency
+        io.github.danjos.mybankapp.cash.dto.AccountDTO account = accountsClient.getAccount(depositRequest.getAccountId());
+        if (account == null) {
+            throw new IllegalArgumentException("Account not found: " + depositRequest.getAccountId());
+        }
+        
+        String currency = account.getCurrency() != null ? account.getCurrency().name() : "RUB";
+        
+        // Check with blocker service using account currency
         try {
             io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
-                    blockerClient.checkTransaction(depositRequest.getAmount(), "RUB");
+                    blockerClient.checkTransaction(depositRequest.getAmount(), currency);
             if (blockResponse != null && blockResponse.getDecision() == 
                     io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
                 throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
@@ -78,16 +86,23 @@ public class CashService {
     public CashTransactionDTO withdraw(WithdrawalRequestDTO withdrawalRequest) {
         log.info("Processing withdrawal for account {}: {}", withdrawalRequest.getAccountId(), withdrawalRequest.getAmount());
         
-        // Check account balance first
-        BigDecimal currentBalance = accountsClient.getAccountBalance(withdrawalRequest.getAccountId());
-        if (currentBalance.compareTo(withdrawalRequest.getAmount()) < 0) {
-            throw new IllegalArgumentException("Insufficient balance. Available: " + currentBalance + ", Requested: " + withdrawalRequest.getAmount());
+        // Get account information to determine currency
+        io.github.danjos.mybankapp.cash.dto.AccountDTO account = accountsClient.getAccount(withdrawalRequest.getAccountId());
+        if (account == null) {
+            throw new IllegalArgumentException("Account not found: " + withdrawalRequest.getAccountId());
         }
         
-        // Check with blocker service (using RUB as default currency for now)
+        // Check account balance first
+        if (account.getBalance().compareTo(withdrawalRequest.getAmount()) < 0) {
+            throw new IllegalArgumentException("Insufficient balance. Available: " + account.getBalance() + ", Requested: " + withdrawalRequest.getAmount());
+        }
+        
+        String currency = account.getCurrency() != null ? account.getCurrency().name() : "RUB";
+        
+        // Check with blocker service using account currency
         try {
             io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
-                    blockerClient.checkTransaction(withdrawalRequest.getAmount(), "RUB");
+                    blockerClient.checkTransaction(withdrawalRequest.getAmount(), currency);
             if (blockResponse != null && blockResponse.getDecision() == 
                     io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
                 throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
