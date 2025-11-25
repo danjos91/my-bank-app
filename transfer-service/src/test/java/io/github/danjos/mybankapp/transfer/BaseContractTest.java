@@ -1,7 +1,14 @@
 package io.github.danjos.mybankapp.transfer;
 
 import io.github.danjos.mybankapp.transfer.client.AccountsClient;
+import io.github.danjos.mybankapp.transfer.client.BlockerClient;
+import io.github.danjos.mybankapp.transfer.client.ExchangeClient;
 import io.github.danjos.mybankapp.transfer.client.NotificationsClient;
+import io.github.danjos.mybankapp.transfer.dto.AccountDTO;
+import io.github.danjos.mybankapp.transfer.dto.BlockResponseDTO;
+import io.github.danjos.mybankapp.transfer.dto.ConversionRequestDTO;
+import io.github.danjos.mybankapp.transfer.dto.ConversionResponseDTO;
+import io.github.danjos.mybankapp.transfer.entity.Currency;
 import io.github.danjos.mybankapp.transfer.entity.Transfer;
 import io.github.danjos.mybankapp.transfer.repository.TransferRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +31,7 @@ import java.time.LocalDateTime;
 import static io.restassured.module.mockmvc.RestAssuredMockMvc.mockMvc;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
@@ -53,6 +61,12 @@ public abstract class BaseContractTest {
     @MockBean
     protected NotificationsClient notificationsClient;
 
+    @MockBean
+    protected ExchangeClient exchangeClient;
+
+    @MockBean
+    protected BlockerClient blockerClient;
+
     protected Transfer testTransfer;
     
     @Autowired
@@ -63,12 +77,68 @@ public abstract class BaseContractTest {
         // Setup RestAssuredMockMvc
         mockMvc(mockMvc);
 
+        // Mock AccountDTO for getAccount calls
+        AccountDTO account1 = AccountDTO.builder()
+                .id(1L)
+                .userId(1L)
+                .username("user1")
+                .currency(Currency.RUB)
+                .balance(new BigDecimal("1000.00"))
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        AccountDTO account2 = AccountDTO.builder()
+                .id(2L)
+                .userId(2L)
+                .username("user2")
+                .currency(Currency.RUB)
+                .balance(new BigDecimal("500.00"))
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
         // Mock external clients
         when(accountsClient.getAccountBalance(anyLong())).thenReturn(new BigDecimal("1000.00"));
         when(accountsClient.validateAccountExists(anyLong())).thenReturn(true);
+        when(accountsClient.getAccount(1L)).thenReturn(account1);
+        when(accountsClient.getAccount(2L)).thenReturn(account2);
+        // Default mock for any other account ID
+        when(accountsClient.getAccount(anyLong())).thenAnswer(invocation -> {
+            Long accountId = invocation.getArgument(0);
+            return AccountDTO.builder()
+                    .id(accountId)
+                    .userId(accountId)
+                    .username("user" + accountId)
+                    .currency(Currency.RUB)
+                    .balance(new BigDecimal("1000.00"))
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+        });
         doNothing().when(accountsClient).subtractFromAccountBalance(anyLong(), any(BigDecimal.class));
         doNothing().when(accountsClient).addToAccountBalance(anyLong(), any(BigDecimal.class));
         doNothing().when(notificationsClient).createNotification(any());
+
+        // Mock exchange client - return same amount if currencies are the same
+        when(exchangeClient.convert(any(ConversionRequestDTO.class))).thenAnswer(invocation -> {
+            ConversionRequestDTO request = invocation.getArgument(0);
+            return ConversionResponseDTO.builder()
+                    .fromCurrency(request.getFromCurrency())
+                    .toCurrency(request.getToCurrency())
+                    .originalAmount(request.getAmount())
+                    .convertedAmount(request.getAmount())
+                    .exchangeRate(BigDecimal.ONE)
+                    .build();
+        });
+
+        // Mock blocker client - approve all transactions
+        when(blockerClient.checkTransaction(any(BigDecimal.class), anyString())).thenReturn(
+                BlockResponseDTO.builder()
+                        .decision(BlockResponseDTO.Decision.APPROVED)
+                        .reason("Transaction approved")
+                        .build()
+        );
 
         // Clean up before each test
         transferRepository.deleteAll();
