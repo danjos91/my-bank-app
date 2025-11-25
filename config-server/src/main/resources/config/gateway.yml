@@ -48,6 +48,26 @@ spring:
               args:
                 name: notifications-service
                 fallbackUri: forward:/fallback/notifications
+        - id: exchange-service
+          uri: lb://exchange-service
+          predicates:
+            - Path=/api/exchange/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: exchange-service
+                fallbackUri: forward:/fallback/exchange
+        - id: blocker-service
+          uri: lb://blocker-service
+          predicates:
+            - Path=/api/blocker/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: blocker-service
+                fallbackUri: forward:/fallback/blocker
         - id: front-ui
           uri: lb://front-ui
           predicates:

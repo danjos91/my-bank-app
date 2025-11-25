@@ -26,6 +26,21 @@ spring:
               client-secret: notifications-service-secret
               authorization-grant-type: client_credentials
               scope: read,write
+            exchange-service:
+              client-id: exchange-service-client
+              client-secret: exchange-service-secret
+              authorization-grant-type: client_credentials
+              scope: read,write
+            exchange-generator-service:
+              client-id: exchange-generator-service-client
+              client-secret: exchange-generator-service-secret
+              authorization-grant-type: client_credentials
+              scope: read,write
+            blocker-service:
+              client-id: blocker-service-client
+              client-secret: blocker-service-secret
+              authorization-grant-type: client_credentials
+              scope: read,write
             front-ui:
               client-id: front-ui-client
               client-secret: front-ui-secret

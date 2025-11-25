@@ -12,7 +12,7 @@
 ![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white)
 ![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)
 
-A comprehensive microservices-based banking application built with Spring Boot, featuring user management, account operations, money transfers, and real-time notifications.
+A comprehensive microservices-based banking application built with Spring Boot, featuring user management, multi-currency account operations, money transfers with currency conversion, real-time notifications, and exchange rate management.
 
 
 
@@ -59,6 +59,9 @@ A comprehensive microservices-based banking application built with Spring Boot, 
    cd notifications-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
    cd cash-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
    cd transfer-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
+   cd exchange-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
+   cd exchange-generator-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
+   cd blocker-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
    cd gateway; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
    cd front-ui; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
    ```
@@ -110,12 +113,15 @@ This application follows a microservices architecture pattern with the following
 
 ### Core Services
 - **Gateway Service** (Port 8080) - API Gateway with routing and load balancing
-- **Accounts Service** (Port 8081) - User and account management
-- **Cash Service** (Port 8082) - Deposit and withdrawal operations
-- **Transfer Service** (Port 8083) - Money transfers between accounts
+- **Accounts Service** (Port 8081) - User and multi-currency account management
+- **Cash Service** (Port 8082) - Deposit and withdrawal operations with currency support
+- **Transfer Service** (Port 8083) - Money transfers between accounts with currency conversion
 - **Notifications Service** (Port 8084) - Real-time notifications
+- **Exchange Service** (Port 8087) - Currency exchange rates and conversion
+- **Exchange Generator Service** (Port 8088) - Automated exchange rate generation
+- **Blocker Service** (Port 8089) - Suspicious transaction detection and blocking
 - **Auth Server** (Port 8085) - OAuth2 authentication and authorization
-- **Front UI** (Port 8086) - Web-based user interface
+- **Front UI** (Port 8086) - Web-based user interface with multi-currency support
 
 ### Infrastructure Services
 - **Eureka Server** (Port 8761) - Service discovery and registration
@@ -133,12 +139,15 @@ Look for data flow diagram at the end of this readme.
 | Service | Port | Description |
 |---------|------|-------------|
 | Gateway | 8080 | API Gateway |
-| Accounts | 8081 | User & Account Management |
-| Cash | 8082 | Cash Operations |
-| Transfer | 8083 | Money Transfers |
+| Accounts | 8081 | User & Multi-Currency Account Management |
+| Cash | 8082 | Cash Operations (Deposit/Withdraw) |
+| Transfer | 8083 | Money Transfers with Currency Conversion |
 | Notifications | 8084 | Notifications |
 | Auth Server | 8085 | Authentication |
 | Front UI | 8086 | Web Interface |
+| Exchange | 8087 | Currency Exchange Rates & Conversion |
+| Exchange Generator | 8088 | Automated Exchange Rate Generation |
+| Blocker | 8089 | Suspicious Transaction Detection |
 | Eureka | 8761 | Service Discovery |
 | Config | 8888 | Configuration Server |
 | PostgreSQL | 5432 | Database |
@@ -155,14 +164,35 @@ Gateway (8080) [Routes + Security + Circuit Breaker]
     ↓
     ├─→ Accounts Service (8081) ──→ PostgreSQL (accounts_schema)
     ├─→ Cash Service (8082) ──→ PostgreSQL (cash_schema)
-    │                              └─→ Accounts Service
+    │                              ├─→ Accounts Service
+    │                              └─→ Blocker Service (8089)
     ├─→ Transfer Service (8083) ─→ PostgreSQL (transfer_schema)
-    │                              └─→ Accounts Service
+    │                              ├─→ Accounts Service
+    │                              ├─→ Exchange Service (8087) [Currency Conversion]
+    │                              └─→ Blocker Service (8089)
+    ├─→ Exchange Service (8087) ─→ PostgreSQL (exchange_schema)
+    │                              └─→ Exchange Generator Service (8088) [Updates rates]
     └─→ Notifications Service (8084) ─→ PostgreSQL (notifications_schema)
 
 All services discover each other via Eureka (8761)
 All services get config from Config Server (8888)
 Auth Server (8085) validates tokens
 ```
+
+## 💱 **Multi-Currency Features**
+
+The application supports multi-currency operations with the following features:
+
+### Supported Currencies
+- **RUB** (Russian Ruble) - Base currency
+- **USD** (US Dollar)
+- **CNY** (Chinese Yuan)
+
+### Key Features
+- **Multi-Currency Accounts**: Users can create accounts in different currencies (one account per currency)
+- **Currency Conversion**: Automatic currency conversion for transfers between accounts with different currencies
+- **Exchange Rates**: Real-time exchange rates displayed on the frontend, updated every second
+- **Conversion Logic**: All conversions go through RUB as the base currency (e.g., USD → RUB → CNY)
+- **Suspicious Transaction Detection**: Blocker service monitors transactions and blocks suspicious operations based on amount thresholds
 
 ---

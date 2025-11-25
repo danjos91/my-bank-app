@@ -34,6 +34,8 @@ cash:
 services:
   accounts:
     url: http://accounts-service:8081
+  blocker:
+    url: http://blocker-service:8089
   notifications:
     url: http://notifications-service:8084
 

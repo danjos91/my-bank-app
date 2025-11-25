@@ -1,0 +1,35 @@
+# Exchange Service specific configuration
+spring:
+  jpa:
+    properties:
+      hibernate:
+        default_schema: exchange_schema
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth-server:8085
+
+# Exchange service specific settings
+exchange:
+  service:
+    name: exchange-service
+    port: 8087
+  database:
+    schema: exchange_schema
+  security:
+    jwt:
+      audience: exchange-service
+      scope: read,write
+  resilience4j:
+    circuit-breaker:
+      failure-rate-threshold: 50
+      wait-duration-in-open-state: 30s
+      sliding-window-size: 10
+    retry:
+      max-attempts: 3
+      wait-duration: 1s
+
+logging:
+  time-zone: Europe/Moscow
+
