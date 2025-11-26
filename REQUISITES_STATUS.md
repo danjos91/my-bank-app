@@ -40,11 +40,18 @@
 
 ### 6. ⚠️ Gateway API / Ingress
 **Статус:** Частично выполнено
-- ✅ Ingress настроен для `front-ui` (ingress.yaml)
-- ❌ Gateway сервис не включён в Helm-чарты
-- ❌ Gateway отсутствует в umbrella chart (my-bank-app/Chart.yaml)
-- ⚠️ Gateway сервис существует в коде (`/workspace/gateway/`), но не развёрнут через Helm
-- **Рекомендация:** Создать Helm-чарт для gateway и добавить его в umbrella chart
+- ✅ **Ingress настроен для `front-ui`** (ingress.yaml) - внешний доступ через Kubernetes Ingress
+- ✅ **Backend микросервисы используют прямое обращение** через Kubernetes Services:
+  - `transfer-service` → `http://accounts-service:8081` (прямое обращение)
+  - `transfer-service` → `http://exchange-service:8087` (прямое обращение)
+  - `transfer-service` → `http://blocker-service:8089` (прямое обращение)
+  - Это соответствует требованию: НЕ используют Spring Cloud Gateway для межсервисной коммуникации
+- ❌ **Front-UI всё ещё использует Spring Cloud Gateway**:
+  - `gateway.url: http://gateway:8080` (в application-docker.yml)
+  - Все запросы от front-ui идут через Spring Cloud Gateway
+  - **Не соответствует требованию:** "микросервисы выполняют запросы в другие микросервисы через этот Gateway API вместо Consul, Eureka, Spring Cloud Gateway"
+- ❌ **Spring Cloud Gateway не развёрнут через Helm** (gateway сервис существует в коде, но нет Helm-чарта)
+- **Вывод:** Требование выполнено для backend микросервисов, но front-ui должен быть переконфигурирован для использования Kubernetes Ingress/Gateway API вместо Spring Cloud Gateway
 
 ### 7. ✅ ConfigMaps и Secrets
 **Статус:** Выполнено
@@ -133,9 +140,11 @@
 
 ## 🔧 Рекомендации для завершения
 
-1. **Создать Helm-чарт для Gateway:**
-   - Создать `/workspace/helm/gateway/` с Deployment, Service, Ingress/Gateway API
-   - Добавить gateway в зависимости umbrella chart (my-bank-app/Chart.yaml)
+1. **Переконфигурировать Front-UI для использования Kubernetes Ingress вместо Spring Cloud Gateway:**
+   - Убрать зависимость от `gateway.url` в `BankService.java`
+   - Изменить конфигурацию front-ui для прямого обращения к backend сервисам через Kubernetes Services
+   - Или настроить Kubernetes Gateway API для маршрутизации запросов от front-ui к backend
+   - **Важно:** Spring Cloud Gateway НЕ должен использоваться согласно требованию
 
 2. **Добавить transfer-service в umbrella chart:**
    - transfer-service имеет Helm-чарт, но не включён в umbrella chart
@@ -145,3 +154,7 @@
    - Создать `templates/tests/test-connection.yaml` для каждого сервиса
    - Тесты должны проверять доступность сервисов после развёртывания
    - Пример: `helm test <release-name>` после установки
+
+4. **Опционально: Удалить или переработать Spring Cloud Gateway:**
+   - Если Gateway API/Ingress полностью заменяет Spring Cloud Gateway, можно удалить gateway сервис
+   - Или переработать его для использования только как Kubernetes Ingress Controller (если требуется)
