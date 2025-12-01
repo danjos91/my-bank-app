@@ -1,5 +1,7 @@
 package io.github.danjos.mybankapp.accounts.service;
 
+import io.github.danjos.mybankapp.accounts.client.NotificationsClient;
+import io.github.danjos.mybankapp.accounts.dto.CreateNotificationDTO;
 import io.github.danjos.mybankapp.accounts.dto.AccountDTO;
 import io.github.danjos.mybankapp.accounts.entity.Account;
 import io.github.danjos.mybankapp.accounts.entity.Currency;
@@ -25,6 +27,9 @@ public class AccountService {
     @Autowired
     private UserRepository userRepository;
     
+    @Autowired
+    private NotificationsClient notificationsClient;
+    
     public Account createAccount(Long userId) {
         return createAccount(userId, Currency.RUB);
     }
@@ -43,7 +48,24 @@ public class AccountService {
                 .user(user)
                 .currency(currency)
                 .build();
-        return accountRepository.save(account);
+        Account savedAccount = accountRepository.save(account);
+        
+        // Send notification
+        try {
+            CreateNotificationDTO notification = CreateNotificationDTO.builder()
+                    .userId(userId)
+                    .type("ACCOUNT_CREATED")
+                    .notificationType("INFO")
+                    .title("Account Created")
+                    .message("Your new account in " + currency + " has been successfully created.")
+                    .build();
+            notificationsClient.createNotification(notification);
+        } catch (Exception e) {
+            // Log error but don't fail transaction
+            System.err.println("Failed to send notification: " + e.getMessage());
+        }
+        
+        return savedAccount;
     }
     
     @Transactional(readOnly = true)

@@ -122,7 +122,7 @@ public class TransferService {
             transfer = transferRepository.save(transfer);
             
             // Create notifications
-            createTransferNotifications(transfer);
+            createTransferNotifications(transfer, fromAccount.getUserId(), toAccount.getUserId());
             
             log.info("Transfer {} completed successfully", transfer.getId());
             return convertToDTO(transfer);
@@ -224,7 +224,7 @@ public class TransferService {
         return convertToDTO(transfer);
     }
     
-    private void createTransferNotifications(Transfer transfer) {
+    private void createTransferNotifications(Transfer transfer, Long fromUserId, Long toUserId) {
         try {
             // Notification for sender
             String senderMessage = String.format("You sent %.2f %s to account %d", 
@@ -233,7 +233,7 @@ public class TransferService {
                 senderMessage += String.format(" (%.2f %s)", transfer.getConvertedAmount(), transfer.getToCurrency());
             }
             CreateNotificationDTO senderNotification = CreateNotificationDTO.builder()
-                    .userId(transfer.getFromAccountId()) // Assuming accountId maps to userId
+                    .userId(fromUserId)
                     .type("TRANSFER_SENT")
                     .title("Transfer Sent")
                     .message(senderMessage)
@@ -251,7 +251,7 @@ public class TransferService {
                 receiverMessage += String.format(" (%.2f %s)", transfer.getAmount(), transfer.getFromCurrency());
             }
             CreateNotificationDTO receiverNotification = CreateNotificationDTO.builder()
-                    .userId(transfer.getToAccountId()) // Assuming accountId maps to userId
+                    .userId(toUserId)
                     .type("TRANSFER_RECEIVED")
                     .title("Transfer Received")
                     .message(receiverMessage)

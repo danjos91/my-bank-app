@@ -88,8 +88,8 @@ public class ExchangeService {
         } else {
             fromRate = exchangeRateRepository.findByCurrency(fromCurrency)
                     .orElseThrow(() -> new IllegalArgumentException("Exchange rate not found for currency: " + fromCurrency));
-            // To convert to RUB, we use sell rate (selling foreign currency to get RUB)
-            amountInRUB = amount.multiply(fromRate.getSellRate()).setScale(2, RoundingMode.HALF_UP);
+            // To convert to RUB, we use buy rate (buying foreign currency with RUB)
+            amountInRUB = amount.multiply(fromRate.getBuyRate()).setScale(2, RoundingMode.HALF_UP);
         }
         
         // Convert from RUB to target currency
@@ -101,14 +101,14 @@ public class ExchangeService {
         } else {
             ExchangeRate toRate = exchangeRateRepository.findByCurrency(toCurrency)
                     .orElseThrow(() -> new IllegalArgumentException("Exchange rate not found for currency: " + toCurrency));
-            // To convert from RUB, we use buy rate (buying foreign currency with RUB)
-            convertedAmount = amountInRUB.divide(toRate.getBuyRate(), 2, RoundingMode.HALF_UP);
+            // To convert from RUB, we use sell rate (selling foreign currency to get RUB)
+            convertedAmount = amountInRUB.divide(toRate.getSellRate(), 2, RoundingMode.HALF_UP);
             // Calculate effective exchange rate
             if (fromCurrency == Currency.RUB) {
-                exchangeRate = toRate.getBuyRate();
+                exchangeRate = toRate.getSellRate();
             } else {
                 exchangeRate = Objects.requireNonNull(fromRate, "fromRate should not be null when fromCurrency is not RUB")
-                        .getSellRate().divide(toRate.getBuyRate(), 6, RoundingMode.HALF_UP);
+                        .getBuyRate().divide(toRate.getSellRate(), 6, RoundingMode.HALF_UP);
             }
         }
         

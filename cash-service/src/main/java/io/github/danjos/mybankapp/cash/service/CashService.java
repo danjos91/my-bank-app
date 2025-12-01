@@ -71,7 +71,7 @@ public class CashService {
             accountsClient.addToAccountBalance(depositRequest.getAccountId(), depositRequest.getAmount());
             
             // Send notification
-            sendDepositNotification(depositRequest.getAccountId(), depositRequest.getAmount());
+            sendDepositNotification(account.getUserId(), depositRequest.getAmount());
             
             log.info("Deposit successful for account {}: {}", depositRequest.getAccountId(), depositRequest.getAmount());
             return convertToDTO(savedTransaction);
@@ -127,7 +127,7 @@ public class CashService {
             accountsClient.subtractFromAccountBalance(withdrawalRequest.getAccountId(), withdrawalRequest.getAmount());
             
             // Send notification
-            sendWithdrawalNotification(withdrawalRequest.getAccountId(), withdrawalRequest.getAmount());
+            sendWithdrawalNotification(account.getUserId(), withdrawalRequest.getAmount());
             
             log.info("Withdrawal successful for account {}: {}", withdrawalRequest.getAccountId(), withdrawalRequest.getAmount());
             return convertToDTO(savedTransaction);
@@ -185,10 +185,10 @@ public class CashService {
                 .collect(Collectors.toList());
     }
     
-    private void sendDepositNotification(Long accountId, BigDecimal amount) {
+    private void sendDepositNotification(Long userId, BigDecimal amount) {
         try {
             CreateNotificationDTO notification = CreateNotificationDTO.builder()
-                    .userId(accountId) // In real scenario, you'd get userId from accountId
+                    .userId(userId)
                     .type("DEPOSIT_SUCCESS")
                     .title("Deposit Successful")
                     .message("Deposit of " + amount + " has been processed successfully")
@@ -200,10 +200,10 @@ public class CashService {
         }
     }
     
-    private void sendWithdrawalNotification(Long accountId, BigDecimal amount) {
+    private void sendWithdrawalNotification(Long userId, BigDecimal amount) {
         try {
             CreateNotificationDTO notification = CreateNotificationDTO.builder()
-                    .userId(accountId) // In real scenario, you'd get userId from accountId
+                    .userId(userId)
                     .type("WITHDRAWAL_SUCCESS")
                     .title("Withdrawal Successful")
                     .message("Withdrawal of " + amount + " has been processed successfully")
