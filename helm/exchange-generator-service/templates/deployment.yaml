@@ -27,5 +27,20 @@ spec:
               value: "docker"
             - name: SERVICES_EXCHANGE_URL
               value: {{ .Values.services.exchange.url }}
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://{{ .Values.db.host }}:{{ .Values.db.port }}/{{ .Values.db.database }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.db.username }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: password
+            - name: SPRING_CLOUD_CONFIG_ENABLED
+              value: "false"
+            - name: SPRING_APPLICATION_JSON
+              value: '{"spring": {"config": {"import": "optional:file:./"}}}'
+            - name: SPRING_CLOUD_CONFIG_URI
+              value: ""
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

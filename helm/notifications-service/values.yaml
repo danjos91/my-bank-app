@@ -5,7 +5,7 @@ replicaCount: 1
 
 image:
   repository: notifications-service
-  pullPolicy: IfNotPresent
+  pullPolicy: Never
   tag: "latest"
 
 nameOverride: ""

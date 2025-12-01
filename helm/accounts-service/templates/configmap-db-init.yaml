@@ -62,7 +62,25 @@ data:
     VALUES ('admin', '$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy', 'Admin', 'User', 'admin@bank.com', '1990-01-01')
     ON CONFLICT (username) DO NOTHING;
 
+    INSERT INTO users (username, password, first_name, last_name, email, birth_date) VALUES
+    ('john', '$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy', 'John', 'Doe', 'john.doe@example.com', '1985-05-15'),
+    ('jane', '$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy', 'Jane', 'Smith', 'jane.smith@example.com', '1990-08-22'),
+    ('bob', '$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy', 'Bob', 'Wilson', 'bob.wilson@example.com', '1988-12-03')
+    ON CONFLICT (username) DO NOTHING;
+
     INSERT INTO accounts (user_id, currency, balance) 
     SELECT id, 'RUB', 200000.00 FROM users WHERE username = 'admin'
+    ON CONFLICT (user_id, currency) DO NOTHING;
+
+    INSERT INTO accounts (user_id, currency, balance) 
+    SELECT id, 'RUB', 5000.00 FROM users WHERE username = 'john'
+    ON CONFLICT (user_id, currency) DO NOTHING;
+
+    INSERT INTO accounts (user_id, currency, balance) 
+    SELECT id, 'RUB', 7500.00 FROM users WHERE username = 'jane'
+    ON CONFLICT (user_id, currency) DO NOTHING;
+
+    INSERT INTO accounts (user_id, currency, balance) 
+    SELECT id, 'RUB', 3000.00 FROM users WHERE username = 'bob'
     ON CONFLICT (user_id, currency) DO NOTHING;
 

@@ -5,7 +5,7 @@ replicaCount: 1
 
 image:
   repository: front-ui
-  pullPolicy: IfNotPresent
+  pullPolicy: Never
   tag: "latest"
 
 nameOverride: ""
@@ -46,4 +46,4 @@ db:
   port: 5432
   username: bank_app_user
   database: bank_app_db
-  secretName: accounts-service-db-secret
+  secretName: my-bank-app-accounts-service-db-secret

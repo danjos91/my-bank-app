@@ -5,7 +5,7 @@ replicaCount: 1
 
 image:
   repository: transfer-service
-  pullPolicy: IfNotPresent
+  pullPolicy: Never
   tag: "latest"
 
 nameOverride: ""

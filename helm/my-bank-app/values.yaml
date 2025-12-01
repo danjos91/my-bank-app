@@ -3,6 +3,8 @@
 
 global:
   env: dev
+  image:
+    pullPolicy: Never
 
 accounts-service:
   replicaCount: 1

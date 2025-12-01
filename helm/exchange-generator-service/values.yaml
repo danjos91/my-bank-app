@@ -5,7 +5,7 @@ replicaCount: 1
 
 image:
   repository: exchange-generator-service
-  pullPolicy: IfNotPresent
+  pullPolicy: Never
   tag: "latest"
 
 nameOverride: ""
@@ -26,3 +26,10 @@ resources:
 services:
   exchange:
     url: http://exchange-service:8087
+
+db:
+  host: exchange-service-db
+  port: 5432
+  username: bank_app_user
+  database: bank_app_db
+  secretName: my-bank-app-exchange-service-db-secret

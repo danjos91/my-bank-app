@@ -36,5 +36,9 @@ spec:
                   key: password
             - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
               value: {{ .Values.auth.issuerUri }}
+            - name: SPRING_CLOUD_CONFIG_ENABLED
+              value: "false"
+            - name: SPRING_APPLICATION_JSON
+              value: '{"spring": {"config": {"import": "optional:file:./"}}}'
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

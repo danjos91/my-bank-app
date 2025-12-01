@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jenkins-casc-jobs
+  namespace: jenkins
+  labels:
+    jenkins-jenkins-config: "true"
+data:
+  jobs.yaml: |
+    jobs:
+      - script: >
+          pipelineJob('my-bank-app') {
+            definition {
+              cpsScm {
+                scm {
+                  git {
+                    remote {
+                      url('https://github.com/danjos91/my-bank-app.git')
+                    }
+                    branch('infra-devops')
+                  }
+                }
+                scriptPath('Jenkinsfile')
+              }
+            }
+          }
+
