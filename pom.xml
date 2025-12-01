@@ -15,9 +15,6 @@
     <name>my-bank-app</name>
     <description>Microservices Bank Application - Parent POM</description>
     <modules>
-        <module>eureka-server</module>
-        <module>config-server</module>
-        <module>gateway</module>
         <module>auth-server</module>
         <module>accounts-service</module>
         <module>cash-service</module>
@@ -127,10 +124,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
