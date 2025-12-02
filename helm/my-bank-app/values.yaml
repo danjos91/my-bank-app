@@ -11,6 +11,8 @@ accounts-service:
 
 auth-server:
   replicaCount: 1
+  image:
+    tag: "fixed"
 
 blocker-service:
   replicaCount: 1
@@ -20,12 +22,16 @@ cash-service:
 
 exchange-generator-service:
   replicaCount: 1
+  image:
+    tag: "fixed"
 
 exchange-service:
   replicaCount: 1
 
 front-ui:
   replicaCount: 1
+  image:
+    tag: "fixed"
   ingress:
     enabled: true
     hosts:
@@ -33,7 +39,10 @@ front-ui:
         paths:
           - path: /
             pathType: Prefix
+  db:
+    host: my-bank-app-accounts-service-db
+  auth:
+    serverUrl: http://my-bank-app-auth-server:8085
 
 notifications-service:
   replicaCount: 1
-

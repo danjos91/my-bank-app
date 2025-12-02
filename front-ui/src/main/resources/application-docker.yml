@@ -2,11 +2,6 @@ server:
   port: 8086
 
 spring:
-  config:
-    import: configserver:http://config-server:8888
-  cloud:
-    config:
-      uri: http://config-server:8888
   datasource:
     url: jdbc:postgresql://postgres:5432/bank_app_db
     username: bank_app_user
@@ -21,12 +16,5 @@ spring:
             token-uri: http://auth-server:8085/auth/token
             user-info-uri: http://auth-server:8085/userinfo
 
-eureka:
-  client:
-    service-url:
-      defaultZone: http://eureka-server:8761/eureka/
-
 gateway:
   url: http://gateway:8080
-
-
