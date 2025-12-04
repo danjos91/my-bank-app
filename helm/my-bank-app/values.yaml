@@ -8,25 +8,40 @@ global:
 
 accounts-service:
   replicaCount: 1
+  auth:
+    issuerUri: http://my-bank-app-auth-server:8085
 
 auth-server:
   replicaCount: 1
   image:
     tag: "fixed"
+  db:
+    host: my-bank-app-accounts-service-db
 
 blocker-service:
   replicaCount: 1
+  auth:
+    issuerUri: http://my-bank-app-auth-server:8085
 
 cash-service:
   replicaCount: 1
+  auth:
+    issuerUri: http://my-bank-app-auth-server:8085
 
 exchange-generator-service:
   replicaCount: 1
   image:
     tag: "fixed"
+  db:
+    host: my-bank-app-exchange-service-db
+  services:
+    exchange:
+      url: http://my-bank-app-exchange-service:8087
 
 exchange-service:
   replicaCount: 1
+  auth:
+    issuerUri: http://my-bank-app-auth-server:8085
 
 front-ui:
   replicaCount: 1
@@ -46,3 +61,5 @@ front-ui:
 
 notifications-service:
   replicaCount: 1
+  auth:
+    issuerUri: http://my-bank-app-auth-server:8085
