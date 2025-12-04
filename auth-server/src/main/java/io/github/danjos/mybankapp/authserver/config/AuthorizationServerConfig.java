@@ -30,15 +30,12 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
-import com.nimbusds.jose.jwk.source.JWKSource;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -50,6 +47,8 @@ import java.util.UUID;
 @Configuration
 @EnableWebSecurity
 public class AuthorizationServerConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthorizationServerConfig.class);
 
     @Value("${spring.security.oauth2.authorization-server.issuer:http://localhost:8085}")
     private String issuerUri;
@@ -170,7 +169,7 @@ public class AuthorizationServerConfig {
     @Bean
     @org.springframework.context.annotation.Primary
     public JWKSource<SecurityContext> jwkSource() {
-        System.out.println(">>> CREATING CUSTOM JWK SOURCE WITH FIXED ID: bank-app-key-id <<<");
+        log.info("Creating JWK source with fixed key ID: bank-app-key-id");
         KeyPair keyPair = generateRsaKey();
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
         RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();

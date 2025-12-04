@@ -11,6 +11,8 @@ import io.github.danjos.mybankapp.accounts.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -20,6 +22,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class AccountService {
+
+    private static final Logger log = LoggerFactory.getLogger(AccountService.class);
     
     @Autowired
     private AccountRepository accountRepository;
@@ -62,7 +66,7 @@ public class AccountService {
             notificationsClient.createNotification(notification);
         } catch (Exception e) {
             // Log error but don't fail transaction
-            System.err.println("Failed to send notification: " + e.getMessage());
+            log.warn("Failed to send notification for user {}: {}", userId, e.getMessage());
         }
         
         return savedAccount;
