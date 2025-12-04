@@ -1,5 +1,10 @@
 package io.github.danjos.mybankapp.authserver.controller;
 
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKMatcher;
+import com.nimbusds.jose.jwk.JWKSelector;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -30,10 +36,12 @@ public class TokenController {
     private static final Logger log = Logger.getLogger(TokenController.class.getName());
     private final AuthenticationManager authenticationManager;
     private final JwtEncoder jwtEncoder;
+    private final JWKSource<SecurityContext> jwkSource;
 
-    public TokenController(AuthenticationManager authenticationManager, JwtEncoder jwtEncoder) {
+    public TokenController(AuthenticationManager authenticationManager, JwtEncoder jwtEncoder, JWKSource<SecurityContext> jwkSource) {
         this.authenticationManager = authenticationManager;
         this.jwtEncoder = jwtEncoder;
+        this.jwkSource = jwkSource;
     }
 
     @PostMapping(value = "/token", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -65,7 +73,7 @@ public class TokenController {
                 .collect(Collectors.joining(" "));
 
             JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("http://auth-server:8085")
+                .issuer("http://my-bank-app-auth-server:8085")
                 .subject(userDetails.getUsername())
                 .audience(java.util.Collections.singletonList("bank-app"))
                 .issuedAt(now)
@@ -74,7 +82,21 @@ public class TokenController {
                 .claim("authorities", authorities)
                 .build();
 
-            JwsHeader header = JwsHeader.with(SignatureAlgorithm.RS256).build();
+            // Ensure we use the same key ID as the JWK Source
+            String keyId = "bank-app-key-id"; // Fallback
+            try {
+                List<JWK> keys = jwkSource.get(new JWKSelector(new JWKMatcher.Builder().build()), null);
+                if (!keys.isEmpty()) {
+                    keyId = keys.get(0).getKeyID();
+                    log.info("Using Key ID from JWKSource: " + keyId);
+                }
+            } catch (Exception e) {
+                log.warning("Could not fetch key ID from JWKSource: " + e.getMessage());
+            }
+
+            JwsHeader header = JwsHeader.with(SignatureAlgorithm.RS256)
+                .keyId(keyId)
+                .build();
             String token = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
 
             Map<String, Object> response = new HashMap<>();

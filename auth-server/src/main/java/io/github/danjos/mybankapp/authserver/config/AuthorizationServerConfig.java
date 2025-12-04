@@ -168,13 +168,15 @@ public class AuthorizationServerConfig {
     }
 
     @Bean
+    @org.springframework.context.annotation.Primary
     public JWKSource<SecurityContext> jwkSource() {
+        System.out.println(">>> CREATING CUSTOM JWK SOURCE WITH FIXED ID: bank-app-key-id <<<");
         KeyPair keyPair = generateRsaKey();
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
         RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
         RSAKey rsaKey = new RSAKey.Builder(publicKey)
                 .privateKey(privateKey)
-                .keyID(UUID.randomUUID().toString())
+                .keyID("bank-app-key-id") // Fixed Key ID to match manually generated tokens
                 .build();
         JWKSet jwkSet = new JWKSet(rsaKey);
         return new ImmutableJWKSet<>(jwkSet);

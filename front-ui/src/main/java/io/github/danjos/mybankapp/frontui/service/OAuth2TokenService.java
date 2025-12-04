@@ -17,8 +17,14 @@ public class OAuth2TokenService {
 
     private final RestTemplate tokenRestTemplate;
     
-    @Value("${spring.security.oauth2.client.provider.bank-app.token-uri:http://auth-server:8085/auth/token}")
+    @Value("${spring.security.oauth2.client.provider.bank-app.token-uri:http://my-bank-app-auth-server:8085/auth/token}")
     private String tokenUri;
+
+    @Value("${spring.security.oauth2.client.registration.bank-app.client-id}")
+    private String clientId;
+
+    @Value("${spring.security.oauth2.client.registration.bank-app.client-secret}")
+    private String clientSecret;
 
     public OAuth2TokenService(@Qualifier("tokenRestTemplate") RestTemplate tokenRestTemplate) {
         this.tokenRestTemplate = tokenRestTemplate;
@@ -37,6 +43,7 @@ public class OAuth2TokenService {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            headers.setBasicAuth(clientId, clientSecret);
 
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("grant_type", "password");
@@ -48,7 +55,7 @@ public class OAuth2TokenService {
             
             // Ensure we're using the correct endpoint
             if (tokenUri == null || tokenUri.isEmpty()) {
-                tokenUri = "http://auth-server:8085/auth/token";
+                tokenUri = "http://my-bank-app-auth-server:8085/auth/token";
                 log.warn("Token URI was null or empty, using default: {}", tokenUri);
             }
             

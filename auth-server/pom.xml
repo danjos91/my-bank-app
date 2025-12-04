@@ -10,7 +10,7 @@
 
     <artifactId>auth-server</artifactId>
     <name>auth-server</name>
-    <description>Authorization Server - OAuth2 and JWT</description>
+    <description>Authorization Server - OAuth2 and JWT - Rebuild 2</description>
 
     <dependencies>
         <dependency>
