@@ -35,6 +35,6 @@ spec:
                   name: {{ .Values.db.secretName }}
                   key: password
             - name: SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER
-              value: http://auth-server:8085
+              value: http://{{ include "auth-server.fullname" . }}:8085
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

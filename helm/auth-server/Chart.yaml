@@ -2,5 +2,5 @@ apiVersion: v2
 name: auth-server
 description: A Helm chart for Auth Server (uses Accounts Service DB)
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "0.0.1"
