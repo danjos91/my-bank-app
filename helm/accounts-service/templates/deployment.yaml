@@ -35,7 +35,7 @@ spec:
                   name: {{ include "accounts-service.fullname" . }}-db-secret
                   key: password
             - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
-              value: {{ .Values.auth.issuerUri }}
+              value: http://my-bank-app-auth-server:8085
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
 

@@ -1,7 +1,7 @@
 dependencies:
 - name: accounts-service
   repository: file://../accounts-service
-  version: 0.1.0
+  version: 0.1.1
 - name: auth-server
   repository: file://../auth-server
   version: 0.1.0
@@ -23,5 +23,5 @@ dependencies:
 - name: notifications-service
   repository: file://../notifications-service
   version: 0.1.0
-digest: sha256:a4396898614faea5a889d7f7ab06489055efc9648a2d2cc00295deb68bc5091b
-generated: "2025-11-25T15:39:48.579330134+03:00"
+digest: sha256:e70a1dded9c585b4ca832bb930aa1324bea11f6cfb158efcb5931f04ed63365e
+generated: "2025-12-04T22:38:52.229799088+03:00"

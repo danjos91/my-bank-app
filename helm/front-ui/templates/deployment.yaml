@@ -37,8 +37,12 @@ spec:
             - name: SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_BANK_APP_AUTHORIZATION_URI
               value: {{ .Values.auth.serverUrl }}/oauth2/authorize
             - name: SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_BANK_APP_TOKEN_URI
-              value: {{ .Values.auth.serverUrl }}/oauth2/token
+              value: {{ .Values.auth.serverUrl }}/auth/token
+
             - name: SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_BANK_APP_USER_INFO_URI
               value: {{ .Values.auth.serverUrl }}/userinfo
+            - name: GATEWAY_URL
+              value: {{ .Values.env.gatewayUrl | default "http://gateway" }}
+
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

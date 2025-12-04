@@ -7,7 +7,7 @@ appVersion: "0.0.1"
 
 dependencies:
   - name: accounts-service
-    version: 0.1.0
+    version: 0.1.1
     repository: "file://../accounts-service"
   - name: auth-server
     version: 0.1.0

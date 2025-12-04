@@ -18,7 +18,7 @@ data:
         last_name VARCHAR(100) NOT NULL,
         email VARCHAR(100),
         birth_date DATE NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT users_age_check CHECK (birth_date <= CURRENT_DATE - INTERVAL '18 years'),
         CONSTRAINT users_email_format CHECK (email IS NULL OR email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
