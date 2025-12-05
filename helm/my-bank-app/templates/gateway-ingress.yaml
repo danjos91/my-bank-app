@@ -14,6 +14,13 @@ spec:
     - host: bank.local
       http: &api_paths
         paths:
+          - path: /api/accounts/username
+            pathType: Prefix
+            backend:
+              service:
+                name: my-bank-app-front-ui
+                port:
+                  number: 8086
           - path: /api/accounts
             pathType: Prefix
             backend:
