@@ -40,6 +40,8 @@ This application supports complex banking operations including:
 - **Java 21** or higher
 - **Maven 3.9+**
 
+You can run start.sh or do it step by step:
+
 ### 1. Start Minikube
 ```bash
 minikube start --cpus 4 --memory 8192
