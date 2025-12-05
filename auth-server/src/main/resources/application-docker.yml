@@ -6,4 +6,4 @@ spring:
   security:
     oauth2:
       authorization-server:
-        issuer: http://auth-server:8085
+        issuer: http://my-bank-app-auth-server:8085
