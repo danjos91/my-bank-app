@@ -1,8 +1,5 @@
 package io.github.danjos.mybankapp.authserver.controller;
 
-import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.JWKMatcher;
-import com.nimbusds.jose.jwk.JWKSelector;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,7 +22,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -88,21 +84,7 @@ public class TokenController {
                 .claim("authorities", authorities)
                 .build();
 
-            // Ensure we use the same key ID as the JWK Source
-            String keyId = "bank-app-key-id"; // Fallback
-            try {
-                List<JWK> keys = jwkSource.get(new JWKSelector(new JWKMatcher.Builder().build()), null);
-                if (!keys.isEmpty()) {
-                    keyId = keys.get(0).getKeyID();
-                    log.info("Using Key ID from JWKSource: " + keyId);
-                }
-            } catch (Exception e) {
-                log.warning("Could not fetch key ID from JWKSource: " + e.getMessage());
-            }
-
-            JwsHeader header = JwsHeader.with(SignatureAlgorithm.RS256)
-                .keyId(keyId)
-                .build();
+            JwsHeader header = JwsHeader.with(SignatureAlgorithm.RS256).build();
             String token = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
 
             Map<String, Object> response = new HashMap<>();

@@ -1,3 +1,23 @@
+# Multi-stage build for auth-server
+FROM maven:3.9.9-eclipse-temurin-21-alpine AS build
+
+# Set working directory
+WORKDIR /app
+
+# Copy pom.xml files first for better layer caching
+COPY pom.xml .
+COPY auth-server/pom.xml ./auth-server/
+
+# Download dependencies (this layer will be cached if pom.xml doesn't change)
+RUN mvn dependency:go-offline -B -f auth-server/pom.xml
+
+# Copy source code
+COPY auth-server/src ./auth-server/src
+
+# Build the application
+RUN mvn clean package -DskipTests -B -f auth-server/pom.xml
+
+# Runtime stage
 FROM eclipse-temurin:21-jre-alpine
 
 # Install curl for health checks
@@ -10,8 +30,8 @@ RUN addgroup -g 1001 -S appgroup && \
 # Set working directory
 WORKDIR /app
 
-# Copy the JAR file from local build
-COPY auth-server/target/auth-server-0.0.1-SNAPSHOT.jar app.jar
+# Copy the JAR file from build stage
+COPY --from=build /app/auth-server/target/*.jar app.jar
 
 # Change ownership to non-root user
 RUN chown -R appuser:appgroup /app

@@ -23,7 +23,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://my-bank-app-auth-server:8085
+          issuer-uri: http://auth-server:8085
 
 management:
   endpoints:
