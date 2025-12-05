@@ -30,4 +30,7 @@ dependencies:
   - name: notifications-service
     version: 0.1.0
     repository: "file://../notifications-service"
+  - name: transfer-service
+    version: 0.1.0
+    repository: "file://../transfer-service"
 

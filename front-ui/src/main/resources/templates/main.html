@@ -525,13 +525,17 @@
                     }
 
                     debounceTimer = setTimeout(() => {
-                        fetch('/api/accounts/username/' + encodeURIComponent(username))
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error('Пользователь не найден');
-                                }
-                                return response.json();
-                            })
+                    fetch('/api/accounts/username/' + encodeURIComponent(username))
+                        .then(response => {
+                            if (response.status === 401) {
+                                window.location.href = '/login';
+                                return;
+                            }
+                            if (!response.ok) {
+                                throw new Error('Пользователь не найден');
+                            }
+                            return response.json();
+                        })
                             .then(accounts => {
                                 if (accounts && accounts.length > 0) {
                                     toAccountSelect.innerHTML = '<option value="">-- Выберите счет получателя --</option>' +

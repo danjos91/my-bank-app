@@ -23,5 +23,8 @@ dependencies:
 - name: notifications-service
   repository: file://../notifications-service
   version: 0.1.0
-digest: sha256:e70a1dded9c585b4ca832bb930aa1324bea11f6cfb158efcb5931f04ed63365e
-generated: "2025-12-04T22:38:52.229799088+03:00"
+- name: transfer-service
+  repository: file://../transfer-service
+  version: 0.1.0
+digest: sha256:f13d55586bd338fb183b9854c0774043583fb56576eb4a713fa97d4d3e152ebc
+generated: "2025-12-05T18:21:11.152545636+03:00"

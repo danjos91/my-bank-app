@@ -55,3 +55,6 @@ front-ui:
 
 notifications-service:
   replicaCount: 1
+
+transfer-service:
+  replicaCount: 1
