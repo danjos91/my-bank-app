@@ -46,8 +46,7 @@ echo "1. Watch the pods status:"
 echo "   kubectl get pods -w"
 echo ""
 echo "2. Once pods are running, access the UI:"
-echo "   kubectl port-forward svc/front-ui 8086:8086"
-echo "   Then open http://localhost:8086"
+echo "   Then open http://bank.local/"
 echo "--------------------------------------------------------"
 
 
