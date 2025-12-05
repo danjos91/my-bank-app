@@ -17,4 +17,4 @@ spring:
             user-info-uri: http://auth-server:8085/userinfo
 
 gateway:
-  url: http://gateway:8080
+  url: http://bank.local

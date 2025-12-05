@@ -51,7 +51,7 @@ front-ui:
   auth:
     serverUrl: http://my-bank-app-auth-server:8085
   env:
-    gatewayUrl: "http://gateway"
+    gatewayUrl: "http://ingress-nginx-controller.ingress-nginx.svc.cluster.local"
 
 notifications-service:
   replicaCount: 1

@@ -92,7 +92,7 @@
                                             <span th:text="${account.currency}">RUB</span>
                                         </td>
                                         <td th:text="${account.id}">-</td>
-                                        <td th:text="${#temporals.format(account.createdAt, 'dd.MM.yyyy HH:mm')}">-</td>
+                                        <td th:text="${account.createdAt != null ? #strings.replace(#strings.replace(#strings.substringBefore(account.createdAt.toString(), '.'), 'T', ' '), '-', '.') : '-'}">-</td>
                                     </tr>
                                     <tr th:if="${accounts == null || accounts.isEmpty()}">
                                         <td colspan="4" class="text-center text-muted">

@@ -14,6 +14,11 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +33,55 @@ public class BankService {
 
     @Value("${gateway.url:http://localhost:8080}")
     private String gatewayUrl;
+    
+    /**
+     * Gets the OAuth2 access token from the current HTTP session
+     * @return The access token, or null if not found
+     */
+    private String getAccessTokenFromSession() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                HttpSession session = request.getSession(false);
+                if (session != null) {
+                    String token = (String) session.getAttribute("oauth2_access_token");
+                    if (token != null && !token.trim().isEmpty()) {
+                        log.debug("Retrieved OAuth2 token from session. Session ID: {}", session.getId());
+                        return token;
+                    } else {
+                        log.warn("OAuth2 token not found in session. Session ID: {}. This may cause authentication failures.", session.getId());
+                    }
+                } else {
+                    log.warn("No session found when trying to retrieve OAuth2 token");
+                }
+            } else {
+                log.warn("RequestContextHolder has no attributes. Cannot retrieve OAuth2 token from session.");
+            }
+        } catch (Exception e) {
+            log.error("Error retrieving OAuth2 token from session", e);
+        }
+        return null;
+    }
+    
+    /**
+     * Creates HttpHeaders with OAuth2 token if available
+     * @return HttpHeaders with Authorization header set if token is available
+     */
+    private HttpHeaders createHeadersWithAuth() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        String token = getAccessTokenFromSession();
+        if (token != null) {
+            headers.setBearerAuth(token);
+            log.debug("Added OAuth2 token to request headers");
+        } else {
+            log.warn("No OAuth2 token available - request may fail with 401 Unauthorized");
+        }
+        
+        return headers;
+    }
 
     public UserDataDTO getUserData(String username) {
         if (username == null || username.trim().isEmpty()) {
@@ -232,17 +286,23 @@ public class BankService {
         }
         try {
             String url = gatewayUrl + "/api/cash/deposit";
+            log.info("Processing deposit request to: {} for user: {}, amount: {}", url, username, amount);
             
             Map<String, Object> depositData = new HashMap<>();
             depositData.put("accountId", getAccountId(username));
             depositData.put("amount", amount);
             depositData.put("description", "Пополнение через веб-интерфейс");
             
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = createHeadersWithAuth();
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(depositData, headers);
             
+            log.debug("Sending deposit request with accountId: {}, amount: {}", depositData.get("accountId"), amount);
             restTemplate.postForObject(url, request, Void.class);
+            log.info("Deposit request completed successfully for user: {}", username);
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("HTTP error processing deposit for username: {}. Status: {}, Response: {}", 
+                username, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            throw new RuntimeException("Ошибка пополнения счета: " + e.getResponseBodyAsString());
         } catch (RuntimeException e) {
             // Re-throw runtime exceptions as-is
             throw e;
@@ -263,17 +323,23 @@ public class BankService {
         }
         try {
             String url = gatewayUrl + "/api/cash/withdraw";
+            log.info("Processing withdrawal request to: {} for user: {}, amount: {}", url, username, amount);
             
             Map<String, Object> withdrawalData = new HashMap<>();
             withdrawalData.put("accountId", getAccountId(username));
             withdrawalData.put("amount", amount);
             withdrawalData.put("description", "Снятие через веб-интерфейс");
             
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = createHeadersWithAuth();
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(withdrawalData, headers);
             
+            log.debug("Sending withdrawal request with accountId: {}, amount: {}", withdrawalData.get("accountId"), amount);
             restTemplate.postForObject(url, request, Void.class);
+            log.info("Withdrawal request completed successfully for user: {}", username);
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("HTTP error processing withdrawal for username: {}. Status: {}, Response: {}", 
+                username, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            throw new RuntimeException("Ошибка снятия средств: " + e.getResponseBodyAsString());
         } catch (RuntimeException e) {
             // Re-throw runtime exceptions as-is
             throw e;
@@ -286,6 +352,8 @@ public class BankService {
     public void transfer(Long fromAccountId, Long toAccountId, String toUsername, BigDecimal amount) {
         try {
             String url = gatewayUrl + "/api/transfers";
+            log.info("Processing transfer request to: {} from account: {} to account: {}, amount: {}", 
+                url, fromAccountId, toAccountId, amount);
             
             // If account IDs are not provided, get them from usernames
             if (fromAccountId == null) {
@@ -304,11 +372,17 @@ public class BankService {
             transferData.put("amount", amount);
             transferData.put("description", "Перевод через веб-интерфейс");
             
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = createHeadersWithAuth();
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(transferData, headers);
             
+            log.debug("Sending transfer request with fromAccountId: {}, toAccountId: {}, amount: {}", 
+                fromAccountId, toAccountId, amount);
             restTemplate.postForObject(url, request, Void.class);
+            log.info("Transfer request completed successfully from account {} to account {}", fromAccountId, toAccountId);
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("HTTP error processing transfer from account {} to account {}. Status: {}, Response: {}", 
+                fromAccountId, toAccountId, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            throw new RuntimeException("Ошибка перевода: " + e.getResponseBodyAsString());
         } catch (Exception e) {
             log.error("Error processing transfer from account {} to account {}", fromAccountId, toAccountId, e);
             throw new RuntimeException("Ошибка перевода: " + e.getMessage());

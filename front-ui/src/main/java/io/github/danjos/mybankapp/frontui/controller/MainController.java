@@ -113,6 +113,21 @@ public class MainController {
                                @RequestParam String action,
                                @RequestParam BigDecimal value,
                                RedirectAttributes redirectAttributes) {
+        // Verify user is still authenticated
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            log.warn("User not authenticated when processing cash operation. Redirecting to login.");
+            return "redirect:/login";
+        }
+        
+        // Verify the login matches the authenticated user
+        if (!login.equals(auth.getName())) {
+            log.warn("Login mismatch: path variable={}, authenticated={}", login, auth.getName());
+            redirectAttributes.addFlashAttribute("cashErrors", 
+                List.of("Ошибка авторизации. Пожалуйста, войдите снова."));
+            return "redirect:/main";
+        }
+        
         try {
             log.info("Processing cash operation for user: {}, action: {}, value: {}", 
                     login, action, value);
@@ -126,11 +141,28 @@ public class MainController {
                 redirectAttributes.addFlashAttribute("successMessage", 
                     "Средства успешно сняты со счета");
             } else {
-                redirectAttributes.addFlashAttribute("errorMessage", "Неверная операция");
+                log.warn("Invalid cash operation action: {} for user: {}", action, login);
+                redirectAttributes.addFlashAttribute("cashErrors", List.of("Неверная операция"));
             }
-        } catch (Exception e) {
-            log.error("Error processing cash operation", e);
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("HTTP error processing cash operation for user: {}. Action: {}, Status: {}, Response: {}", 
+                login, action, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            String errorMessage = "Ошибка операции";
+            try {
+                if (e.getResponseBodyAsString() != null && !e.getResponseBodyAsString().isEmpty()) {
+                    errorMessage = e.getResponseBodyAsString();
+                }
+            } catch (Exception parseEx) {
+                log.debug("Could not parse error response", parseEx);
+            }
+            redirectAttributes.addFlashAttribute("cashErrors", List.of(errorMessage));
+        } catch (RuntimeException e) {
+            log.error("Error processing cash operation for user: {}, action: {}", login, action, e);
             redirectAttributes.addFlashAttribute("cashErrors", List.of(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Unexpected error processing cash operation for user: {}, action: {}", login, action, e);
+            redirectAttributes.addFlashAttribute("cashErrors", 
+                List.of("Произошла неожиданная ошибка: " + e.getMessage()));
         }
         return "redirect:/main";
     }
@@ -142,9 +174,24 @@ public class MainController {
                           @RequestParam(required = false) Long toAccountId,
                           @RequestParam BigDecimal value,
                           RedirectAttributes redirectAttributes) {
+        // Verify user is still authenticated before processing
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            log.warn("User not authenticated when processing transfer. Redirecting to login.");
+            return "redirect:/login";
+        }
+        
+        // Verify the login matches the authenticated user
+        if (!login.equals(auth.getName())) {
+            log.warn("Login mismatch: path variable={}, authenticated={}", login, auth.getName());
+            redirectAttributes.addFlashAttribute("transferOtherErrors", 
+                List.of("Ошибка авторизации. Пожалуйста, войдите снова."));
+            return "redirect:/main";
+        }
+        
         try {
-            log.info("Processing transfer from account {} to account {} for amount {}", 
-                    fromAccountId, toAccountId, value);
+            log.info("Processing transfer from account {} to account {} for amount {} by user {}", 
+                    fromAccountId, toAccountId, value, login);
 
             if (login.equals(to_login)) {
                 redirectAttributes.addFlashAttribute("transferOtherErrors", 
@@ -155,10 +202,32 @@ public class MainController {
             bankService.transfer(fromAccountId, toAccountId, to_login, value);
             redirectAttributes.addFlashAttribute("successMessage", 
                 "Перевод успешно выполнен");
-        } catch (Exception e) {
-            log.error("Error processing transfer", e);
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            // Handle HTTP client errors (4xx, 5xx) without logging out
+            log.error("HTTP error processing transfer for user: {}. Status: {}, Response: {}", 
+                login, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            String errorMessage = "Ошибка перевода";
+            try {
+                // Try to extract error message from response
+                if (e.getResponseBodyAsString() != null && !e.getResponseBodyAsString().isEmpty()) {
+                    errorMessage = e.getResponseBodyAsString();
+                }
+            } catch (Exception parseEx) {
+                log.debug("Could not parse error response", parseEx);
+            }
+            redirectAttributes.addFlashAttribute("transferOtherErrors", List.of(errorMessage));
+        } catch (RuntimeException e) {
+            // Handle runtime exceptions (including our custom exceptions) without logging out
+            log.error("Error processing transfer for user: {}", login, e);
             redirectAttributes.addFlashAttribute("transferOtherErrors", List.of(e.getMessage()));
+        } catch (Exception e) {
+            // Handle any other exceptions without logging out
+            log.error("Unexpected error processing transfer for user: {}", login, e);
+            redirectAttributes.addFlashAttribute("transferOtherErrors", 
+                List.of("Произошла неожиданная ошибка при обработке перевода: " + e.getMessage()));
         }
+        
+        // Always redirect to main page, preserving authentication
         return "redirect:/main";
     }
 
