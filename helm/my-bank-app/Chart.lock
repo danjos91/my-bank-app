@@ -4,7 +4,7 @@ dependencies:
   version: 0.1.1
 - name: auth-server
   repository: file://../auth-server
-  version: 0.1.1
+  version: 0.1.0
 - name: blocker-service
   repository: file://../blocker-service
   version: 0.1.0
@@ -23,5 +23,5 @@ dependencies:
 - name: notifications-service
   repository: file://../notifications-service
   version: 0.1.0
-digest: sha256:628a5bf38e5a07154cd034ddf9af6a8134dbed9c2c816e97a9b1233e4870022f
-generated: "2025-12-04T22:48:36.752902221+03:00"
+digest: sha256:e70a1dded9c585b4ca832bb930aa1324bea11f6cfb158efcb5931f04ed63365e
+generated: "2025-12-04T22:38:52.229799088+03:00"
