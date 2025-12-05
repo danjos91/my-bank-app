@@ -34,7 +34,7 @@ resources:
     memory: 256Mi
 
 auth:
-  serverUrl: http://auth-server:8085
+  serverUrl: http://my-bank-app-auth-server:8085
 
 # DB config for session or small data (Front UI connects to DB in code but usually for session/user data?)
 # Based on application.yml it connects to DB. Assuming shared accounts DB or its own.

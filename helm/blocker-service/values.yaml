@@ -40,4 +40,4 @@ db:
     storageClass: standard
 
 auth:
-  issuerUri: http://auth-server:8085
+  issuerUri: http://my-bank-app-auth-server:8085
