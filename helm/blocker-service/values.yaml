@@ -27,6 +27,7 @@ db:
   image: postgres:13
   port: 5432
   username: bank_app_user
+  password: bank_app_password  # Override via --set db.password=<value> or CI/CD
   database: bank_app_db
   resources:
     limits:
