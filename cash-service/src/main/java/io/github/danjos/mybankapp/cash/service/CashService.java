@@ -44,16 +44,11 @@ public class CashService {
         String currency = account.getCurrency() != null ? account.getCurrency().name() : "RUB";
         
         // Check with blocker service using account currency
-        try {
-            io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
-                    blockerClient.checkTransaction(depositRequest.getAmount(), currency);
-            if (blockResponse != null && blockResponse.getDecision() == 
-                    io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
-                throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
-            }
-        } catch (Exception e) {
-            log.warn("Blocker service check failed, proceeding with deposit: {}", e.getMessage());
-            // Continue with deposit if blocker is unavailable (fallback behavior)
+        io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
+                blockerClient.checkTransaction(depositRequest.getAmount(), currency);
+        if (blockResponse != null && blockResponse.getDecision() == 
+                io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
+            throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
         }
         
         // Create transaction record
@@ -100,16 +95,11 @@ public class CashService {
         String currency = account.getCurrency() != null ? account.getCurrency().name() : "RUB";
         
         // Check with blocker service using account currency
-        try {
-            io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
-                    blockerClient.checkTransaction(withdrawalRequest.getAmount(), currency);
-            if (blockResponse != null && blockResponse.getDecision() == 
-                    io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
-                throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
-            }
-        } catch (Exception e) {
-            log.warn("Blocker service check failed, proceeding with withdrawal: {}", e.getMessage());
-            // Continue with withdrawal if blocker is unavailable (fallback behavior)
+        io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
+                blockerClient.checkTransaction(withdrawalRequest.getAmount(), currency);
+        if (blockResponse != null && blockResponse.getDecision() == 
+                io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
+            throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
         }
         
         // Create transaction record

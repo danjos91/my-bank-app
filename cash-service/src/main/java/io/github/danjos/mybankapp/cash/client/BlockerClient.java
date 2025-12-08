@@ -52,12 +52,12 @@ public class BlockerClient {
         }
     }
     
-    // Fallback method - approve transaction if blocker is unavailable
+    // Fallback method - block transaction if blocker is unavailable (fail-closed approach)
     public BlockResponseDTO checkTransactionFallback(BigDecimal amount, String currency, Exception ex) {
-        log.warn("Fallback: Blocker service unavailable, approving transaction");
+        log.error("Fallback: Blocker service unavailable, blocking transaction for security");
         return BlockResponseDTO.builder()
-                .decision(BlockResponseDTO.Decision.APPROVED)
-                .reason("Blocker service unavailable")
+                .decision(BlockResponseDTO.Decision.BLOCKED)
+                .reason("Blocker service unavailable - transaction rejected for security")
                 .build();
     }
 }
