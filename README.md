@@ -72,6 +72,102 @@ kubectl port-forward svc/front-ui 8086:8086
 # Access at http://localhost:8086
 ```
 
+## 🔐 Configuration & Secrets Management
+
+### Database Password Configuration
+
+All microservices now support configurable database passwords through Helm values. By default, the password is `bank_app_password`, but you can override it for different environments.
+
+#### Development (using default password)
+```bash
+helm install my-bank-app ./helm/my-bank-app
+```
+
+#### Override Password via Command Line
+```bash
+# Single service
+helm install accounts-service ./helm/accounts-service \
+  --set db.password=my_secure_password
+
+# All services via umbrella chart
+helm install my-bank-app ./helm/my-bank-app \
+  --set accounts-service.db.password=accounts_pass \
+  --set blocker-service.db.password=blocker_pass \
+  --set cash-service.db.password=cash_pass \
+  --set exchange-service.db.password=exchange_pass \
+  --set notifications-service.db.password=notifications_pass \
+  --set transfer-service.db.password=transfer_pass
+```
+
+#### Using Custom Values File
+Create a `prod-values.yaml` file:
+```yaml
+accounts-service:
+  db:
+    password: "prod_accounts_password"
+
+blocker-service:
+  db:
+    password: "prod_blocker_password"
+
+cash-service:
+  db:
+    password: "prod_cash_password"
+
+exchange-service:
+  db:
+    password: "prod_exchange_password"
+
+notifications-service:
+  db:
+    password: "prod_notifications_password"
+
+transfer-service:
+  db:
+    password: "prod_transfer_password"
+```
+
+Then deploy:
+```bash
+helm install my-bank-app ./helm/my-bank-app -f prod-values.yaml
+```
+
+#### CI/CD Integration (GitLab, Jenkins, GitHub Actions)
+```bash
+# Using environment variables from CI/CD secret store
+helm install my-bank-app ./helm/my-bank-app \
+  --set accounts-service.db.password=$ACCOUNTS_DB_PASSWORD \
+  --set blocker-service.db.password=$BLOCKER_DB_PASSWORD \
+  --set cash-service.db.password=$CASH_DB_PASSWORD \
+  --set exchange-service.db.password=$EXCHANGE_DB_PASSWORD \
+  --set notifications-service.db.password=$NOTIFICATIONS_DB_PASSWORD \
+  --set transfer-service.db.password=$TRANSFER_DB_PASSWORD
+```
+
+#### Using External Secrets Operator (Production)
+For production environments, consider using:
+- **[External Secrets Operator](https://external-secrets.io/)**: Integrates with AWS Secrets Manager, Azure Key Vault, HashiCorp Vault, etc.
+- **[Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets)**: Encrypted secrets in Git
+- **[SOPS](https://github.com/getsops/sops)**: Secrets encrypted at rest in Git
+
+Example with External Secrets Operator:
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: accounts-service-db-secret
+spec:
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: SecretStore
+  target:
+    name: accounts-service-db-secret
+  data:
+    - secretKey: password
+      remoteRef:
+        key: prod/accounts-service/db-password
+```
+
 ## 🏗️ Architecture
 
 The architecture has been migrated from a Spring Cloud stack to a Kubernetes-native approach:
