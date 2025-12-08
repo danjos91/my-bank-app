@@ -11,7 +11,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "accounts", schema = "accounts_schema")
+@Table(name = "accounts", schema = "accounts_schema",
+       uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "currency"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -28,6 +29,12 @@ public class Account {
     @JoinColumn(name = "user_id", nullable = false)
     @NotNull(message = "User is required")
     private User user;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency", nullable = false, length = 3)
+    @NotNull(message = "Currency is required")
+    @Builder.Default
+    private Currency currency = Currency.RUB;
     
     @Column(name = "balance", nullable = false, precision = 19, scale = 2)
     @DecimalMin(value = "0.00", message = "Balance cannot be negative")

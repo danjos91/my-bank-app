@@ -15,6 +15,9 @@ public class TransferDTO {
     private Long fromAccountId;
     private Long toAccountId;
     private BigDecimal amount;
+    private io.github.danjos.mybankapp.transfer.entity.Currency fromCurrency;
+    private io.github.danjos.mybankapp.transfer.entity.Currency toCurrency;
+    private BigDecimal convertedAmount;
     private String description;
     private Transfer.TransferStatus status;
     private LocalDateTime createdAt;

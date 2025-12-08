@@ -1,6 +1,7 @@
 package io.github.danjos.mybankapp.accounts.repository;
 
 import io.github.danjos.mybankapp.accounts.entity.Account;
+import io.github.danjos.mybankapp.accounts.entity.Currency;
 import io.github.danjos.mybankapp.accounts.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,11 +18,16 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     
     List<Account> findByUserId(Long userId);
     
+    Optional<Account> findByUserIdAndCurrency(Long userId, Currency currency);
+    
     @Query("SELECT a FROM Account a WHERE a.user.id = :userId")
     Optional<Account> findPrimaryAccountByUserId(@Param("userId") Long userId);
     
     @Query("SELECT a FROM Account a WHERE a.user.username = :username")
     List<Account> findByUsername(@Param("username") String username);
+    
+    @Query("SELECT a FROM Account a WHERE a.user.username = :username AND a.currency = :currency")
+    List<Account> findByUsernameAndCurrency(@Param("username") String username, @Param("currency") Currency currency);
     
     @Query("SELECT a FROM Account a WHERE a.balance > :minBalance")
     List<Account> findByBalanceGreaterThan(@Param("minBalance") java.math.BigDecimal minBalance);

@@ -30,9 +30,26 @@ public class CashService {
     private final CashTransactionRepository cashTransactionRepository;
     private final AccountsClient accountsClient;
     private final NotificationsClient notificationsClient;
+    private final io.github.danjos.mybankapp.cash.client.BlockerClient blockerClient;
     
     public CashTransactionDTO deposit(DepositRequestDTO depositRequest) {
         log.info("Processing deposit for account {}: {}", depositRequest.getAccountId(), depositRequest.getAmount());
+        
+        // Get account information to determine currency
+        io.github.danjos.mybankapp.cash.dto.AccountDTO account = accountsClient.getAccount(depositRequest.getAccountId());
+        if (account == null) {
+            throw new IllegalArgumentException("Account not found: " + depositRequest.getAccountId());
+        }
+        
+        String currency = account.getCurrency() != null ? account.getCurrency().name() : "RUB";
+        
+        // Check with blocker service using account currency
+        io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
+                blockerClient.checkTransaction(depositRequest.getAmount(), currency);
+        if (blockResponse != null && blockResponse.getDecision() == 
+                io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
+            throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
+        }
         
         // Create transaction record
         CashTransaction transaction = CashTransaction.builder()
@@ -49,7 +66,7 @@ public class CashService {
             accountsClient.addToAccountBalance(depositRequest.getAccountId(), depositRequest.getAmount());
             
             // Send notification
-            sendDepositNotification(depositRequest.getAccountId(), depositRequest.getAmount());
+            sendDepositNotification(account.getUserId(), depositRequest.getAmount());
             
             log.info("Deposit successful for account {}: {}", depositRequest.getAccountId(), depositRequest.getAmount());
             return convertToDTO(savedTransaction);
@@ -64,10 +81,25 @@ public class CashService {
     public CashTransactionDTO withdraw(WithdrawalRequestDTO withdrawalRequest) {
         log.info("Processing withdrawal for account {}: {}", withdrawalRequest.getAccountId(), withdrawalRequest.getAmount());
         
+        // Get account information to determine currency
+        io.github.danjos.mybankapp.cash.dto.AccountDTO account = accountsClient.getAccount(withdrawalRequest.getAccountId());
+        if (account == null) {
+            throw new IllegalArgumentException("Account not found: " + withdrawalRequest.getAccountId());
+        }
+        
         // Check account balance first
-        BigDecimal currentBalance = accountsClient.getAccountBalance(withdrawalRequest.getAccountId());
-        if (currentBalance.compareTo(withdrawalRequest.getAmount()) < 0) {
-            throw new IllegalArgumentException("Insufficient balance. Available: " + currentBalance + ", Requested: " + withdrawalRequest.getAmount());
+        if (account.getBalance().compareTo(withdrawalRequest.getAmount()) < 0) {
+            throw new IllegalArgumentException("Insufficient balance. Available: " + account.getBalance() + ", Requested: " + withdrawalRequest.getAmount());
+        }
+        
+        String currency = account.getCurrency() != null ? account.getCurrency().name() : "RUB";
+        
+        // Check with blocker service using account currency
+        io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
+                blockerClient.checkTransaction(withdrawalRequest.getAmount(), currency);
+        if (blockResponse != null && blockResponse.getDecision() == 
+                io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
+            throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
         }
         
         // Create transaction record
@@ -85,7 +117,7 @@ public class CashService {
             accountsClient.subtractFromAccountBalance(withdrawalRequest.getAccountId(), withdrawalRequest.getAmount());
             
             // Send notification
-            sendWithdrawalNotification(withdrawalRequest.getAccountId(), withdrawalRequest.getAmount());
+            sendWithdrawalNotification(account.getUserId(), withdrawalRequest.getAmount());
             
             log.info("Withdrawal successful for account {}: {}", withdrawalRequest.getAccountId(), withdrawalRequest.getAmount());
             return convertToDTO(savedTransaction);
@@ -143,10 +175,10 @@ public class CashService {
                 .collect(Collectors.toList());
     }
     
-    private void sendDepositNotification(Long accountId, BigDecimal amount) {
+    private void sendDepositNotification(Long userId, BigDecimal amount) {
         try {
             CreateNotificationDTO notification = CreateNotificationDTO.builder()
-                    .userId(accountId) // In real scenario, you'd get userId from accountId
+                    .userId(userId)
                     .type("DEPOSIT_SUCCESS")
                     .title("Deposit Successful")
                     .message("Deposit of " + amount + " has been processed successfully")
@@ -158,10 +190,10 @@ public class CashService {
         }
     }
     
-    private void sendWithdrawalNotification(Long accountId, BigDecimal amount) {
+    private void sendWithdrawalNotification(Long userId, BigDecimal amount) {
         try {
             CreateNotificationDTO notification = CreateNotificationDTO.builder()
-                    .userId(accountId) // In real scenario, you'd get userId from accountId
+                    .userId(userId)
                     .type("WITHDRAWAL_SUCCESS")
                     .title("Withdrawal Successful")
                     .message("Withdrawal of " + amount + " has been processed successfully")

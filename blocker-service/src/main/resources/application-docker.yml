@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/bank_app_db
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://my-bank-app-auth-server:8085
+
+services:
+  exchange:
+    url: http://my-bank-app-exchange-service:8087

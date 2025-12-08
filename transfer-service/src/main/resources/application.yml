@@ -7,10 +7,6 @@ spring:
   autoconfigure:
     exclude:
       - io.github.resilience4j.springboot3.fallback.autoconfigure.FallbackAutoConfiguration
-  cloud:
-    config:
-      enabled: true
-      fail-fast: true
   datasource:
     url: jdbc:postgresql://localhost:5432/bank_app_db
     username: bank_app_user
@@ -32,12 +28,13 @@ spring:
         jwt:
           issuer-uri: http://auth-server:8085
 
-eureka:
-  client:
-    service-url:
-      defaultZone: http://eureka-server:8761/eureka/
-  instance:
-    prefer-ip-address: true
+services:
+  accounts:
+    url: http://accounts-service:8081
+  exchange:
+    url: http://exchange-service:8087
+  blocker:
+    url: http://blocker-service:8089
 
 resilience4j:
   fallback:
@@ -48,6 +45,10 @@ resilience4j:
         failure-rate-threshold: 50
         wait-duration-in-open-state: 30s
         sliding-window-size: 10
+      exchange-service:
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        sliding-window-size: 10
       notifications-service:
         failure-rate-threshold: 50
         wait-duration-in-open-state: 30s
@@ -55,6 +56,9 @@ resilience4j:
   retry:
     instances:
       accounts-service:
+        max-attempts: 3
+        wait-duration: 1s
+      exchange-service:
         max-attempts: 3
         wait-duration: 1s
       notifications-service:

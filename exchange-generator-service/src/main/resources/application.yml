@@ -1,0 +1,25 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: exchange-generator-service
+
+services:
+  exchange:
+    url: http://localhost:8087
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  time-zone: Europe/Moscow
+  level:
+    org.springframework.web: DEBUG
+    io.github.danjos.mybankapp.exchangegenerator: DEBUG

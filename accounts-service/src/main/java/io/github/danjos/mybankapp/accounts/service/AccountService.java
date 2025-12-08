@@ -1,13 +1,18 @@
 package io.github.danjos.mybankapp.accounts.service;
 
+import io.github.danjos.mybankapp.accounts.client.NotificationsClient;
+import io.github.danjos.mybankapp.accounts.dto.CreateNotificationDTO;
 import io.github.danjos.mybankapp.accounts.dto.AccountDTO;
 import io.github.danjos.mybankapp.accounts.entity.Account;
+import io.github.danjos.mybankapp.accounts.entity.Currency;
 import io.github.danjos.mybankapp.accounts.entity.User;
 import io.github.danjos.mybankapp.accounts.repository.AccountRepository;
 import io.github.danjos.mybankapp.accounts.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -17,6 +22,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class AccountService {
+
+    private static final Logger log = LoggerFactory.getLogger(AccountService.class);
     
     @Autowired
     private AccountRepository accountRepository;
@@ -24,14 +31,45 @@ public class AccountService {
     @Autowired
     private UserRepository userRepository;
     
+    @Autowired
+    private NotificationsClient notificationsClient;
+    
     public Account createAccount(Long userId) {
+        return createAccount(userId, Currency.RUB);
+    }
+    
+    public Account createAccount(Long userId, Currency currency) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         
+        // Check if account with this currency already exists
+        Optional<Account> existingAccount = accountRepository.findByUserIdAndCurrency(userId, currency);
+        if (existingAccount.isPresent()) {
+            throw new IllegalArgumentException("Account with currency " + currency + " already exists for this user");
+        }
+        
         Account account = Account.builder()
                 .user(user)
+                .currency(currency)
                 .build();
-        return accountRepository.save(account);
+        Account savedAccount = accountRepository.save(account);
+        
+        // Send notification
+        try {
+            CreateNotificationDTO notification = CreateNotificationDTO.builder()
+                    .userId(userId)
+                    .type("ACCOUNT_CREATED")
+                    .notificationType("INFO")
+                    .title("Account Created")
+                    .message("Your new account in " + currency + " has been successfully created.")
+                    .build();
+            notificationsClient.createNotification(notification);
+        } catch (Exception e) {
+            // Log error but don't fail transaction
+            log.warn("Failed to send notification for user {}: {}", userId, e.getMessage());
+        }
+        
+        return savedAccount;
     }
     
     @Transactional(readOnly = true)
@@ -122,11 +160,17 @@ public class AccountService {
                 .collect(Collectors.toList());
     }
     
+    @Transactional(readOnly = true)
+    public Optional<Account> getAccountByUserIdAndCurrency(Long userId, Currency currency) {
+        return accountRepository.findByUserIdAndCurrency(userId, currency);
+    }
+    
     private AccountDTO convertToDTO(Account account) {
         return new AccountDTO(
                 account.getId(),
                 account.getUser().getId(),
                 account.getUser().getUsername(),
+                account.getCurrency(),
                 account.getBalance(),
                 account.getCreatedAt(),
                 account.getUpdatedAt()

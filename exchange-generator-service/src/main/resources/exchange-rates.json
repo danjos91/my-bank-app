@@ -1,0 +1,54 @@
+
+[
+  {
+    "currency": "USD",
+    "buyRate": 100.0,
+    "sellRate": 95.0
+  },
+  {
+    "currency": "USD",
+    "buyRate": 101.0,
+    "sellRate": 96.0
+  },
+  {
+    "currency": "USD",
+    "buyRate": 99.0,
+    "sellRate": 94.0
+  },
+  {
+    "currency": "USD",
+    "buyRate": 102.0,
+    "sellRate": 97.0
+  },
+  {
+    "currency": "USD",
+    "buyRate": 98.0,
+    "sellRate": 93.0
+  },
+  {
+    "currency": "CNY",
+    "buyRate": 14.0,
+    "sellRate": 13.0
+  },
+  {
+    "currency": "CNY",
+    "buyRate": 14.5,
+    "sellRate": 13.5
+  },
+  {
+    "currency": "CNY",
+    "buyRate": 13.5,
+    "sellRate": 12.5
+  },
+  {
+    "currency": "CNY",
+    "buyRate": 14.2,
+    "sellRate": 13.2
+  },
+  {
+    "currency": "CNY",
+    "buyRate": 13.8,
+    "sellRate": 12.8
+  }
+]
+

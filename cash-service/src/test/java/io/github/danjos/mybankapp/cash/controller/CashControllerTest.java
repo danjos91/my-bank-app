@@ -4,6 +4,7 @@ import io.github.danjos.mybankapp.cash.dto.CashTransactionDTO;
 import io.github.danjos.mybankapp.cash.dto.DepositRequestDTO;
 import io.github.danjos.mybankapp.cash.dto.WithdrawalRequestDTO;
 import io.github.danjos.mybankapp.cash.entity.CashTransaction;
+import io.github.danjos.mybankapp.cash.exception.GlobalExceptionHandler;
 import io.github.danjos.mybankapp.cash.service.CashService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,8 @@ class CashControllerTest {
 
     @InjectMocks
     private CashController cashController;
+    
+    private GlobalExceptionHandler exceptionHandler;
 
     private DepositRequestDTO depositRequest;
     private WithdrawalRequestDTO withdrawalRequest;
@@ -44,6 +47,8 @@ class CashControllerTest {
 
     @BeforeEach
     void setUp() {
+        exceptionHandler = new GlobalExceptionHandler();
+        
         depositRequest = DepositRequestDTO.builder()
                 .accountId(1L)
                 .amount(new BigDecimal("100.00"))
@@ -64,6 +69,16 @@ class CashControllerTest {
                 .description("Test deposit")
                 .timestamp(LocalDateTime.now())
                 .build();
+    }
+    
+    private ResponseEntity<?> invokeControllerWithExceptionHandling(java.util.function.Supplier<ResponseEntity<?>> controllerMethod) {
+        try {
+            return controllerMethod.get();
+        } catch (IllegalArgumentException e) {
+            return exceptionHandler.handleIllegalArgumentException(e);
+        } catch (Exception e) {
+            return exceptionHandler.handleException(e);
+        }
     }
 
     @Test
@@ -88,7 +103,7 @@ class CashControllerTest {
                 .thenThrow(new IllegalArgumentException("Invalid request"));
 
         // When
-        ResponseEntity<?> response = cashController.deposit(depositRequest);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> cashController.deposit(depositRequest));
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -103,11 +118,11 @@ class CashControllerTest {
                 .thenThrow(new RuntimeException("Service error"));
 
         // When
-        ResponseEntity<?> response = cashController.deposit(depositRequest);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> cashController.deposit(depositRequest));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Deposit failed"));
+        assertTrue(response.getBody().toString().contains("Internal server error"));
         verify(cashService).deposit(depositRequest);
     }
 
@@ -133,7 +148,7 @@ class CashControllerTest {
                 .thenThrow(new IllegalArgumentException("Insufficient balance"));
 
         // When
-        ResponseEntity<?> response = cashController.withdraw(withdrawalRequest);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> cashController.withdraw(withdrawalRequest));
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -148,11 +163,11 @@ class CashControllerTest {
                 .thenThrow(new RuntimeException("Service error"));
 
         // When
-        ResponseEntity<?> response = cashController.withdraw(withdrawalRequest);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> cashController.withdraw(withdrawalRequest));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Withdrawal failed"));
+        assertTrue(response.getBody().toString().contains("Internal server error"));
         verify(cashService).withdraw(withdrawalRequest);
     }
 
@@ -179,11 +194,11 @@ class CashControllerTest {
                 .thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = cashController.getTransactionsByAccountId(1L);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> cashController.getTransactionsByAccountId(1L));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error retrieving transactions"));
+        assertTrue(response.getBody().toString().contains("Internal server error"));
         verify(cashService).getTransactionsByAccountId(1L);
     }
 

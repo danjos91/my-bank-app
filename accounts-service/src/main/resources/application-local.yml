@@ -2,11 +2,6 @@
 # Use with: SPRING_PROFILES_ACTIVE=local or mvn spring-boot:run -Dspring-boot.run.profiles=local
 
 spring:
-  cloud:
-    config:
-      enabled: false
-      import-check:
-        enabled: false
   datasource:
     url: jdbc:postgresql://localhost:5432/bank_app_db
     username: bank_app_user
@@ -31,12 +26,3 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8085
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-  instance:
-    prefer-ip-address: false
-    hostname: localhost
-

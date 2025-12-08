@@ -1,9 +1,4 @@
 spring:
-  config:
-    import: configserver:http://config-server:8888
-  cloud:
-    config:
-      uri: http://config-server:8888
   datasource:
     url: jdbc:postgresql://postgres:5432/bank_app_db
     username: bank_app_user
@@ -11,10 +6,4 @@ spring:
   security:
     oauth2:
       authorization-server:
-        issuer: http://auth-server:8085
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://eureka-server:8761/eureka/
-
+        issuer: http://my-bank-app-auth-server:8085

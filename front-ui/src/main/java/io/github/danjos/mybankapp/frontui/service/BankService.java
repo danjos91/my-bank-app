@@ -14,6 +14,11 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +33,61 @@ public class BankService {
 
     @Value("${gateway.url:http://localhost:8080}")
     private String gatewayUrl;
+    
+    // Kubernetes service names for internal communication
+    private static final String ACCOUNTS_SERVICE = "http://my-bank-app-accounts-service:8081";
+    private static final String CASH_SERVICE = "http://my-bank-app-cash-service:8082";
+    private static final String TRANSFER_SERVICE = "http://my-bank-app-transfer-service:8083";
+    private static final String EXCHANGE_SERVICE = "http://my-bank-app-exchange-service:8087";
+    
+    /**
+     * Gets the OAuth2 access token from the current HTTP session
+     * @return The access token, or null if not found
+     */
+    private String getAccessTokenFromSession() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                HttpSession session = request.getSession(false);
+                if (session != null) {
+                    String token = (String) session.getAttribute("oauth2_access_token");
+                    if (token != null && !token.trim().isEmpty()) {
+                        log.debug("Retrieved OAuth2 token from session. Session ID: {}", session.getId());
+                        return token;
+                    } else {
+                        log.warn("OAuth2 token not found in session. Session ID: {}. This may cause authentication failures.", session.getId());
+                    }
+                } else {
+                    log.warn("No session found when trying to retrieve OAuth2 token");
+                }
+            } else {
+                log.warn("RequestContextHolder has no attributes. Cannot retrieve OAuth2 token from session.");
+            }
+        } catch (Exception e) {
+            log.error("Error retrieving OAuth2 token from session", e);
+        }
+        return null;
+    }
+    
+    /**
+     * Creates HttpHeaders with OAuth2 token if available
+     * @return HttpHeaders with Authorization header set if token is available
+     */
+    private HttpHeaders createHeadersWithAuth() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        String token = getAccessTokenFromSession();
+        if (token != null) {
+            headers.setBearerAuth(token);
+            log.debug("Added OAuth2 token to request headers");
+        } else {
+            log.warn("No OAuth2 token available - request may fail with 401 Unauthorized");
+        }
+        
+        return headers;
+    }
 
     public UserDataDTO getUserData(String username) {
         if (username == null || username.trim().isEmpty()) {
@@ -36,14 +96,14 @@ public class BankService {
         }
         try {
             // Get user profile
-            String userUrl = gatewayUrl + "/api/accounts/users/username/" + username;
+            String userUrl = ACCOUNTS_SERVICE + "/api/accounts/users/username/" + username;
             log.debug("Fetching user profile from: {}", userUrl);
             var userProfileResponse = restTemplate.exchange(userUrl, HttpMethod.GET, null,
                 new ParameterizedTypeReference<Map<String, Object>>() {});
             Map<String, Object> userProfile = userProfileResponse.getBody();
             
             // Get user accounts (to get balance)
-            String accountsUrl = gatewayUrl + "/api/accounts/username/" + username;
+            String accountsUrl = ACCOUNTS_SERVICE + "/api/accounts/username/" + username;
             log.info("Fetching accounts from: {} for user: {}", accountsUrl, username);
             List<Map<String, Object>> accounts = null;
             try {
@@ -120,9 +180,69 @@ public class BankService {
         return Long.parseLong(value.toString());
     }
 
+    public List<Map<String, Object>> getExchangeRates() {
+        try {
+            String url = EXCHANGE_SERVICE + "/api/exchange/rates";
+            log.debug("Fetching exchange rates from: {}", url);
+            HttpHeaders headers = createHeadersWithAuth();
+            HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+            var response = restTemplate.exchange(url, HttpMethod.GET, requestEntity,
+                new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+            log.debug("Exchange rates response status: {}", response.getStatusCode());
+            return response.getBody();
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("HTTP error getting exchange rates. Status: {}, Response: {}", 
+                e.getStatusCode(), e.getResponseBodyAsString(), e);
+            return List.of();
+        } catch (Exception e) {
+            log.error("Error getting exchange rates", e);
+            // Return empty list on error - frontend will handle it
+            return List.of();
+        }
+    }
+
+    public List<Map<String, Object>> getUserAccounts(String username) {
+        try {
+            String url = ACCOUNTS_SERVICE + "/api/accounts/username/" + username;
+            log.debug("Fetching accounts from: {}", url);
+            var response = restTemplate.exchange(url, HttpMethod.GET, null,
+                new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+            return response.getBody() != null ? response.getBody() : List.of();
+        } catch (Exception e) {
+            log.error("Error getting user accounts for: {}", username, e);
+            return List.of();
+        }
+    }
+
+    public void createAccount(String username, String currency) {
+        try {
+            UserDataDTO userData = getUserData(username);
+            if (userData == null || userData.getId() == null) {
+                throw new RuntimeException("Пользователь не найден");
+            }
+            
+            String url = ACCOUNTS_SERVICE + "/api/accounts/users/" + userData.getId() + "/accounts";
+            if (currency != null && !currency.isEmpty()) {
+                url += "?currency=" + currency;
+            }
+            
+            log.debug("Creating account for user: {} with currency: {} at URL: {}", username, currency, url);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(new HashMap<>(), headers);
+            
+            restTemplate.exchange(url, HttpMethod.POST, request, 
+                new ParameterizedTypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            log.error("Error creating account for user: {} with currency: {}", username, currency, e);
+            throw new RuntimeException("Ошибка создания счета: " + e.getMessage());
+        }
+    }
+
     public List<UserDataDTO> getAllUsers() {
         try {
-            String url = gatewayUrl + "/api/accounts/users";
+            String url = ACCOUNTS_SERVICE + "/api/accounts/users";
             return restTemplate.exchange(url, HttpMethod.GET, null, 
                 new ParameterizedTypeReference<List<UserDataDTO>>() {}).getBody();
         } catch (Exception e) {
@@ -133,7 +253,7 @@ public class BankService {
 
     public void updateUserProfile(String username, String name, String birthdate) {
         try {
-            String url = gatewayUrl + "/api/accounts/users/username/" + username + "/profile";
+            String url = ACCOUNTS_SERVICE + "/api/accounts/users/username/" + username + "/profile";
             
             Map<String, String> profileData = new HashMap<>();
             profileData.put("name", name);
@@ -152,7 +272,7 @@ public class BankService {
 
     public void updatePassword(String username, String password) {
         try {
-            String url = gatewayUrl + "/api/accounts/users/username/" + username + "/password";
+            String url = ACCOUNTS_SERVICE + "/api/accounts/users/username/" + username + "/password";
             
             Map<String, String> passwordData = new HashMap<>();
             passwordData.put("password", password);
@@ -178,18 +298,24 @@ public class BankService {
             throw new RuntimeException("Неверная сумма для пополнения");
         }
         try {
-            String url = gatewayUrl + "/api/cash/deposit";
+            String url = CASH_SERVICE + "/api/cash/deposit";
+            log.info("Processing deposit request to: {} for user: {}, amount: {}", url, username, amount);
             
             Map<String, Object> depositData = new HashMap<>();
             depositData.put("accountId", getAccountId(username));
             depositData.put("amount", amount);
             depositData.put("description", "Пополнение через веб-интерфейс");
             
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = createHeadersWithAuth();
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(depositData, headers);
             
+            log.debug("Sending deposit request with accountId: {}, amount: {}", depositData.get("accountId"), amount);
             restTemplate.postForObject(url, request, Void.class);
+            log.info("Deposit request completed successfully for user: {}", username);
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("HTTP error processing deposit for username: {}. Status: {}, Response: {}", 
+                username, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            throw new RuntimeException("Ошибка пополнения счета: " + e.getResponseBodyAsString());
         } catch (RuntimeException e) {
             // Re-throw runtime exceptions as-is
             throw e;
@@ -209,18 +335,24 @@ public class BankService {
             throw new RuntimeException("Неверная сумма для снятия");
         }
         try {
-            String url = gatewayUrl + "/api/cash/withdraw";
+            String url = CASH_SERVICE + "/api/cash/withdraw";
+            log.info("Processing withdrawal request to: {} for user: {}, amount: {}", url, username, amount);
             
             Map<String, Object> withdrawalData = new HashMap<>();
             withdrawalData.put("accountId", getAccountId(username));
             withdrawalData.put("amount", amount);
             withdrawalData.put("description", "Снятие через веб-интерфейс");
             
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = createHeadersWithAuth();
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(withdrawalData, headers);
             
+            log.debug("Sending withdrawal request with accountId: {}, amount: {}", withdrawalData.get("accountId"), amount);
             restTemplate.postForObject(url, request, Void.class);
+            log.info("Withdrawal request completed successfully for user: {}", username);
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("HTTP error processing withdrawal for username: {}. Status: {}, Response: {}", 
+                username, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            throw new RuntimeException("Ошибка снятия средств: " + e.getResponseBodyAsString());
         } catch (RuntimeException e) {
             // Re-throw runtime exceptions as-is
             throw e;
@@ -230,30 +362,49 @@ public class BankService {
         }
     }
 
-    public void transfer(String fromUsername, String toUsername, BigDecimal amount) {
+    public void transfer(Long fromAccountId, Long toAccountId, String toUsername, BigDecimal amount) {
         try {
-            String url = gatewayUrl + "/api/transfers";
+            String url = TRANSFER_SERVICE + "/api/transfers";
+            log.info("Processing transfer request to: {} from account: {} to account: {}, amount: {}", 
+                url, fromAccountId, toAccountId, amount);
+            
+            // If account IDs are not provided, get them from usernames
+            if (fromAccountId == null) {
+                throw new RuntimeException("Необходимо выбрать счет отправителя");
+            }
+            if (toAccountId == null) {
+                if (toUsername == null || toUsername.trim().isEmpty()) {
+                    throw new RuntimeException("Необходимо указать получателя");
+                }
+                toAccountId = getAccountId(toUsername);
+            }
             
             Map<String, Object> transferData = new HashMap<>();
-            transferData.put("fromAccountId", getAccountId(fromUsername));
-            transferData.put("toAccountId", getAccountId(toUsername));
+            transferData.put("fromAccountId", fromAccountId);
+            transferData.put("toAccountId", toAccountId);
             transferData.put("amount", amount);
             transferData.put("description", "Перевод через веб-интерфейс");
             
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = createHeadersWithAuth();
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(transferData, headers);
             
+            log.debug("Sending transfer request with fromAccountId: {}, toAccountId: {}, amount: {}", 
+                fromAccountId, toAccountId, amount);
             restTemplate.postForObject(url, request, Void.class);
+            log.info("Transfer request completed successfully from account {} to account {}", fromAccountId, toAccountId);
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("HTTP error processing transfer from account {} to account {}. Status: {}, Response: {}", 
+                fromAccountId, toAccountId, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            throw new RuntimeException("Ошибка перевода: " + e.getResponseBodyAsString());
         } catch (Exception e) {
-            log.error("Error processing transfer from {} to {}", fromUsername, toUsername, e);
+            log.error("Error processing transfer from account {} to account {}", fromAccountId, toAccountId, e);
             throw new RuntimeException("Ошибка перевода: " + e.getMessage());
         }
     }
 
     public void registerUser(String username, String password, String name, String birthdate) {
         try {
-            String url = gatewayUrl + "/api/accounts/users/register";
+            String url = ACCOUNTS_SERVICE + "/api/accounts/users/register";
             
             // Split name into first and last name
             String[] nameParts = name.trim().split("\\s+", 2);
@@ -343,7 +494,7 @@ public class BankService {
 
     private Long createAccountForUser(Long userId) {
         try {
-            String url = gatewayUrl + "/api/accounts/users/" + userId + "/accounts";
+            String url = ACCOUNTS_SERVICE + "/api/accounts/users/" + userId + "/accounts";
             log.debug("Creating account for user ID: {} at URL: {}", userId, url);
             
             HttpHeaders headers = new HttpHeaders();
@@ -363,7 +514,7 @@ public class BankService {
                 }
             }
             
-            String accountsUrl = gatewayUrl + "/api/accounts/users/" + userId + "/accounts";
+            String accountsUrl = ACCOUNTS_SERVICE + "/api/accounts/users/" + userId + "/accounts";
             var accountsResponse = restTemplate.exchange(accountsUrl, HttpMethod.GET, null,
                 new ParameterizedTypeReference<List<Map<String, Object>>>() {});
             

@@ -1,0 +1,60 @@
+# Default values for my-bank-app umbrella chart.
+# This file allows you to override values for subcharts.
+
+global:
+  env: dev
+  image:
+    pullPolicy: Never
+
+accounts-service:
+  replicaCount: 1
+
+auth-server:
+  replicaCount: 1
+  image:
+    tag: "fixed"
+  db:
+    host: my-bank-app-accounts-service-db
+
+blocker-service:
+  replicaCount: 1
+
+cash-service:
+  replicaCount: 1
+
+exchange-generator-service:
+  replicaCount: 1
+  image:
+    tag: "fixed"
+  db:
+    host: my-bank-app-exchange-service-db
+  services:
+    exchange:
+      url: http://my-bank-app-exchange-service:8087
+
+exchange-service:
+  replicaCount: 1
+
+front-ui:
+  replicaCount: 1
+  image:
+    tag: "fixed"
+  ingress:
+    enabled: true
+    hosts:
+      - host: bank.local
+        paths:
+          - path: /
+            pathType: Prefix
+  db:
+    host: my-bank-app-accounts-service-db
+  auth:
+    serverUrl: http://my-bank-app-auth-server:8085
+  env:
+    gatewayUrl: "http://ingress-nginx-controller.ingress-nginx.svc.cluster.local"
+
+notifications-service:
+  replicaCount: 1
+
+transfer-service:
+  replicaCount: 1

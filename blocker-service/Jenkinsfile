@@ -1,0 +1,82 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'blocker-service'
+        DOCKER_REGISTRY = 'my-docker-registry'
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        HELM_RELEASE_NAME = 'blocker-service'
+    }
+
+    stages {
+        stage('Validation') {
+            steps {
+                echo 'Validating code style...'
+                sh 'mvn validate'
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                echo 'Building and Testing...'
+                sh 'mvn clean package -DskipTests=false'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo 'Building Docker Image...'
+                    sh "docker build -t ${APP_NAME}:${IMAGE_TAG} ${APP_NAME}/"
+                }
+            }
+        }
+
+        stage('Deploy to Test') {
+            steps {
+                echo 'Deploying to Test Environment...'
+                script {
+                    sh """
+                        helm upgrade --install ${HELM_RELEASE_NAME} ./helm/${APP_NAME} \
+                        --namespace test --create-namespace \
+                        --set image.repository=${APP_NAME} \
+                        --set image.tag=${IMAGE_TAG} \
+                        --set global.env=test
+                    """
+                }
+            }
+        }
+
+        stage('Deploy to Prod') {
+            input {
+                message "Deploy to Production?"
+                ok "Yes, deploy"
+            }
+            steps {
+                echo 'Deploying to Production Environment...'
+                script {
+                    sh """
+                        helm upgrade --install ${HELM_RELEASE_NAME} ./helm/${APP_NAME} \
+                        --namespace prod --create-namespace \
+                        --set image.repository=${APP_NAME} \
+                        --set image.tag=${IMAGE_TAG} \
+                        --set global.env=prod
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}
+

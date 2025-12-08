@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "exchange-service.fullname" . }}-db-init
+  labels:
+    {{- include "exchange-service.labels" . | nindent 4 }}
+data:
+  init.sql: |
+    -- Exchange Service Database Schema
+    CREATE SCHEMA IF NOT EXISTS exchange_schema;
+    SET search_path TO exchange_schema;
+
+    CREATE TABLE IF NOT EXISTS exchange_rates (
+        id BIGSERIAL PRIMARY KEY,
+        currency VARCHAR(3) UNIQUE NOT NULL,
+        buy_rate DECIMAL(19,6) NOT NULL,
+        sell_rate DECIMAL(19,6) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT exchange_rates_currency_check CHECK (currency IN ('RUB', 'USD', 'CNY')),
+        CONSTRAINT exchange_rates_buy_rate_positive CHECK (buy_rate > 0),
+        CONSTRAINT exchange_rates_sell_rate_positive CHECK (sell_rate > 0)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_exchange_rates_currency ON exchange_rates(currency);
+
+    CREATE OR REPLACE FUNCTION update_updated_at_column()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        NEW.updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
+    END;
+    $$ language 'plpgsql';
+
+    DROP TRIGGER IF EXISTS update_exchange_rates_updated_at ON exchange_rates;
+    CREATE TRIGGER update_exchange_rates_updated_at 
+        BEFORE UPDATE ON exchange_rates 
+        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+    INSERT INTO exchange_rates (currency, buy_rate, sell_rate) 
+    VALUES 
+        ('USD', 100.0, 95.0),
+        ('CNY', 14.0, 13.0)
+    ON CONFLICT (currency) DO NOTHING;

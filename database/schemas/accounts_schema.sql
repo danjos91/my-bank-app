@@ -28,17 +28,21 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS accounts (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    currency VARCHAR(3) DEFAULT 'RUB' NOT NULL,
     balance DECIMAL(19,2) DEFAULT 0.00 NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     -- Constraints
-    CONSTRAINT accounts_balance_non_negative CHECK (balance >= 0)
+    CONSTRAINT accounts_balance_non_negative CHECK (balance >= 0),
+    CONSTRAINT accounts_currency_check CHECK (currency IN ('RUB', 'USD', 'CNY')),
+    CONSTRAINT accounts_user_currency_unique UNIQUE (user_id, currency)
 );
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_accounts_currency ON accounts(currency);
 
 -- Triggers for updated_at timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -64,6 +68,6 @@ VALUES ('admin', $$$2a$10$mbDSFQBj5HbrA0XyS0WhXe6GQt86B2JHip4eLUMJvmIpbUqZx5Nuy$
 ON CONFLICT (username) DO NOTHING;
 
 -- Create account for admin user
-INSERT INTO accounts (user_id, balance) 
-SELECT id, 10000.00 FROM users WHERE username = 'admin'
-ON CONFLICT DO NOTHING;
+INSERT INTO accounts (user_id, currency, balance) 
+SELECT id, 'RUB', 200000.00 FROM users WHERE username = 'admin'
+ON CONFLICT (user_id, currency) DO NOTHING;

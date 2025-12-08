@@ -1,5 +1,6 @@
 package io.github.danjos.mybankapp.transfer.client;
 
+import io.github.danjos.mybankapp.transfer.dto.AccountDTO;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ public class AccountsClient {
     
     private final RestTemplate restTemplate;
     
-    @Value("${services.accounts.url:http://localhost:8081}")
+    @Value("${services.accounts.url:http://accounts-service:8081}")
     private String accountsServiceUrl;
     
     @CircuitBreaker(name = "accounts-service", fallbackMethod = "getBalanceFallback")
@@ -80,6 +81,20 @@ public class AccountsClient {
         }
     }
     
+    @CircuitBreaker(name = "accounts-service", fallbackMethod = "getAccountFallback")
+    @Retry(name = "accounts-service")
+    public AccountDTO getAccount(Long accountId) {
+        try {
+            String url = accountsServiceUrl + "/api/accounts/" + accountId;
+            ResponseEntity<AccountDTO> response = 
+                    restTemplate.getForEntity(url, AccountDTO.class);
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Error getting account {}: {}", accountId, e.getMessage());
+            throw e;
+        }
+    }
+    
     // Fallback methods
     public BigDecimal getBalanceFallback(Long accountId, Exception ex) {
         log.warn("Fallback: Unable to get balance for account {}, returning 0", accountId);
@@ -99,5 +114,10 @@ public class AccountsClient {
     public boolean validateAccountFallback(Long accountId, Exception ex) {
         log.warn("Fallback: Unable to validate account {}", accountId);
         return false;
+    }
+    
+    public AccountDTO getAccountFallback(Long accountId, Exception ex) {
+        log.warn("Fallback: Unable to get account {}", accountId);
+        throw new RuntimeException("Unable to get account: " + accountId);
     }
 }

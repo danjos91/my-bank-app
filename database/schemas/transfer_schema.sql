@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS transfers (
     from_account_id BIGINT NOT NULL,
     to_account_id BIGINT NOT NULL,
     amount DECIMAL(19,2) NOT NULL,
+    from_currency VARCHAR(3) NOT NULL DEFAULT 'RUB',
+    to_currency VARCHAR(3) NOT NULL DEFAULT 'RUB',
+    converted_amount DECIMAL(19,2),
     description VARCHAR(255),
     status VARCHAR(20) DEFAULT 'PENDING' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -22,7 +25,8 @@ CREATE TABLE IF NOT EXISTS transfers (
     -- Constraints
     CONSTRAINT transfers_different_accounts CHECK (from_account_id != to_account_id),
     CONSTRAINT transfers_amount_positive CHECK (amount > 0),
-    CONSTRAINT transfers_status_check CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'))
+    CONSTRAINT transfers_status_check CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED', 'CANCELLED')),
+    CONSTRAINT transfers_currency_check CHECK (from_currency IN ('RUB', 'USD', 'CNY') AND to_currency IN ('RUB', 'USD', 'CNY'))
 );
 
 -- Transfer history table - stores detailed transfer events

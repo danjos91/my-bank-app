@@ -4,10 +4,6 @@ server:
 spring:
   application:
     name: front-ui
-  cloud:
-    config:
-      enabled: true
-      fail-fast: true
   datasource:
     url: jdbc:postgresql://localhost:5432/bank_app_db
     username: bank_app_user
@@ -26,7 +22,7 @@ spring:
         provider:
           bank-app:
             authorization-uri: http://auth-server:8085/oauth2/authorize
-            token-uri: http://auth-server:8085/auth/token
+            token-uri: http://auth-server:8085/oauth2/token
             user-info-uri: http://auth-server:8085/userinfo
             user-name-attribute: sub
     user:
@@ -35,13 +31,6 @@ spring:
     cache: false
     prefix: classpath:/templates/
     suffix: .html
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://eureka-server:8761/eureka/
-  instance:
-    prefer-ip-address: true
 
 management:
   endpoints:

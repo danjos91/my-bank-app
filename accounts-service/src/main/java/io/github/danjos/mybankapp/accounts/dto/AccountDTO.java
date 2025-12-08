@@ -1,5 +1,6 @@
 package io.github.danjos.mybankapp.accounts.dto;
 
+import io.github.danjos.mybankapp.accounts.entity.Currency;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -13,6 +14,7 @@ public class AccountDTO {
     private Long id;
     private Long userId;
     private String username;
+    private Currency currency;
     private BigDecimal balance;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

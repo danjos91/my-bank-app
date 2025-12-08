@@ -1,0 +1,3 @@
+services:
+  exchange:
+    url: http://exchange-service:8087

@@ -1,5 +1,8 @@
 package io.github.danjos.mybankapp.authserver.controller;
 
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,10 +33,17 @@ public class TokenController {
     private static final Logger log = Logger.getLogger(TokenController.class.getName());
     private final AuthenticationManager authenticationManager;
     private final JwtEncoder jwtEncoder;
+    private final JWKSource<SecurityContext> jwkSource;
+    private final String issuer;
 
-    public TokenController(AuthenticationManager authenticationManager, JwtEncoder jwtEncoder) {
+    public TokenController(AuthenticationManager authenticationManager,
+                           JwtEncoder jwtEncoder,
+                           JWKSource<SecurityContext> jwkSource,
+                           @Value("${spring.security.oauth2.authorization-server.issuer:http://my-bank-app-auth-server:8085}") String issuer) {
         this.authenticationManager = authenticationManager;
         this.jwtEncoder = jwtEncoder;
+        this.jwkSource = jwkSource;
+        this.issuer = issuer;
     }
 
     @PostMapping(value = "/token", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -65,7 +75,7 @@ public class TokenController {
                 .collect(Collectors.joining(" "));
 
             JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("http://auth-server:8085")
+                .issuer(issuer)
                 .subject(userDetails.getUsername())
                 .audience(java.util.Collections.singletonList("bank-app"))
                 .issuedAt(now)

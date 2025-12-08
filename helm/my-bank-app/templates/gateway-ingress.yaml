@@ -1,0 +1,54 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gateway-ingress
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    # Remove rewrite-target because services expect /api/accounts
+    # nginx.ingress.kubernetes.io/rewrite-target: /api/$1
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: bank.local
+      http: &api_paths
+        paths:
+          - path: /api/accounts/username
+            pathType: Prefix
+            backend:
+              service:
+                name: my-bank-app-front-ui
+                port:
+                  number: 8086
+          - path: /api/accounts
+            pathType: Prefix
+            backend:
+              service:
+                name: my-bank-app-accounts-service
+                port:
+                  number: 8081
+          - path: /api/exchange
+            pathType: Prefix
+            backend:
+              service:
+                name: my-bank-app-exchange-service
+                port:
+                  number: 8087
+          - path: /api/cash
+            pathType: Prefix
+            backend:
+              service:
+                name: my-bank-app-cash-service
+                port:
+                  number: 8082
+          - path: /api/transfers
+            pathType: Prefix
+            backend:
+              service:
+                name: my-bank-app-transfer-service
+                port:
+                  number: 8083
+    - host: gateway
+      http: *api_paths
+

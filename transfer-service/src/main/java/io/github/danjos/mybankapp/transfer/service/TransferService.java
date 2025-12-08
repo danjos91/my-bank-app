@@ -1,10 +1,15 @@
 package io.github.danjos.mybankapp.transfer.service;
 
 import io.github.danjos.mybankapp.transfer.client.AccountsClient;
+import io.github.danjos.mybankapp.transfer.client.ExchangeClient;
 import io.github.danjos.mybankapp.transfer.client.NotificationsClient;
+import io.github.danjos.mybankapp.transfer.dto.AccountDTO;
+import io.github.danjos.mybankapp.transfer.dto.ConversionRequestDTO;
+import io.github.danjos.mybankapp.transfer.dto.ConversionResponseDTO;
 import io.github.danjos.mybankapp.transfer.dto.CreateNotificationDTO;
 import io.github.danjos.mybankapp.transfer.dto.TransferDTO;
 import io.github.danjos.mybankapp.transfer.dto.TransferRequestDTO;
+import io.github.danjos.mybankapp.transfer.entity.Currency;
 import io.github.danjos.mybankapp.transfer.entity.Transfer;
 import io.github.danjos.mybankapp.transfer.repository.TransferRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -17,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.NoSuchElementException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,7 +33,9 @@ public class TransferService {
     
     private final TransferRepository transferRepository;
     private final AccountsClient accountsClient;
+    private final ExchangeClient exchangeClient;
     private final NotificationsClient notificationsClient;
+    private final io.github.danjos.mybankapp.transfer.client.BlockerClient blockerClient;
     
     @Transactional
     @CircuitBreaker(name = "transfer-service", fallbackMethod = "createTransferFallback")
@@ -41,19 +49,53 @@ public class TransferService {
             throw new IllegalArgumentException("Invalid transfer request");
         }
         
-        // Validate accounts exist
-        if (!accountsClient.validateAccountExists(requestDTO.getFromAccountId())) {
+        // Get account information to determine currencies
+        AccountDTO fromAccount = accountsClient.getAccount(requestDTO.getFromAccountId());
+        AccountDTO toAccount = accountsClient.getAccount(requestDTO.getToAccountId());
+        
+        if (fromAccount == null) {
             throw new IllegalArgumentException("From account does not exist");
         }
         
-        if (!accountsClient.validateAccountExists(requestDTO.getToAccountId())) {
+        if (toAccount == null) {
             throw new IllegalArgumentException("To account does not exist");
         }
         
+        // Get currencies from accounts (using same Currency enum)
+        Currency fromCurrency = fromAccount.getCurrency() != null ? fromAccount.getCurrency() : Currency.RUB;
+        Currency toCurrency = toAccount.getCurrency() != null ? toAccount.getCurrency() : Currency.RUB;
+        
         // Check if sender has sufficient balance
-        BigDecimal currentBalance = accountsClient.getAccountBalance(requestDTO.getFromAccountId());
-        if (currentBalance.compareTo(requestDTO.getAmount()) < 0) {
+        if (fromAccount.getBalance().compareTo(requestDTO.getAmount()) < 0) {
             throw new IllegalArgumentException("Insufficient balance for transfer");
+        }
+        
+        // Convert currency if needed
+        BigDecimal convertedAmount = requestDTO.getAmount();
+        if (!fromCurrency.equals(toCurrency)) {
+            log.info("Converting {} {} to {}", requestDTO.getAmount(), fromCurrency, toCurrency);
+            ConversionRequestDTO conversionRequest = ConversionRequestDTO.builder()
+                    .fromCurrency(fromCurrency)
+                    .toCurrency(toCurrency)
+                    .amount(requestDTO.getAmount())
+                    .build();
+            ConversionResponseDTO conversionResponse = exchangeClient.convert(conversionRequest);
+            convertedAmount = conversionResponse.getConvertedAmount();
+            log.info("Converted {} {} to {} {}", 
+                    requestDTO.getAmount(), fromCurrency, convertedAmount, toCurrency);
+        }
+        
+        // Check with blocker service using the from account currency
+        try {
+            io.github.danjos.mybankapp.transfer.dto.BlockResponseDTO blockResponse = 
+                    blockerClient.checkTransaction(requestDTO.getAmount(), fromCurrency.name());
+            if (blockResponse != null && blockResponse.getDecision() == 
+                    io.github.danjos.mybankapp.transfer.dto.BlockResponseDTO.Decision.BLOCKED) {
+                throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
+            }
+        } catch (Exception e) {
+            log.warn("Blocker service check failed, proceeding with transfer: {}", e.getMessage());
+            // Continue with transfer if blocker is unavailable (fallback behavior)
         }
         
         // Create transfer record
@@ -61,21 +103,26 @@ public class TransferService {
                 .fromAccountId(requestDTO.getFromAccountId())
                 .toAccountId(requestDTO.getToAccountId())
                 .amount(requestDTO.getAmount())
+                .fromCurrency(fromCurrency)
+                .toCurrency(toCurrency)
+                .convertedAmount(convertedAmount)
                 .description(requestDTO.getDescription())
                 .status(Transfer.TransferStatus.PENDING)
                 .build();
         
         try {
             // Execute the transfer
+            // Subtract original amount from sender's account
             accountsClient.subtractFromAccountBalance(requestDTO.getFromAccountId(), requestDTO.getAmount());
-            accountsClient.addToAccountBalance(requestDTO.getToAccountId(), requestDTO.getAmount());
+            // Add converted amount to receiver's account
+            accountsClient.addToAccountBalance(requestDTO.getToAccountId(), convertedAmount);
             
             // Mark transfer as completed
             transfer.markAsCompleted();
             transfer = transferRepository.save(transfer);
             
             // Create notifications
-            createTransferNotifications(transfer);
+            createTransferNotifications(transfer, fromAccount.getUserId(), toAccount.getUserId());
             
             log.info("Transfer {} completed successfully", transfer.getId());
             return convertToDTO(transfer);
@@ -91,7 +138,7 @@ public class TransferService {
     @Transactional(readOnly = true)
     public TransferDTO getTransferById(Long transferId) {
         Transfer transfer = transferRepository.findById(transferId)
-                .orElseThrow(() -> new IllegalArgumentException("Transfer not found"));
+                .orElseThrow(() -> new NoSuchElementException("No transfer found with id: " + transferId));
         return convertToDTO(transfer);
     }
     
@@ -146,7 +193,7 @@ public class TransferService {
     @Transactional
     public TransferDTO cancelTransfer(Long transferId) {
         Transfer transfer = transferRepository.findById(transferId)
-                .orElseThrow(() -> new IllegalArgumentException("Transfer not found"));
+                .orElseThrow(() -> new NoSuchElementException("No transfer found with id: " + transferId));
         
         if (!transfer.isPending()) {
             throw new IllegalArgumentException("Only pending transfers can be cancelled");
@@ -162,7 +209,7 @@ public class TransferService {
     @Transactional
     public TransferDTO retryFailedTransfer(Long transferId) {
         Transfer transfer = transferRepository.findById(transferId)
-                .orElseThrow(() -> new IllegalArgumentException("Transfer not found"));
+                .orElseThrow(() -> new NoSuchElementException("No transfer found with id: " + transferId + "when retrying failed transfer"));
         
         if (!transfer.isFailed()) {
             throw new IllegalArgumentException("Only failed transfers can be retried");
@@ -177,25 +224,37 @@ public class TransferService {
         return convertToDTO(transfer);
     }
     
-    private void createTransferNotifications(Transfer transfer) {
+    private void createTransferNotifications(Transfer transfer, Long fromUserId, Long toUserId) {
         try {
             // Notification for sender
+            String senderMessage = String.format("You sent %.2f %s to account %d", 
+                    transfer.getAmount(), transfer.getFromCurrency(), transfer.getToAccountId());
+            if (transfer.getConvertedAmount() != null && !transfer.getFromCurrency().equals(transfer.getToCurrency())) {
+                senderMessage += String.format(" (%.2f %s)", transfer.getConvertedAmount(), transfer.getToCurrency());
+            }
             CreateNotificationDTO senderNotification = CreateNotificationDTO.builder()
-                    .userId(transfer.getFromAccountId()) // Assuming accountId maps to userId
+                    .userId(fromUserId)
                     .type("TRANSFER_SENT")
                     .title("Transfer Sent")
-                    .message(String.format("You sent %.2f to account %d", 
-                            transfer.getAmount(), transfer.getToAccountId()))
+                    .message(senderMessage)
                     .build();
             notificationsClient.createNotification(senderNotification);
             
             // Notification for receiver
+            BigDecimal receivedAmount = transfer.getConvertedAmount() != null 
+                    ? transfer.getConvertedAmount() 
+                    : transfer.getAmount();
+            Currency receivedCurrency = transfer.getToCurrency();
+            String receiverMessage = String.format("You received %.2f %s from account %d", 
+                    receivedAmount, receivedCurrency, transfer.getFromAccountId());
+            if (transfer.getConvertedAmount() != null && !transfer.getFromCurrency().equals(transfer.getToCurrency())) {
+                receiverMessage += String.format(" (%.2f %s)", transfer.getAmount(), transfer.getFromCurrency());
+            }
             CreateNotificationDTO receiverNotification = CreateNotificationDTO.builder()
-                    .userId(transfer.getToAccountId()) // Assuming accountId maps to userId
+                    .userId(toUserId)
                     .type("TRANSFER_RECEIVED")
                     .title("Transfer Received")
-                    .message(String.format("You received %.2f from account %d", 
-                            transfer.getAmount(), transfer.getFromAccountId()))
+                    .message(receiverMessage)
                     .build();
             notificationsClient.createNotification(receiverNotification);
             
@@ -211,6 +270,9 @@ public class TransferService {
                 .fromAccountId(transfer.getFromAccountId())
                 .toAccountId(transfer.getToAccountId())
                 .amount(transfer.getAmount())
+                .fromCurrency(transfer.getFromCurrency())
+                .toCurrency(transfer.getToCurrency())
+                .convertedAmount(transfer.getConvertedAmount())
                 .description(transfer.getDescription())
                 .status(transfer.getStatus())
                 .createdAt(transfer.getCreatedAt())
@@ -224,4 +286,5 @@ public class TransferService {
         log.warn("Fallback: Unable to create transfer, returning null");
         throw new RuntimeException("Transfer service is temporarily unavailable");
     }
+    
 }

@@ -1,0 +1,32 @@
+global:
+  env: dev
+
+replicaCount: 1
+
+image:
+  repository: auth-server
+  pullPolicy: Never
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8085
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# Configuration to connect to Accounts Service DB
+db:
+  host: accounts-service-db
+  port: 5432
+  username: bank_app_user
+  database: bank_app_db
+  secretName: my-bank-app-accounts-service-db-secret

@@ -20,146 +20,99 @@ public class AccountController {
     private AccountService accountService;
     
     @PostMapping("/users/{userId}/accounts")
-    public ResponseEntity<?> createAccount(@PathVariable Long userId) {
-        try {
-            Account account = accountService.createAccount(userId);
-            return ResponseEntity.status(201).body(java.util.Map.of("message", "Account created successfully with ID: " + account.getId()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(java.util.Map.of("error", "Error creating account: " + e.getMessage()));
+    public ResponseEntity<?> createAccount(
+            @PathVariable Long userId,
+            @RequestParam(required = false) io.github.danjos.mybankapp.accounts.entity.Currency currency) {
+        Account account;
+        if (currency != null) {
+            account = accountService.createAccount(userId, currency);
+        } else {
+            account = accountService.createAccount(userId);
         }
+        return ResponseEntity.status(201).body(java.util.Map.of("message", "Account created successfully with ID: " + account.getId()));
     }
     
     @GetMapping("/users/{userId}/accounts")
     public ResponseEntity<?> getAccountsByUserId(@PathVariable Long userId) {
-        try {
-            List<Account> accounts = accountService.getAccountsByUserId(userId);
-            List<AccountDTO> accountDTOs = accounts.stream()
-                    .map(account -> new AccountDTO(
-                            account.getId(),
-                            account.getUser().getId(),
-                            account.getUser().getUsername(),
-                            account.getBalance(),
-                            account.getCreatedAt(),
-                            account.getUpdatedAt()
-                    ))
-                    .toList();
-            return ResponseEntity.ok(accountDTOs);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error retrieving accounts: " + e.getMessage());
-        }
+        List<Account> accounts = accountService.getAccountsByUserId(userId);
+        List<AccountDTO> accountDTOs = accounts.stream()
+                .map(account -> new AccountDTO(
+                        account.getId(),
+                        account.getUser().getId(),
+                        account.getUser().getUsername(),
+                        account.getCurrency(),
+                        account.getBalance(),
+                        account.getCreatedAt(),
+                        account.getUpdatedAt()
+                ))
+                .toList();
+        return ResponseEntity.ok(accountDTOs);
     }
     
     @GetMapping("/{accountId}")
     public ResponseEntity<?> getAccountById(@PathVariable Long accountId) {
-        try {
-            Optional<Account> account = accountService.getAccountById(accountId);
-            if (account.isPresent()) {
-                AccountDTO accountDTO = new AccountDTO(
-                        account.get().getId(),
-                        account.get().getUser().getId(),
-                        account.get().getUser().getUsername(),
-                        account.get().getBalance(),
-                        account.get().getCreatedAt(),
-                        account.get().getUpdatedAt()
-                );
-                return ResponseEntity.ok(accountDTO);
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error retrieving account: " + e.getMessage());
+        Optional<Account> account = accountService.getAccountById(accountId);
+        if (account.isPresent()) {
+            AccountDTO accountDTO = new AccountDTO(
+                    account.get().getId(),
+                    account.get().getUser().getId(),
+                    account.get().getUser().getUsername(),
+                    account.get().getCurrency(),
+                    account.get().getBalance(),
+                    account.get().getCreatedAt(),
+                    account.get().getUpdatedAt()
+            );
+            return ResponseEntity.ok(accountDTO);
+        } else {
+            return ResponseEntity.notFound().build();
         }
     }
     
     @GetMapping("/{accountId}/balance")
     public ResponseEntity<?> getBalance(@PathVariable Long accountId) {
-        try {
-            BigDecimal balance = accountService.getBalance(accountId);
-            return ResponseEntity.ok(balance);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error retrieving balance: " + e.getMessage());
-        }
+        BigDecimal balance = accountService.getBalance(accountId);
+        return ResponseEntity.ok(balance);
     }
     
     @GetMapping("/users/{userId}/total-balance")
     public ResponseEntity<?> getTotalBalanceByUserId(@PathVariable Long userId) {
-        try {
-            BigDecimal totalBalance = accountService.getTotalBalanceByUserId(userId);
-            return ResponseEntity.ok(totalBalance);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error retrieving total balance: " + e.getMessage());
-        }
+        BigDecimal totalBalance = accountService.getTotalBalanceByUserId(userId);
+        return ResponseEntity.ok(totalBalance);
     }
     
     @PutMapping("/{accountId}/balance")
     public ResponseEntity<?> updateBalance(@PathVariable Long accountId, @RequestBody BigDecimal newBalance) {
-        try {
-            Account account = accountService.updateBalance(accountId, newBalance);
-            return ResponseEntity.ok(java.util.Map.of("message", "Balance updated successfully to: " + account.getBalance()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(java.util.Map.of("error", "Error updating balance: " + e.getMessage()));
-        }
+        Account account = accountService.updateBalance(accountId, newBalance);
+        return ResponseEntity.ok(java.util.Map.of("message", "Balance updated successfully to: " + account.getBalance()));
     }
     
     @PostMapping("/{accountId}/add")
     public ResponseEntity<?> addToBalance(@PathVariable Long accountId, @RequestBody BigDecimal amount) {
-        try {
-            Account account = accountService.addToBalance(accountId, amount);
-            return ResponseEntity.ok("Amount added successfully. New balance: " + account.getBalance());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error adding to balance: " + e.getMessage());
-        }
+        Account account = accountService.addToBalance(accountId, amount);
+        return ResponseEntity.ok("Amount added successfully. New balance: " + account.getBalance());
     }
     
     @PostMapping("/{accountId}/subtract")
     public ResponseEntity<?> subtractFromBalance(@PathVariable Long accountId, @RequestBody BigDecimal amount) {
-        try {
-            Account account = accountService.subtractFromBalance(accountId, amount);
-            return ResponseEntity.ok("Amount subtracted successfully. New balance: " + account.getBalance());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error subtracting from balance: " + e.getMessage());
-        }
+        Account account = accountService.subtractFromBalance(accountId, amount);
+        return ResponseEntity.ok("Amount subtracted successfully. New balance: " + account.getBalance());
     }
     
     @DeleteMapping("/{accountId}")
     public ResponseEntity<?> deleteAccount(@PathVariable Long accountId) {
-        try {
-            accountService.deleteAccount(accountId);
-            return ResponseEntity.ok("Account deleted successfully");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error deleting account: " + e.getMessage());
-        }
+        accountService.deleteAccount(accountId);
+        return ResponseEntity.ok("Account deleted successfully");
     }
     
     @GetMapping("/username/{username}")
     public ResponseEntity<?> getAccountsByUsername(@PathVariable String username) {
-        try {
-            List<AccountDTO> accounts = accountService.getAccountsByUsername(username);
-            return ResponseEntity.ok(accounts);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error retrieving accounts: " + e.getMessage());
-        }
+        List<AccountDTO> accounts = accountService.getAccountsByUsername(username);
+        return ResponseEntity.ok(accounts);
     }
     
     @GetMapping
     public ResponseEntity<?> getAllAccounts() {
-        try {
-            List<AccountDTO> accounts = accountService.getAllAccounts();
-            return ResponseEntity.ok(accounts);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error retrieving accounts: " + e.getMessage());
-        }
+        List<AccountDTO> accounts = accountService.getAllAccounts();
+        return ResponseEntity.ok(accounts);
     }
 }

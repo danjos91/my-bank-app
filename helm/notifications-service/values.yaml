@@ -1,0 +1,44 @@
+global:
+  env: dev
+
+replicaCount: 1
+
+image:
+  repository: notifications-service
+  pullPolicy: Never
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8084
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+db:
+  image: postgres:13
+  port: 5432
+  username: bank_app_user
+  password: bank_app_password  # Override via --set db.password=<value> or CI/CD
+  database: bank_app_db
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  persistence:
+    size: 1Gi
+    storageClass: standard
+
+auth:
+  issuerUri: http://my-bank-app-auth-server:8085

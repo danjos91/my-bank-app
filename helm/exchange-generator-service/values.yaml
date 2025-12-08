@@ -1,0 +1,35 @@
+global:
+  env: dev
+
+replicaCount: 1
+
+image:
+  repository: exchange-generator-service
+  pullPolicy: Never
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8088
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+services:
+  exchange:
+    url: http://exchange-service:8087
+
+db:
+  host: exchange-service-db
+  port: 5432
+  username: bank_app_user
+  database: bank_app_db
+  secretName: my-bank-app-exchange-service-db-secret

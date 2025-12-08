@@ -1,168 +1,268 @@
-# MyBank App - Microservices Banking Application
+# MyBank App - Microservices Banking Application (v2.0)
 
 ![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
-![Spring WebFlux](https://img.shields.io/badge/Spring_WebFlux-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
-![Maven](https://img.shields.io/badge/Maven-C71A36?style=for-the-badge&logo=apache-maven&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
+![Helm](https://img.shields.io/badge/Helm-0F1689?style=for-the-badge&logo=helm&logoColor=white)
+![Jenkins](https://img.shields.io/badge/jenkins-%232C5263.svg?style=for-the-badge&logo=jenkins&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
-![OAuth2](https://img.shields.io/badge/OAuth2-4285F4?style=for-the-badge&logo=oauth&logoColor=white)
-![Eureka](https://img.shields.io/badge/Eureka-4285F4?style=for-the-badge&logo=eureka&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white)
-![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)
 
-A comprehensive microservices-based banking application built with Spring Boot, featuring user management, account operations, money transfers, and real-time notifications.
+A comprehensive microservices-based banking application built with Spring Boot, user management, multi-currency account operations, money transfers with currency conversion, real-time notifications and exchange rate management, with **Kubernetes** deployment using **Helm Charts** and **Jenkins CI/CD**.
 
+**Features:**
+- ☁️ **Kubernetes Native**: No more Eureka/Config Server. Uses K8s Services, ConfigMaps, and Secrets.
+- 📦 **Helm Charts**: Dedicated charts for each microservice and an Umbrella chart for full deployment.
+- 💾 **StatefulSets**: Databases deployed as StatefulSets with persistent storage.
+- 🚀 **CI/CD**: Full Jenkins integration with pipelines for each service.
+- 🔐 **OAuth2**: Auth Server running in Kubernetes.
+- 🌐 **Ingress**: Front UI exposed via Ingress Controller.
+- 💱 **Multi-Currency**: Full support for RUB, USD, and CNY with automatic conversion.
 
+## 💱 Multi-Currency & Key Features
 
-## 🚀 Quick Start
+This application supports complex banking operations including:
+
+- **Multi-Currency Accounts**: Users can create accounts in **RUB**, **USD**, and **CNY**.
+- **Currency Conversion**: Automatic real-time conversion for transfers between different currencies (e.g., USD → RUB → CNY).
+- **Exchange Service**: dedicated microservice for managing exchange rates.
+- **Exchange Generator**: Simulates market fluctuations by updating rates every second.
+- **Blocker Service**: Security microservice that monitors transactions and blocks suspicious activity based on thresholds (e.g., transactions > 10,000 RUB).
+- **Notifications**: Real-time alerts for all account activities.
+
+## 🚀 Quick Start (Kubernetes)
 
 ### Prerequisites
-
+- **Minikube** (or Kind/Colima)
+- **Kubectl**
+- **Helm 3+**
+- **Docker**
 - **Java 21** or higher
 - **Maven 3.9+**
-- **Docker** and **Docker Compose**
-- **Git**
 
-### Option 1: Docker Compose (Recommended)
+You can run start.sh or do it step by step:
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/danjos91/my-bank-app.git
-   cd my-bank-app
-   ```
-
-2. **Start all services**
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **Access the application**
-   - Frontend: http://localhost:8086
-   - API Gateway: http://localhost:8080
-   - Eureka Dashboard: http://localhost:8761
-   - Config Server: http://localhost:8888
-
-### Option 2: Local Development
-
-1. **Start infrastructure services**
-      docker-compose -f docker-compose.dev.yml up -d
-
-2. **Build and run services locally**
-   ```bash
-
-   
-   # Run individual services (in separate terminals)
-   cd auth-server; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
-   cd accounts-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
-   cd notifications-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
-   cd cash-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
-   cd transfer-service; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
-   cd gateway; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
-   cd front-ui; mvn spring-boot:run -D spring-boot.run.arguments=--spring.profiles.active=local
-   ```
-
-## 🧪 Testing
-
-### Run All Tests
+### 1. Start Minikube
 ```bash
-
-mvn clean test
+minikube start --cpus 4 --memory 8192
+minikube addons enable ingress
 ```
 
-
-## 🐳 Docker Commands
+### 2. Deploy with Helm (Umbrella Chart)
+This will deploy ALL microservices and databases at once.
 
 ```bash
-# Build all images
-docker-compose build
+# Go to the helm directory
+cd helm/
 
-# Start all services
-docker-compose up -d
-
-# Stop all services
-docker-compose down
-
-# View logs
-docker-compose logs -f
-
-# Clean up resources
-docker-compose down -v --remove-orphans
+# Install the umbrella chart
+helm dependency update my-bank-app
+helm install my-bank-app ./my-bank-app
 ```
 
-## 👤 Test Users
+### 3. Access the Application
+Get the URL for the Front UI:
+```bash
+# If using Minikube Tunnel (requires root):
+minikube tunnel
+# Access at http://bank.local (add to /etc/hosts: 127.0.0.1 bank.local)
 
-The following test users are available for testing the application functionality:
+# OR simply port-forward:
+kubectl port-forward svc/front-ui 8086:8086
+# Access at http://localhost:8086
+```
 
-| Username | Password | Initial Balance | Full Name | Email |
-|----------|----------|-----------------|-----------|-------|
-| `admin` | `password123` | $10,000.00 | Admin User | admin@bank.com |
-| `john` | `password123` | $5,000.00 | John Doe | john.doe@example.com |
-| `jane` | `password123` | $7,500.00 | Jane Smith | jane.smith@example.com |
-| `bob` | `password123` | $3,000.00 | Bob Wilson | bob.wilson@example.com |
+## 🔐 Configuration & Secrets Management
 
-> **Note:** All test users share the same password: `password123`. These users are automatically created when you initialize the database.
+### Database Password Configuration
+
+All microservices now support configurable database passwords through Helm values. By default, the password is `bank_app_password`, but you can override it for different environments.
+
+#### Development (using default password)
+```bash
+helm install my-bank-app ./helm/my-bank-app
+```
+
+#### Override Password via Command Line
+```bash
+# Single service
+helm install accounts-service ./helm/accounts-service \
+  --set db.password=my_secure_password
+
+# All services via umbrella chart
+helm install my-bank-app ./helm/my-bank-app \
+  --set accounts-service.db.password=accounts_pass \
+  --set blocker-service.db.password=blocker_pass \
+  --set cash-service.db.password=cash_pass \
+  --set exchange-service.db.password=exchange_pass \
+  --set notifications-service.db.password=notifications_pass \
+  --set transfer-service.db.password=transfer_pass
+```
+
+#### Using Custom Values File
+Create a `prod-values.yaml` file:
+```yaml
+accounts-service:
+  db:
+    password: "prod_accounts_password"
+
+blocker-service:
+  db:
+    password: "prod_blocker_password"
+
+cash-service:
+  db:
+    password: "prod_cash_password"
+
+exchange-service:
+  db:
+    password: "prod_exchange_password"
+
+notifications-service:
+  db:
+    password: "prod_notifications_password"
+
+transfer-service:
+  db:
+    password: "prod_transfer_password"
+```
+
+Then deploy:
+```bash
+helm install my-bank-app ./helm/my-bank-app -f prod-values.yaml
+```
+
+#### CI/CD Integration (GitLab, Jenkins, GitHub Actions)
+```bash
+# Using environment variables from CI/CD secret store
+helm install my-bank-app ./helm/my-bank-app \
+  --set accounts-service.db.password=$ACCOUNTS_DB_PASSWORD \
+  --set blocker-service.db.password=$BLOCKER_DB_PASSWORD \
+  --set cash-service.db.password=$CASH_DB_PASSWORD \
+  --set exchange-service.db.password=$EXCHANGE_DB_PASSWORD \
+  --set notifications-service.db.password=$NOTIFICATIONS_DB_PASSWORD \
+  --set transfer-service.db.password=$TRANSFER_DB_PASSWORD
+```
+
+#### Using External Secrets Operator (Production)
+For production environments, consider using:
+- **[External Secrets Operator](https://external-secrets.io/)**: Integrates with AWS Secrets Manager, Azure Key Vault, HashiCorp Vault, etc.
+- **[Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets)**: Encrypted secrets in Git
+- **[SOPS](https://github.com/getsops/sops)**: Secrets encrypted at rest in Git
+
+Example with External Secrets Operator:
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: accounts-service-db-secret
+spec:
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: SecretStore
+  target:
+    name: accounts-service-db-secret
+  data:
+    - secretKey: password
+      remoteRef:
+        key: prod/accounts-service/db-password
+```
 
 ## 🏗️ Architecture
 
-This application follows a microservices architecture pattern with the following components:
+The architecture has been migrated from a Spring Cloud stack to a Kubernetes-native approach:
 
-### Core Services
-- **Gateway Service** (Port 8080) - API Gateway with routing and load balancing
-- **Accounts Service** (Port 8081) - User and account management
-- **Cash Service** (Port 8082) - Deposit and withdrawal operations
-- **Transfer Service** (Port 8083) - Money transfers between accounts
-- **Notifications Service** (Port 8084) - Real-time notifications
-- **Auth Server** (Port 8085) - OAuth2 authentication and authorization
-- **Front UI** (Port 8086) - Web-based user interface
+| Component | v1.0 (Legacy) | v2.0 (Kubernetes) | Description |
+|-----------|---------------|-------------------|-------------|
+| **Service Discovery** | Netflix Eureka | Kubernetes DNS (Services) | Services find each other by K8s Service names (e.g., `http://accounts-service`) |
+| **Config Management** | Spring Cloud Config | ConfigMaps & Secrets | Configuration injected as env vars or files |
+| **Gateway** | Spring Cloud Gateway | Kubernetes Ingress / Gateway API | External access routing |
+| **Database** | Docker Compose Service | Kubernetes StatefulSet | Persistent data storage |
+| **Deployment** | Docker Compose | Helm Charts | Infrastructure as Code |
 
-### Infrastructure Services
-- **Eureka Server** (Port 8761) - Service discovery and registration
-- **Config Server** (Port 8888) - Centralized configuration management
-- **PostgreSQL** (Port 5432) - Primary database
-- **Redis** (Port 6379) - Caching and session storage
+### 📂 Project Structure
 
-Look for data flow diagram at the end of this readme.
+```
+my-bank-app/
+├── accounts-service/           # User accounts & balances
+├── auth-server/                # OAuth2 Authorization Server
+├── blocker-service/            # Suspicious transaction blocker
+├── cash-service/               # Deposits & Withdrawals
+├── exchange-generator-service/ # Generates random exchange rates
+├── exchange-service/           # Handles currency conversion
+├── front-ui/                   # Web Interface (Thymeleaf)
+├── notifications-service/      # User notifications
+├── transfer-service/           # Money transfers logic
+├── helm/                       # Helm Charts
+│   ├── my-bank-app/            # ☂️ Umbrella Chart
+│   ├── accounts-service/       # Individual Charts...
+│   ├── auth-server/
+│   ├── blocker-service/
+│   ├── cash-service/
+│   ├── exchange-generator-service/
+│   ├── exchange-service/
+│   ├── front-ui/
+│   ├── notifications-service/
+│   └── transfer-service/
+├── Jenkinsfile                 # 🔄 Master CI/CD Pipeline
+└── README.md                   # Documentation
+```
 
-## 🔧 Configuration
+## 🔧 Service Ports
 
-
-### Service Ports
+Even though in Kubernetes services communicate via internal cluster IPs, the internal container ports remain the same:
 
 | Service | Port | Description |
 |---------|------|-------------|
-| Gateway | 8080 | API Gateway |
-| Accounts | 8081 | User & Account Management |
-| Cash | 8082 | Cash Operations |
-| Transfer | 8083 | Money Transfers |
-| Notifications | 8084 | Notifications |
-| Auth Server | 8085 | Authentication |
-| Front UI | 8086 | Web Interface |
-| Eureka | 8761 | Service Discovery |
-| Config | 8888 | Configuration Server |
-| PostgreSQL | 5432 | Database |
-| Redis | 6379 | Cache |
+| **Gateway / Ingress** | 80/443 | Entry point (Front UI exposed here) |
+| **Accounts** | 8081 | User & Multi-Currency Account Management |
+| **Cash** | 8082 | Cash Operations (Deposit/Withdraw) |
+| **Transfer** | 8083 | Money Transfers with Currency Conversion |
+| **Notifications** | 8084 | Notifications |
+| **Auth Server** | 8085 | OAuth2 Authentication |
+| **Front UI** | 8086 | Web Interface |
+| **Exchange** | 8087 | Currency Exchange Rates & Conversion |
+| **Exchange Generator** | 8088 | Automated Exchange Rate Generation |
+| **Blocker** | 8089 | Suspicious Transaction Detection |
+| **PostgreSQL** | 5432 | Database (Internal) |
 
-## 📊 **DATA FLOW DIAGRAM**
+## 🛠️ CI/CD with Jenkins
 
-```
-Client Request
-    ↓
-Front UI (8086)
-    ↓
-Gateway (8080) [Routes + Security + Circuit Breaker]
-    ↓
-    ├─→ Accounts Service (8081) ──→ PostgreSQL (accounts_schema)
-    ├─→ Cash Service (8082) ──→ PostgreSQL (cash_schema)
-    │                              └─→ Accounts Service
-    ├─→ Transfer Service (8083) ─→ PostgreSQL (transfer_schema)
-    │                              └─→ Accounts Service
-    └─→ Notifications Service (8084) ─→ PostgreSQL (notifications_schema)
+This project includes `Jenkinsfile` for each microservice and a master `Jenkinsfile` for the whole project.
 
-All services discover each other via Eureka (8761)
-All services get config from Config Server (8888)
-Auth Server (8085) validates tokens
-```
+### Setting up Jenkins in Minikube
 
----
+1. **Install Jenkins via Helm:**
+   ```bash
+   helm repo add jenkins https://charts.jenkins.io
+   helm repo update
+   kubectl create namespace jenkins
+   helm install jenkins jenkins/jenkins --namespace jenkins --set controller.serviceType=NodePort
+   ```
+
+2. **Get Admin Password:**
+   ```bash
+   kubectl exec --namespace jenkins -it svc/jenkins -c jenkins -- /bin/cat /run/secrets/additional/chart-admin-password && echo
+   ```
+
+3. **Access Jenkins:**
+   ```bash
+   minikube service jenkins -n jenkins --url
+   ```
+
+4. **Create Pipeline:**
+   - New Item -> Pipeline -> Name: `my-bank-app`
+   - Definition: Pipeline script from SCM -> Git
+   - Repository URL: (Your Git Repo URL)
+   - Script Path: `Jenkinsfile` (for the umbrella project) or `accounts-service/Jenkinsfile` (for individual services).
+
+## 👤 Test Users
+
+The following test users are available for testing the application functionality. They are automatically created in the database on startup.
+
+| Username | Password | Role | Initial Balance |
+|----------|----------|------|-----------------|
+| `admin` | `password123` | User | 200,000 RUB |
+| `john` | `password123` | User | 5,000 RUB |
+| `jane` | `password123` | User | 7,500 RUB |
+| `bob` | `password123` | User | 3,000 RUB |

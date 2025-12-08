@@ -40,31 +40,39 @@ public class RestTemplateConfig {
                 byte[] body,
                 ClientHttpRequestExecution execution) throws IOException {
             
-            // Try to get token from session
+            // Only add token if not already present (BankService methods now add it explicitly)
+            if (request.getHeaders().containsKey("Authorization")) {
+                log.debug("Authorization header already present in request to: {}", request.getURI());
+                return execution.execute(request, body);
+            }
+            
+            // Try to get token from session as fallback
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
-                HttpSession session = attributes.getRequest().getSession(false);
-                if (session != null) {
-                    String accessToken = (String) session.getAttribute("oauth2_access_token");
-                    if (accessToken != null) {
-                        request.getHeaders().setBearerAuth(accessToken);
-                        log.info("OAuth2 token added to request: {}. Session ID: {}", request.getURI(), session.getId());
-                    } else {
-                        // Log all session attributes for debugging
-                        java.util.Enumeration<String> attrNames = session.getAttributeNames();
-                        java.util.ArrayList<String> attrs = new java.util.ArrayList<>();
-                        while (attrNames.hasMoreElements()) {
-                            attrs.add(attrNames.nextElement());
+                try {
+                    HttpSession session = attributes.getRequest().getSession(false);
+                    if (session != null) {
+                        String accessToken = (String) session.getAttribute("oauth2_access_token");
+                        if (accessToken != null && !accessToken.trim().isEmpty()) {
+                            request.getHeaders().setBearerAuth(accessToken);
+                            log.debug("OAuth2 token added to request by interceptor: {}. Session ID: {}", request.getURI(), session.getId());
+                        } else {
+                            log.warn("OAuth2TokenInterceptor: No token found in session for request to: {}. Session ID: {}. " +
+                                "This may cause authentication failures if the request requires authentication.", 
+                                request.getURI(), session.getId());
                         }
-                        log.error("OAuth2TokenInterceptor: No token found in session for request to: {}. Session ID: {}. Session attributes: {}", 
-                            request.getURI(), session.getId(), attrs);
+                    } else {
+                        log.debug("OAuth2TokenInterceptor: No session found for request to: {}. " +
+                            "This is normal for requests that don't require authentication.", request.getURI());
                     }
-                } else {
-                    log.error("OAuth2TokenInterceptor: No session found for request to: {}", request.getURI());
+                } catch (Exception e) {
+                    log.warn("OAuth2TokenInterceptor: Error accessing session for request to: {}. Error: {}", 
+                        request.getURI(), e.getMessage());
                 }
             } else {
-                log.error("OAuth2TokenInterceptor: RequestContextHolder has no attributes for request to: {}. " +
-                    "This may happen if RestTemplate is called from a different thread.", request.getURI());
+                log.debug("OAuth2TokenInterceptor: RequestContextHolder has no attributes for request to: {}. " +
+                    "This may happen if RestTemplate is called from a different thread or async context. " +
+                    "BankService methods should handle token passing explicitly.", request.getURI());
             }
             
             return execution.execute(request, body);

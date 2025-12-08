@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "transfer-service.fullname" . }}-db
+  labels:
+    {{- include "transfer-service.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  ports:
+    - port: {{ .Values.db.port }}
+      targetPort: postgres
+      protocol: TCP
+      name: postgres
+  selector:
+    {{- include "transfer-service.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+  clusterIP: None

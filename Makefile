@@ -27,37 +27,37 @@ help:
 # Production commands
 build:
 	@echo "Building all Docker images..."
-	docker-compose build
+	docker compose build
 
 up:
 	@echo "Starting all services..."
-	docker-compose up -d
+	docker compose up -d
 
 down:
 	@echo "Stopping all services..."
-	docker-compose down
+	docker compose down
 
 logs:
 	@echo "Showing logs for all services..."
-	docker-compose logs -f
+	docker compose logs -f
 
 clean:
 	@echo "Cleaning up Docker resources..."
-	docker-compose down -v --remove-orphans
+	docker compose down -v --remove-orphans
 	docker system prune -f
 
 # Development commands
 dev-build:
 	@echo "Building development images..."
-	docker-compose -f docker-compose.dev.yml build
+	docker compose -f docker-compose.dev.yml build
 
 dev-up:
 	@echo "Starting development infrastructure..."
-	docker-compose -f docker-compose.dev.yml up -d
+	docker compose -f docker-compose.dev.yml up -d
 
 dev-down:
 	@echo "Stopping development services..."
-	docker-compose -f docker-compose.dev.yml down
+	docker compose -f docker-compose.dev.yml down
 
 # Testing commands
 test:
@@ -79,15 +79,15 @@ test-contracts:
 # Service-specific commands
 build-service:
 	@echo "Building specific service: $(SERVICE)"
-	docker-compose build $(SERVICE)
+	docker compose build $(SERVICE)
 
 up-service:
 	@echo "Starting specific service: $(SERVICE)"
-	docker-compose up -d $(SERVICE)
+	docker compose up -d $(SERVICE)
 
 logs-service:
 	@echo "Showing logs for service: $(SERVICE)"
-	docker-compose logs -f $(SERVICE)
+	docker compose logs -f $(SERVICE)
 
 # Health check
 health:

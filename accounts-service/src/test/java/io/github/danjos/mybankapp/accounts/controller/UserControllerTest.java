@@ -3,6 +3,7 @@ package io.github.danjos.mybankapp.accounts.controller;
 import io.github.danjos.mybankapp.accounts.dto.UserProfileDTO;
 import io.github.danjos.mybankapp.accounts.dto.UserRegistrationDTO;
 import io.github.danjos.mybankapp.accounts.entity.User;
+import io.github.danjos.mybankapp.accounts.exception.GlobalExceptionHandler;
 import io.github.danjos.mybankapp.accounts.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,6 +39,8 @@ class UserControllerTest {
 
     @InjectMocks
     private UserController userController;
+    
+    private GlobalExceptionHandler exceptionHandler;
 
     private User testUser;
     private UserRegistrationDTO registrationDTO;
@@ -44,6 +48,8 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
+        exceptionHandler = new GlobalExceptionHandler();
+        
         testUser = User.builder()
                 .id(1L)
                 .username("testuser")
@@ -72,6 +78,16 @@ class UserControllerTest {
         profileDTO.setBirthDate(LocalDate.of(1990, 1, 1));
         profileDTO.setUsername("testuser");
     }
+    
+    private ResponseEntity<?> invokeControllerWithExceptionHandling(java.util.function.Supplier<ResponseEntity<?>> controllerMethod) {
+        try {
+            return controllerMethod.get();
+        } catch (IllegalArgumentException e) {
+            return exceptionHandler.handleIllegalArgumentException(e);
+        } catch (Exception e) {
+            return exceptionHandler.handleException(e);
+        }
+    }
 
     @Test
     void registerUser_ValidData_ReturnsCreatedResponse() {
@@ -94,12 +110,12 @@ class UserControllerTest {
                 .thenThrow(new IllegalArgumentException("Username already exists"));
 
         // When
-        ResponseEntity<?> response = userController.registerUser(registrationDTO);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> userController.registerUser(registrationDTO));
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         @SuppressWarnings("unchecked")
-        java.util.Map<String, String> body = (java.util.Map<String, String>) response.getBody();
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
         assertNotNull(body);
         assertEquals("Username already exists", body.get("error"));
         verify(userService).registerUser(registrationDTO);
@@ -112,11 +128,14 @@ class UserControllerTest {
                 .thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = userController.registerUser(registrationDTO);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> userController.registerUser(registrationDTO));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Registration failed"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(userService).registerUser(registrationDTO);
     }
 
@@ -153,11 +172,14 @@ class UserControllerTest {
         when(userService.findById(1L)).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = userController.getUserById(1L, authentication);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> userController.getUserById(1L, authentication));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error retrieving user"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(userService).findById(1L);
     }
 
@@ -230,11 +252,14 @@ class UserControllerTest {
         when(userService.findByUsername("testuser")).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = userController.getUserByUsername("testuser");
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> userController.getUserByUsername("testuser"));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error retrieving user"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(userService).findByUsername("testuser");
     }
 
@@ -283,11 +308,14 @@ class UserControllerTest {
                 .thenThrow(new IllegalArgumentException("Email already exists"));
 
         // When
-        ResponseEntity<?> response = userController.updateUserProfileByUsername("testuser", profileData, authentication);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> userController.updateUserProfileByUsername("testuser", profileData, authentication));
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Email already exists", response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Email already exists", body.get("error"));
         verify(userService).findByUsername("testuser");
         verify(userService).updateUserProfile(eq(1L), any(UserProfileDTO.class));
     }
@@ -302,11 +330,14 @@ class UserControllerTest {
                 .thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = userController.updateUserProfileByUsername("testuser", profileData, authentication);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> userController.updateUserProfileByUsername("testuser", profileData, authentication));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error updating user"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(userService).findByUsername("testuser");
         verify(userService).updateUserProfile(eq(1L), any(UserProfileDTO.class));
     }
@@ -388,11 +419,14 @@ class UserControllerTest {
                 .when(userService).changePassword(1L, "newPassword");
 
         // When
-        ResponseEntity<?> response = userController.changePasswordByUsername("testuser", passwordData, authentication);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> userController.changePasswordByUsername("testuser", passwordData, authentication));
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Password does not meet requirements", response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertEquals("Password does not meet requirements", body.get("error"));
         verify(userService).findByUsername("testuser");
         verify(userService).changePassword(1L, "newPassword");
     }
@@ -407,11 +441,14 @@ class UserControllerTest {
                 .when(userService).changePassword(1L, "newPassword");
 
         // When
-        ResponseEntity<?> response = userController.changePasswordByUsername("testuser", passwordData, authentication);
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> userController.changePasswordByUsername("testuser", passwordData, authentication));
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error changing password"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(userService).findByUsername("testuser");
         verify(userService).changePassword(1L, "newPassword");
     }
@@ -438,11 +475,14 @@ class UserControllerTest {
         when(userService.getAllUsers()).thenThrow(new RuntimeException("Database error"));
 
         // When
-        ResponseEntity<?> response = userController.getAllUsers();
+        ResponseEntity<?> response = invokeControllerWithExceptionHandling(() -> userController.getAllUsers());
 
         // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Error retrieving users"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertNotNull(body);
+        assertTrue(body.get("error").toString().contains("Internal server error"));
         verify(userService).getAllUsers();
     }
 }

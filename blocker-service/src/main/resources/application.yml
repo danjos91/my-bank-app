@@ -1,0 +1,73 @@
+server:
+  port: 8089
+
+spring:
+  application:
+    name: blocker-service
+  autoconfigure:
+    exclude:
+      - io.github.resilience4j.springboot3.fallback.autoconfigure.FallbackAutoConfiguration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bank_app_db
+    username: bank_app_user
+    password: bank_app_password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_schema: blocker_schema
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth-server:8085
+
+blocker:
+  threshold:
+    amount: 10000
+    currency: RUB
+
+services:
+  exchange:
+    url: http://localhost:8087
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      exchange-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+  retry:
+    instances:
+      exchange-service:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  time-zone: Europe/Moscow
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG

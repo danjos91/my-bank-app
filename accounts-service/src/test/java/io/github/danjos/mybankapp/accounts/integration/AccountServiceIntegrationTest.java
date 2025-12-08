@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +48,9 @@ class AccountServiceIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @MockBean
+    private io.github.danjos.mybankapp.accounts.client.NotificationsClient notificationsClient;
 
     private User testUser;
 
@@ -98,9 +102,9 @@ class AccountServiceIntegrationTest {
 
     @Test
     void shouldFindAccountsByUserId() {
-        // Given
-        Account account1 = accountService.createAccount(testUser.getId());
-        Account account2 = accountService.createAccount(testUser.getId());
+        // Given - create accounts with different currencies to avoid unique constraint violation
+        Account account1 = accountService.createAccount(testUser.getId(), io.github.danjos.mybankapp.accounts.entity.Currency.RUB);
+        Account account2 = accountService.createAccount(testUser.getId(), io.github.danjos.mybankapp.accounts.entity.Currency.USD);
 
         // When
         List<Account> accounts = accountService.getAccountsByUserId(testUser.getId());
