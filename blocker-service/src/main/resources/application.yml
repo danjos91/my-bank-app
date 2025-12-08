@@ -33,6 +33,30 @@ blocker:
     amount: 10000
     currency: RUB
 
+services:
+  exchange:
+    url: http://localhost:8087
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      exchange-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+  retry:
+    instances:
+      exchange-service:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+
 management:
   endpoints:
     web:

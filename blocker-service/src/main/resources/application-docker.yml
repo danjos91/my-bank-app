@@ -6,3 +6,7 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://my-bank-app-auth-server:8085
+
+services:
+  exchange:
+    url: http://my-bank-app-exchange-service:8087

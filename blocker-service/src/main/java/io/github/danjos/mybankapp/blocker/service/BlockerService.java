@@ -1,8 +1,12 @@
 package io.github.danjos.mybankapp.blocker.service;
 
+import io.github.danjos.mybankapp.blocker.client.ExchangeClient;
 import io.github.danjos.mybankapp.blocker.dto.BlockRequestDTO;
 import io.github.danjos.mybankapp.blocker.dto.BlockResponseDTO;
+import io.github.danjos.mybankapp.blocker.dto.ConversionRequestDTO;
+import io.github.danjos.mybankapp.blocker.dto.ConversionResponseDTO;
 import io.github.danjos.mybankapp.blocker.entity.BlockedTransaction;
+import io.github.danjos.mybankapp.blocker.entity.Currency;
 import io.github.danjos.mybankapp.blocker.repository.BlockedTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +25,7 @@ import java.util.stream.Collectors;
 public class BlockerService {
     
     private final BlockedTransactionRepository repository;
+    private final ExchangeClient exchangeClient;
     
     @Value("${blocker.threshold.amount:10000}")
     private BigDecimal thresholdAmount;
@@ -72,16 +77,31 @@ public class BlockerService {
             return amount;
         }
         
-        // Simple conversion rates (in production, this would use Exchange Service)
-        // For now, using approximate rates
-        if ("USD".equals(currency)) {
-            return amount.multiply(BigDecimal.valueOf(100)); // 1 USD = 100 RUB
-        } else if ("CNY".equals(currency)) {
-            return amount.multiply(BigDecimal.valueOf(14)); // 1 CNY = 14 RUB
+        try {
+            // Use ExchangeService for real-time currency conversion
+            Currency fromCurrency = Currency.valueOf(currency);
+            Currency toCurrency = Currency.RUB;
+            
+            ConversionRequestDTO request = ConversionRequestDTO.builder()
+                    .fromCurrency(fromCurrency)
+                    .toCurrency(toCurrency)
+                    .amount(amount)
+                    .build();
+            
+            ConversionResponseDTO response = exchangeClient.convert(request);
+            log.info("Converted {} {} to {} RUB using exchange rate {}", 
+                    amount, currency, response.getConvertedAmount(), response.getExchangeRate());
+            
+            return response.getConvertedAmount();
+        } catch (IllegalArgumentException e) {
+            // Unknown currency, assume it's RUB equivalent
+            log.warn("Unknown currency {}, treating as RUB equivalent", currency);
+            return amount;
+        } catch (Exception e) {
+            // Fallback already handled by ExchangeClient circuit breaker
+            log.error("Error converting currency {}: {}", currency, e.getMessage());
+            throw e;
         }
-        
-        // Unknown currency, assume it's RUB equivalent
-        return amount;
     }
     
     @Transactional(readOnly = true)
