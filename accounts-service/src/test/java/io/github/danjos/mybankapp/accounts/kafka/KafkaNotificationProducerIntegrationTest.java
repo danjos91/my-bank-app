@@ -16,6 +16,7 @@ import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
+import java.time.Duration;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,7 +43,9 @@ class KafkaNotificationProducerIntegrationTest {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 org.springframework.kafka.support.serializer.JsonDeserializer.class);
-        props.put("spring.json.trusted.packages", "*");
+        props.put(org.springframework.kafka.support.serializer.JsonDeserializer.TRUSTED_PACKAGES, "*");
+        props.put(org.springframework.kafka.support.serializer.JsonDeserializer.VALUE_DEFAULT_TYPE,
+                NotificationEvent.class.getName());
         consumer = new DefaultKafkaConsumerFactory<String, NotificationEvent>(props).createConsumer();
         embeddedKafka.consumeFromAnEmbeddedTopic(consumer, "account-created");
     }
@@ -58,7 +61,7 @@ class KafkaNotificationProducerIntegrationTest {
     void publishAccountCreatedEvent_sendsMessageToKafka() {
         producer.publishAccountCreatedEvent(123L, "ACC-1", "RUB");
 
-        var records = KafkaTestUtils.getRecords(consumer, 5000);
+        var records = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(5));
         assertThat(records.count()).isGreaterThan(0);
         var record = records.iterator().next();
         assertThat(record.topic()).isEqualTo("account-created");
