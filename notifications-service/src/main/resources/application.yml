@@ -1,9 +1,21 @@
-server:
-  port: 8084
+# No server.port needed - service doesn't expose REST endpoints
+# Management port for health checks only
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
 
 spring:
   application:
     name: notifications-service
+  
+  # Database configuration
   datasource:
     url: jdbc:postgresql://localhost:5432/bank_app_db
     username: bank_app_user
@@ -19,23 +31,27 @@ spring:
         format_sql: true
         default_schema: notifications_schema
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://auth-server:8085
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: always
+  
+  # Kafka consumer configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: notifications-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      enable-auto-commit: false  # Manual commit for "at least once"
+      auto-offset-reset: earliest  # Start from beginning if no offset
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+    listener:
+      ack-mode: manual  # Manual acknowledgment
+      concurrency: 3  # Number of consumer threads
 
 logging:
   time-zone: Europe/Moscow
   level:
-    org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
+    root: INFO
+    io.github.danjos.mybankapp.notifications: DEBUG
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
