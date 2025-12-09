@@ -1,6 +1,5 @@
 package io.github.danjos.mybankapp.accounts.kafka;
 
-import io.github.danjos.mybankapp.accounts.AccountsServiceApplication;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -8,6 +7,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
@@ -21,7 +21,10 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(classes = AccountsServiceApplication.class)
+@SpringBootTest(
+        classes = {KafkaNotificationProducer.class, KafkaAutoConfiguration.class},
+        webEnvironment = SpringBootTest.WebEnvironment.NONE
+)
 @ActiveProfiles("test")
 @EmbeddedKafka(partitions = 1, topics = {"account-created"})
 @TestPropertySource(properties = {
