@@ -7,6 +7,20 @@ spring:
   autoconfigure:
     exclude:
       - io.github.resilience4j.springboot3.fallback.autoconfigure.FallbackAutoConfiguration
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: exchange-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: io.github.danjos.mybankapp.exchange.kafka.ExchangeRateEvent
+        spring.json.use.type.headers: false
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+    listener:
+      ack-mode: manual
   datasource:
     url: jdbc:postgresql://localhost:5432/bank_app_db
     username: bank_app_user
@@ -42,3 +56,8 @@ logging:
   level:
     org.springframework.security: DEBUG
     org.springframework.web: DEBUG
+    io.github.danjos.mybankapp.exchange: DEBUG
+
+kafka:
+  topics:
+    exchange-rates: exchange-rates
