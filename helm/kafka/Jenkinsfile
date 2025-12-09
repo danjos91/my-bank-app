@@ -1,0 +1,194 @@
+pipeline {
+    agent any
+
+    environment {
+        KAFKA_RELEASE_NAME = 'kafka'
+        KAFKA_NAMESPACE = 'kafka'
+        KAFKA_CHART = 'bitnami/kafka'
+        KAFKA_VERSION = '30.1.5'
+    }
+
+    stages {
+        stage('Add Bitnami Helm Repository') {
+            steps {
+                echo 'Adding Bitnami Helm repository...'
+                sh '''
+                    helm repo add bitnami https://charts.bitnami.com/bitnami
+                    helm repo update
+                '''
+            }
+        }
+
+        stage('Create Kafka Namespace') {
+            steps {
+                echo 'Creating Kafka namespace...'
+                sh '''
+                    kubectl create namespace ${KAFKA_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                '''
+            }
+        }
+
+        stage('Deploy Kafka to Test') {
+            steps {
+                echo 'Deploying Apache Kafka to Test environment...'
+                script {
+                    sh """
+                        helm upgrade --install ${KAFKA_RELEASE_NAME} ${KAFKA_CHART} \
+                        --version ${KAFKA_VERSION} \
+                        --namespace ${KAFKA_NAMESPACE} \
+                        --create-namespace \
+                        --set replicaCount=1 \
+                        --set deleteTopicEnable=true \
+                        --set autoCreateTopicsEnable=false \
+                        --set logRetentionHours=168 \
+                        --set defaultReplicationFactor=1 \
+                        --set offsetsTopicReplicationFactor=1 \
+                        --set transactionStateLogReplicationFactor=1 \
+                        --set numPartitions=3 \
+                        --set listeners.client.protocol=PLAINTEXT \
+                        --set listeners.controller.protocol=PLAINTEXT \
+                        --set listeners.interbroker.protocol=PLAINTEXT \
+                        --set controller.replicaCount=1 \
+                        --set zookeeper.enabled=false \
+                        --set kraft.enabled=true \
+                        --wait \
+                        --timeout 10m
+                    """
+                }
+            }
+        }
+
+        stage('Wait for Kafka Ready') {
+            steps {
+                echo 'Waiting for Kafka to be ready...'
+                sh '''
+                    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kafka \
+                    --namespace ${KAFKA_NAMESPACE} \
+                    --timeout=300s
+                '''
+            }
+        }
+
+        stage('Create Kafka Topics') {
+            steps {
+                echo 'Creating Kafka topics...'
+                script {
+                    def topics = [
+                        'account-created',
+                        'account-updated',
+                        'deposit-completed',
+                        'withdrawal-completed',
+                        'transfer-initiated',
+                        'transfer-completed',
+                        'transfer-failed',
+                        'notification-event'
+                    ]
+                    
+                    topics.each { topic ->
+                        sh """
+                            kubectl exec -n ${KAFKA_NAMESPACE} ${KAFKA_RELEASE_NAME}-controller-0 -- \
+                            kafka-topics.sh --create \
+                            --if-not-exists \
+                            --bootstrap-server localhost:9092 \
+                            --topic ${topic} \
+                            --partitions 3 \
+                            --replication-factor 1 \
+                            --config retention.ms=604800000 \
+                            --config min.insync.replicas=1 || true
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Verify Topics') {
+            steps {
+                echo 'Verifying Kafka topics...'
+                sh """
+                    kubectl exec -n ${KAFKA_NAMESPACE} ${KAFKA_RELEASE_NAME}-controller-0 -- \
+                    kafka-topics.sh --list --bootstrap-server localhost:9092
+                """
+            }
+        }
+
+        stage('Deploy Kafka to Production') {
+            input {
+                message "Deploy Kafka to Production?"
+                ok "Yes, deploy"
+            }
+            steps {
+                echo 'Deploying Apache Kafka to Production environment...'
+                script {
+                    sh """
+                        helm upgrade --install ${KAFKA_RELEASE_NAME} ${KAFKA_CHART} \
+                        --version ${KAFKA_VERSION} \
+                        --namespace ${KAFKA_NAMESPACE} \
+                        --create-namespace \
+                        --set replicaCount=3 \
+                        --set deleteTopicEnable=false \
+                        --set autoCreateTopicsEnable=false \
+                        --set logRetentionHours=168 \
+                        --set defaultReplicationFactor=3 \
+                        --set offsetsTopicReplicationFactor=3 \
+                        --set transactionStateLogReplicationFactor=3 \
+                        --set numPartitions=6 \
+                        --set listeners.client.protocol=PLAINTEXT \
+                        --set listeners.controller.protocol=PLAINTEXT \
+                        --set listeners.interbroker.protocol=PLAINTEXT \
+                        --set controller.replicaCount=3 \
+                        --set zookeeper.enabled=false \
+                        --set kraft.enabled=true \
+                        --set persistence.enabled=true \
+                        --set persistence.size=50Gi \
+                        --set resources.requests.memory=2Gi \
+                        --set resources.requests.cpu=1000m \
+                        --set resources.limits.memory=4Gi \
+                        --set resources.limits.cpu=2000m \
+                        --wait \
+                        --timeout 15m
+                    """
+                }
+                echo 'Creating production topics...'
+                script {
+                    def topics = [
+                        'account-created',
+                        'account-updated',
+                        'deposit-completed',
+                        'withdrawal-completed',
+                        'transfer-initiated',
+                        'transfer-completed',
+                        'transfer-failed',
+                        'notification-event'
+                    ]
+                    
+                    topics.each { topic ->
+                        sh """
+                            kubectl exec -n ${KAFKA_NAMESPACE} ${KAFKA_RELEASE_NAME}-controller-0 -- \
+                            kafka-topics.sh --create \
+                            --if-not-exists \
+                            --bootstrap-server localhost:9092 \
+                            --topic ${topic} \
+                            --partitions 6 \
+                            --replication-factor 3 \
+                            --config retention.ms=604800000 \
+                            --config min.insync.replicas=2 || true
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Kafka deployment pipeline completed.'
+        }
+        success {
+            echo 'Kafka deployed successfully!'
+        }
+        failure {
+            echo 'Kafka deployment failed!'
+        }
+    }
+}
+

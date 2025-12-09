@@ -1,0 +1,132 @@
+# Kafka Helm Values
+# These values can be used with the Bitnami Kafka chart
+# helm install kafka bitnami/kafka -f values.yaml --namespace kafka
+
+## Global configuration
+global:
+  storageClass: ""
+
+## Kafka configuration
+kafka:
+  # Number of Kafka brokers
+  replicaCount: 1  # Use 3 for production
+  
+  # Enable/disable KRaft mode (Kafka without Zookeeper)
+  kraft:
+    enabled: true
+  
+  # Controller configuration for KRaft
+  controller:
+    replicaCount: 1  # Use 3 for production
+  
+  # Zookeeper configuration (disabled when using KRaft)
+  zookeeper:
+    enabled: false
+  
+  # Kafka listeners configuration
+  listeners:
+    client:
+      protocol: PLAINTEXT
+    controller:
+      protocol: PLAINTEXT
+    interbroker:
+      protocol: PLAINTEXT
+  
+  # Kafka broker configuration
+  config:
+    # Topic settings
+    autoCreateTopicsEnable: false
+    deleteTopicEnable: true
+    defaultReplicationFactor: 1  # Use 3 for production
+    offsetsTopicReplicationFactor: 1  # Use 3 for production
+    transactionStateLogReplicationFactor: 1  # Use 3 for production
+    minInsyncReplicas: 1  # Use 2 for production
+    numPartitions: 3  # Use 6 for production
+    
+    # Log retention
+    logRetentionHours: 168  # 7 days
+    logRetentionBytes: -1  # No limit
+    logSegmentBytes: 1073741824  # 1 GB
+    
+    # Performance tuning
+    compressionType: producer
+    maxRequestSize: 1048576  # 1 MB
+    messageMaxBytes: 1048576  # 1 MB
+
+  # Persistence configuration
+  persistence:
+    enabled: true
+    size: 10Gi  # Use 50Gi for production
+    storageClass: ""
+  
+  # Resource limits (development)
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 1Gi
+      cpu: 500m
+
+## Topics to create (managed by Jenkins or manually)
+topics:
+  - name: account-created
+    partitions: 3
+    replicationFactor: 1
+    config:
+      retention.ms: 604800000  # 7 days
+      min.insync.replicas: 1
+  
+  - name: account-updated
+    partitions: 3
+    replicationFactor: 1
+    config:
+      retention.ms: 604800000
+      min.insync.replicas: 1
+  
+  - name: deposit-completed
+    partitions: 3
+    replicationFactor: 1
+    config:
+      retention.ms: 604800000
+      min.insync.replicas: 1
+  
+  - name: withdrawal-completed
+    partitions: 3
+    replicationFactor: 1
+    config:
+      retention.ms: 604800000
+      min.insync.replicas: 1
+  
+  - name: transfer-initiated
+    partitions: 3
+    replicationFactor: 1
+    config:
+      retention.ms: 604800000
+      min.insync.replicas: 1
+  
+  - name: transfer-completed
+    partitions: 3
+    replicationFactor: 1
+    config:
+      retention.ms: 604800000
+      min.insync.replicas: 1
+  
+  - name: transfer-failed
+    partitions: 3
+    replicationFactor: 1
+    config:
+      retention.ms: 604800000
+      min.insync.replicas: 1
+  
+  - name: notification-event
+    partitions: 3
+    replicationFactor: 1
+    config:
+      retention.ms: 604800000
+      min.insync.replicas: 1
+
+## Production values override
+## For production deployment, use:
+## helm install kafka bitnami/kafka -f values.yaml -f values-prod.yaml
+
