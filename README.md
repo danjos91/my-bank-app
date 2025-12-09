@@ -72,6 +72,15 @@ kubectl port-forward svc/front-ui 8086:8086
 # Access at http://localhost:8086
 ```
 
+### 📡 Kafka (Bitnami + Jenkins)
+- Kafka se despliega automáticamente antes de los microservicios vía Jenkins (`helm/kafka/Jenkinsfile`).
+- Bootstrap interno para los servicios: `kafka.kafka.svc.cluster.local:9092`.
+- Tópicos creados: `account-created`, `account-updated`, `deposit-completed`, `withdrawal-completed`, `transfer-initiated`, `transfer-completed`, `transfer-failed`, `notification-event`.
+- Despliegue rápido local:
+  ```bash
+  helm install kafka bitnami/kafka -n kafka --create-namespace -f helm/kafka/values.yaml
+  ```
+
 ## 🔐 Configuration & Secrets Management
 
 ### Database Password Configuration
