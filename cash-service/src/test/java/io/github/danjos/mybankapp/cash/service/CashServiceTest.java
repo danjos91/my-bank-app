@@ -1,10 +1,9 @@
 package io.github.danjos.mybankapp.cash.service;
 
 import io.github.danjos.mybankapp.cash.client.AccountsClient;
-import io.github.danjos.mybankapp.cash.client.NotificationsClient;
+import io.github.danjos.mybankapp.cash.kafka.KafkaNotificationProducer;
 import io.github.danjos.mybankapp.cash.dto.AccountDTO;
 import io.github.danjos.mybankapp.cash.dto.CashTransactionDTO;
-import io.github.danjos.mybankapp.cash.dto.CreateNotificationDTO;
 import io.github.danjos.mybankapp.cash.dto.DepositRequestDTO;
 import io.github.danjos.mybankapp.cash.dto.WithdrawalRequestDTO;
 import io.github.danjos.mybankapp.cash.entity.CashTransaction;
@@ -42,7 +41,7 @@ class CashServiceTest {
     private AccountsClient accountsClient;
 
     @Mock
-    private NotificationsClient notificationsClient;
+    private KafkaNotificationProducer kafkaNotificationProducer;
 
     @InjectMocks
     private CashService cashService;
@@ -90,7 +89,7 @@ class CashServiceTest {
         when(accountsClient.getAccount(1L)).thenReturn(accountDTO);
         when(cashTransactionRepository.save(any(CashTransaction.class))).thenReturn(testTransaction);
         doNothing().when(accountsClient).addToAccountBalance(anyLong(), any(BigDecimal.class));
-        doNothing().when(notificationsClient).createNotification(any(CreateNotificationDTO.class));
+        doNothing().when(kafkaNotificationProducer).publishDepositCompletedEvent(anyLong(), anyString(), any(), anyString());
 
         // When
         CashTransactionDTO result = cashService.deposit(depositRequest);
@@ -103,7 +102,7 @@ class CashServiceTest {
         assertEquals(CashTransaction.TransactionType.DEPOSIT, result.getTransactionType());
         verify(cashTransactionRepository).save(any(CashTransaction.class));
         verify(accountsClient).addToAccountBalance(1L, new BigDecimal("100.00"));
-        verify(notificationsClient).createNotification(any(CreateNotificationDTO.class));
+        verify(kafkaNotificationProducer).publishDepositCompletedEvent(anyLong(), anyString(), any(), anyString());
     }
 
     @Test
@@ -146,7 +145,7 @@ class CashServiceTest {
         when(accountsClient.getAccount(1L)).thenReturn(accountDTO);
         when(cashTransactionRepository.save(any(CashTransaction.class))).thenReturn(testTransaction);
         doNothing().when(accountsClient).subtractFromAccountBalance(anyLong(), any(BigDecimal.class));
-        doNothing().when(notificationsClient).createNotification(any(CreateNotificationDTO.class));
+        doNothing().when(kafkaNotificationProducer).publishWithdrawalCompletedEvent(anyLong(), anyString(), any(), anyString());
 
         // When
         CashTransactionDTO result = cashService.withdraw(withdrawalRequest);
@@ -156,7 +155,7 @@ class CashServiceTest {
         verify(accountsClient).getAccount(1L);
         verify(cashTransactionRepository).save(any(CashTransaction.class));
         verify(accountsClient).subtractFromAccountBalance(1L, new BigDecimal("50.00"));
-        verify(notificationsClient).createNotification(any(CreateNotificationDTO.class));
+        verify(kafkaNotificationProducer).publishWithdrawalCompletedEvent(anyLong(), anyString(), any(), anyString());
     }
 
     @Test

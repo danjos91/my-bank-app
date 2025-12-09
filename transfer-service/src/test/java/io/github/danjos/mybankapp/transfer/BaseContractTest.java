@@ -3,7 +3,7 @@ package io.github.danjos.mybankapp.transfer;
 import io.github.danjos.mybankapp.transfer.client.AccountsClient;
 import io.github.danjos.mybankapp.transfer.client.BlockerClient;
 import io.github.danjos.mybankapp.transfer.client.ExchangeClient;
-import io.github.danjos.mybankapp.transfer.client.NotificationsClient;
+import io.github.danjos.mybankapp.transfer.kafka.KafkaNotificationProducer;
 import io.github.danjos.mybankapp.transfer.dto.AccountDTO;
 import io.github.danjos.mybankapp.transfer.dto.BlockResponseDTO;
 import io.github.danjos.mybankapp.transfer.dto.ConversionRequestDTO;
@@ -59,7 +59,7 @@ public abstract class BaseContractTest {
     protected AccountsClient accountsClient;
 
     @MockBean
-    protected NotificationsClient notificationsClient;
+    protected KafkaNotificationProducer kafkaNotificationProducer;
 
     @MockBean
     protected ExchangeClient exchangeClient;
@@ -118,7 +118,10 @@ public abstract class BaseContractTest {
         });
         doNothing().when(accountsClient).subtractFromAccountBalance(anyLong(), any(BigDecimal.class));
         doNothing().when(accountsClient).addToAccountBalance(anyLong(), any(BigDecimal.class));
-        doNothing().when(notificationsClient).createNotification(any());
+        doNothing().when(kafkaNotificationProducer).publishTransferInitiatedEvent(anyLong(), any(), anyString());
+        doNothing().when(kafkaNotificationProducer).publishTransferCompletedEvent(anyLong(), any(), anyString(), anyString());
+        doNothing().when(kafkaNotificationProducer).publishTransferReceivedEvent(anyLong(), any(), anyString(), anyString());
+        doNothing().when(kafkaNotificationProducer).publishTransferFailedEvent(anyLong(), any(), anyString(), anyString());
 
         // Mock exchange client - return same amount if currencies are the same
         when(exchangeClient.convert(any(ConversionRequestDTO.class))).thenAnswer(invocation -> {
