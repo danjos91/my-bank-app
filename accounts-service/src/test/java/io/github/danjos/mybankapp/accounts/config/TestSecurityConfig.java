@@ -1,6 +1,5 @@
 package io.github.danjos.mybankapp.accounts.config;
 
-import io.github.danjos.mybankapp.accounts.client.NotificationsClient;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
