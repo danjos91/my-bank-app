@@ -7,6 +7,8 @@ pipeline {
         IMAGE_TAG = "${env.BUILD_NUMBER}"
         KAFKA_NAMESPACE = 'kafka'
         KAFKA_RELEASE_NAME = 'kafka'
+        KAFKA_VALUES = 'helm/kafka/values.yaml'
+        KAFKA_VALUES_PROD = 'helm/kafka/values-prod.yaml'
     }
 
     stages {
@@ -31,7 +33,7 @@ pipeline {
                         --version 30.1.5 \
                         --namespace ${KAFKA_NAMESPACE} \
                         --create-namespace \
-                        -f helm/kafka/values.yaml \
+                        -f ${KAFKA_VALUES} \
                         --wait \
                         --timeout 10m
                     """
@@ -51,31 +53,31 @@ pipeline {
                 echo 'Creating Kafka topics...'
                 script {
                     def topics = [
-                        'account-created',
-                        'account-updated',
-                        'deposit-completed',
-                        'withdrawal-completed',
-                        'transfer-initiated',
-                        'transfer-completed',
-                        'transfer-failed',
-                        'notification-event',
-                        'exchange-rates'
+                        [name: 'account-created', partitions: 3, rf: 1, minInsync: 1],
+                        [name: 'account-updated', partitions: 3, rf: 1, minInsync: 1],
+                        [name: 'deposit-completed', partitions: 3, rf: 1, minInsync: 1],
+                        [name: 'withdrawal-completed', partitions: 3, rf: 1, minInsync: 1],
+                        [name: 'transfer-initiated', partitions: 3, rf: 1, minInsync: 1],
+                        [name: 'transfer-completed', partitions: 3, rf: 1, minInsync: 1],
+                        [name: 'transfer-failed', partitions: 3, rf: 1, minInsync: 1],
+                        [name: 'notification-event', partitions: 3, rf: 1, minInsync: 1],
+                        [name: 'exchange-rates', partitions: 3, rf: 1, minInsync: 1]
                     ]
                     
                     // Wait a bit to ensure Kafka is fully ready
                     sh 'sleep 10'
                     
-                    topics.each { topic ->
+                    topics.each { topicCfg ->
                         sh """
                             kubectl exec -n ${KAFKA_NAMESPACE} ${KAFKA_RELEASE_NAME}-controller-0 -- \
                             kafka-topics.sh --create \
                             --if-not-exists \
                             --bootstrap-server localhost:9092 \
-                            --topic ${topic} \
-                            --partitions 3 \
-                            --replication-factor 1 \
+                            --topic ${topicCfg.name} \
+                            --partitions ${topicCfg.partitions} \
+                            --replication-factor ${topicCfg.rf} \
                             --config retention.ms=604800000 \
-                            --config min.insync.replicas=1 || true
+                            --config min.insync.replicas=${topicCfg.minInsync} || true
                         """
                     }
                     
@@ -127,6 +129,65 @@ pipeline {
             }
         }
 
+        stage('Deploy Kafka to Production') {
+            input {
+                message "Deploy Kafka to Production (with high availability)?"
+                ok "Yes, deploy"
+            }
+            steps {
+                echo 'Deploying Kafka to Production with HA configuration...'
+                script {
+                    sh """
+                        helm upgrade --install ${KAFKA_RELEASE_NAME} bitnami/kafka \
+                        --version 30.1.5 \
+                        --namespace ${KAFKA_NAMESPACE} \
+                        -f ${KAFKA_VALUES} \
+                        -f ${KAFKA_VALUES_PROD} \
+                        --wait \
+                        --timeout 15m
+                    """
+                    
+                    // Wait for production Kafka to be ready
+                    sh """
+                        kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kafka \
+                        --namespace ${KAFKA_NAMESPACE} \
+                        --timeout=600s
+                    """
+                    
+                    // Create production topics with higher replication
+                    def topics = [
+                        [name: 'account-created', partitions: 6, rf: 3, minInsync: 2],
+                        [name: 'account-updated', partitions: 6, rf: 3, minInsync: 2],
+                        [name: 'deposit-completed', partitions: 6, rf: 3, minInsync: 2],
+                        [name: 'withdrawal-completed', partitions: 6, rf: 3, minInsync: 2],
+                        [name: 'transfer-initiated', partitions: 6, rf: 3, minInsync: 2],
+                        [name: 'transfer-completed', partitions: 6, rf: 3, minInsync: 2],
+                        [name: 'transfer-failed', partitions: 6, rf: 3, minInsync: 2],
+                        [name: 'notification-event', partitions: 6, rf: 3, minInsync: 2],
+                        [name: 'exchange-rates', partitions: 6, rf: 3, minInsync: 2]
+                    ]
+                    
+                    sh 'sleep 20'
+                    
+                    topics.each { topicCfg ->
+                        sh """
+                            kubectl exec -n ${KAFKA_NAMESPACE} ${KAFKA_RELEASE_NAME}-controller-0 -- \
+                            kafka-topics.sh --create \
+                            --if-not-exists \
+                            --bootstrap-server localhost:9092 \
+                            --topic ${topicCfg.name} \
+                            --partitions ${topicCfg.partitions} \
+                            --replication-factor ${topicCfg.rf} \
+                            --config retention.ms=604800000 \
+                            --config min.insync.replicas=${topicCfg.minInsync} || true
+                        """
+                    }
+                    
+                    echo 'Production Kafka deployment completed!'
+                }
+            }
+        }
+
         stage('Deploy All to Prod') {
             input {
                 message "Deploy Umbrella App to Production?"
@@ -141,65 +202,6 @@ pipeline {
                         --set global.env=prod \
                         --set global.kafka.bootstrapServers=kafka.kafka.svc.cluster.local:9092
                     """
-                }
-            }
-        }
-
-        stage('Deploy Kafka to Production') {
-            input {
-                message "Deploy Kafka to Production (with high availability)?"
-                ok "Yes, deploy"
-            }
-            steps {
-                echo 'Deploying Kafka to Production with HA configuration...'
-                script {
-                    sh """
-                        helm upgrade --install ${KAFKA_RELEASE_NAME} bitnami/kafka \
-                        --version 30.1.5 \
-                        --namespace ${KAFKA_NAMESPACE} \
-                        -f helm/kafka/values.yaml \
-                        -f helm/kafka/values-prod.yaml \
-                        --wait \
-                        --timeout 15m
-                    """
-                    
-                    // Wait for production Kafka to be ready
-                    sh """
-                        kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kafka \
-                        --namespace ${KAFKA_NAMESPACE} \
-                        --timeout=600s
-                    """
-                    
-                    // Create production topics with higher replication
-                    def topics = [
-                        'account-created',
-                        'account-updated',
-                        'deposit-completed',
-                        'withdrawal-completed',
-                        'transfer-initiated',
-                        'transfer-completed',
-                        'transfer-failed',
-                        'notification-event',
-                        'exchange-rates'
-                    ]
-                    
-                    sh 'sleep 20'
-                    
-                    topics.each { topic ->
-                        sh """
-                            kubectl exec -n ${KAFKA_NAMESPACE} ${KAFKA_RELEASE_NAME}-controller-0 -- \
-                            kafka-topics.sh --create \
-                            --if-not-exists \
-                            --bootstrap-server localhost:9092 \
-                            --topic ${topic} \
-                            --partitions 6 \
-                            --replication-factor 3 \
-                            --config retention.ms=604800000 \
-                            --config min.insync.replicas=2 || true
-                        """
-                    }
-                    
-                    echo 'Production Kafka deployment completed!'
                 }
             }
         }
