@@ -2,41 +2,40 @@
 # Override development values for production deployment
 # Usage: helm install kafka bitnami/kafka -f values.yaml -f values-prod.yaml
 
-kafka:
-  # Production: 3 brokers for high availability
+# Production: 3 brokers for high availability
+replicaCount: 3
+
+controller:
   replicaCount: 3
+
+# Production configuration
+config:
+  autoCreateTopicsEnable: false
+  deleteTopicEnable: false  # Prevent accidental topic deletion
+  defaultReplicationFactor: 3
+  offsetsTopicReplicationFactor: 3
+  transactionStateLogReplicationFactor: 3
+  minInsyncReplicas: 2  # At least 2 replicas must acknowledge
+  numPartitions: 6
   
-  controller:
-    replicaCount: 3
+  # Extended retention for production
+  logRetentionHours: 168  # 7 days
+  logRetentionBytes: -1
   
-  # Production configuration
-  config:
-    autoCreateTopicsEnable: false
-    deleteTopicEnable: false  # Prevent accidental topic deletion
-    defaultReplicationFactor: 3
-    offsetsTopicReplicationFactor: 3
-    transactionStateLogReplicationFactor: 3
-    minInsyncReplicas: 2  # At least 2 replicas must acknowledge
-    numPartitions: 6
-    
-    # Extended retention for production
-    logRetentionHours: 168  # 7 days
-    logRetentionBytes: -1
-    
-  # Production persistence
-  persistence:
-    enabled: true
-    size: 50Gi
-    storageClass: ""  # Use your cloud provider's storage class
-  
-  # Production resources
-  resources:
-    requests:
-      memory: 2Gi
-      cpu: 1000m
-    limits:
-      memory: 4Gi
-      cpu: 2000m
+# Production persistence
+persistence:
+  enabled: true
+  size: 50Gi
+  storageClass: ""  # Use your cloud provider's storage class
+
+# Production resources
+resources:
+  requests:
+    memory: 2Gi
+    cpu: 1000m
+  limits:
+    memory: 4Gi
+    cpu: 2000m
 
 # Production topics with higher replication
 topics:

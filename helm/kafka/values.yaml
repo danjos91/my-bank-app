@@ -6,67 +6,66 @@
 global:
   storageClass: ""
 
-## Kafka configuration
-kafka:
-  # Number of Kafka brokers
-  replicaCount: 1  # Use 3 for production
-  
-  # Enable/disable KRaft mode (Kafka without Zookeeper)
-  kraft:
-    enabled: true
-  
-  # Controller configuration for KRaft
-  controller:
-    replicaCount: 1  # Use 3 for production
-  
-  # Zookeeper configuration (disabled when using KRaft)
-  zookeeper:
-    enabled: false
-  
-  # Kafka listeners configuration
-  listeners:
-    client:
-      protocol: PLAINTEXT
-    controller:
-      protocol: PLAINTEXT
-    interbroker:
-      protocol: PLAINTEXT
-  
-  # Kafka broker configuration
-  config:
-    # Topic settings
-    autoCreateTopicsEnable: false
-    deleteTopicEnable: true
-    defaultReplicationFactor: 1  # Use 3 for production
-    offsetsTopicReplicationFactor: 1  # Use 3 for production
-    transactionStateLogReplicationFactor: 1  # Use 3 for production
-    minInsyncReplicas: 1  # Use 2 for production
-    numPartitions: 3  # Use 6 for production
-    
-    # Log retention
-    logRetentionHours: 168  # 7 days
-    logRetentionBytes: -1  # No limit
-    logSegmentBytes: 1073741824  # 1 GB
-    
-    # Performance tuning
-    compressionType: producer
-    maxRequestSize: 1048576  # 1 MB
-    messageMaxBytes: 1048576  # 1 MB
+## Kafka configuration (Bitnami chart values)
+# Number of Kafka brokers (KRaft mode)
+replicaCount: 1  # Use 3 for production
 
-  # Persistence configuration
-  persistence:
-    enabled: true
-    size: 10Gi  # Use 50Gi for production
-    storageClass: ""
+# Enable/disable KRaft mode (Kafka without Zookeeper)
+kraft:
+  enabled: true
+
+# Controller configuration for KRaft
+controller:
+  replicaCount: 1  # Use 3 for production
+
+# Zookeeper configuration (disabled when using KRaft)
+zookeeper:
+  enabled: false
+
+# Kafka listeners configuration
+listeners:
+  client:
+    protocol: PLAINTEXT
+  controller:
+    protocol: PLAINTEXT
+  interbroker:
+    protocol: PLAINTEXT
+
+# Kafka broker configuration
+config:
+  # Topic settings
+  autoCreateTopicsEnable: false
+  deleteTopicEnable: true
+  defaultReplicationFactor: 1  # Use 3 for production
+  offsetsTopicReplicationFactor: 1  # Use 3 for production
+  transactionStateLogReplicationFactor: 1  # Use 3 for production
+  minInsyncReplicas: 1  # Use 2 for production
+  numPartitions: 3  # Use 6 for production
   
-  # Resource limits (development)
-  resources:
-    requests:
-      memory: 512Mi
-      cpu: 250m
-    limits:
-      memory: 1Gi
-      cpu: 500m
+  # Log retention
+  logRetentionHours: 168  # 7 days
+  logRetentionBytes: -1  # No limit
+  logSegmentBytes: 1073741824  # 1 GB
+  
+  # Performance tuning
+  compressionType: producer
+  maxRequestSize: 1048576  # 1 MB
+  messageMaxBytes: 1048576  # 1 MB
+
+# Persistence configuration
+persistence:
+  enabled: true
+  size: 10Gi  # Use 50Gi for production
+  storageClass: ""
+
+# Resource limits (development)
+resources:
+  requests:
+    memory: 512Mi
+    cpu: 250m
+  limits:
+    memory: 1Gi
+    cpu: 500m
 
 ## Topics to create (managed by Jenkins or manually)
 topics:
