@@ -18,7 +18,7 @@ spring:
       schema-locations: classpath:schema.sql
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
