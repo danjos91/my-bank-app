@@ -58,7 +58,8 @@ pipeline {
                         'transfer-initiated',
                         'transfer-completed',
                         'transfer-failed',
-                        'notification-event'
+                        'notification-event',
+                        'exchange-rates'
                     ]
                     
                     // Wait a bit to ensure Kafka is fully ready
@@ -178,7 +179,8 @@ pipeline {
                         'transfer-initiated',
                         'transfer-completed',
                         'transfer-failed',
-                        'notification-event'
+                        'notification-event',
+                        'exchange-rates'
                     ]
                     
                     sh 'sleep 20'

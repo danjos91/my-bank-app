@@ -38,6 +38,8 @@ public class ExchangeRateKafkaListener {
             @Header(KafkaHeaders.OFFSET) long offset,
             Acknowledgment ack
     ) {
+        // Commit first for \"at most once\" delivery; processing may drop if it fails
+        ack.acknowledge();
         try {
             log.debug("Received exchange rate event: topic={}, partition={}, offset={}, currency={}, buy={}, sell={}",
                     topic, partition, offset, event.getCurrency(), event.getBuyRate(), event.getSellRate());

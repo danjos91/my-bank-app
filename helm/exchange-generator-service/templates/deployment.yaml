@@ -25,6 +25,8 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "docker"
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.kafka.bootstrapServers | quote }}
             - name: SERVICES_EXCHANGE_URL
               value: {{ .Values.services.exchange.url }}
             - name: SPRING_DATASOURCE_URL

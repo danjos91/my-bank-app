@@ -18,9 +18,9 @@ spring:
         spring.json.value.default.type: io.github.danjos.mybankapp.exchange.kafka.ExchangeRateEvent
         spring.json.use.type.headers: false
       enable-auto-commit: false
-      auto-offset-reset: earliest
+      auto-offset-reset: latest
     listener:
-      ack-mode: manual
+      ack-mode: manual_immediate
   datasource:
     url: jdbc:postgresql://localhost:5432/bank_app_db
     username: bank_app_user

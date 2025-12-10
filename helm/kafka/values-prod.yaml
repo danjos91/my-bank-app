@@ -96,3 +96,10 @@ topics:
       retention.ms: 604800000
       min.insync.replicas: 2
 
+  - name: exchange-rates
+    partitions: 6
+    replicationFactor: 3
+    config:
+      retention.ms: 604800000
+      min.insync.replicas: 2
+

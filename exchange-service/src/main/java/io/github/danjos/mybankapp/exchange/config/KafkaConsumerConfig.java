@@ -51,7 +51,7 @@ public class KafkaConsumerConfig {
         ConcurrentKafkaListenerContainerFactory<String, ExchangeRateEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(exchangeRateConsumerFactory());
-        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
         factory.setConcurrency(1);
         return factory;
     }

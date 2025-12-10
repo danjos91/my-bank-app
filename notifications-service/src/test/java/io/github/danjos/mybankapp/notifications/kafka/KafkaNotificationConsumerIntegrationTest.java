@@ -28,7 +28,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {
         "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}",
         "spring.kafka.consumer.group-id=notifications-service-group",
-        "spring.kafka.consumer.auto-offset-reset=earliest"
+        "spring.kafka.consumer.auto-offset-reset=earliest",
+        "spring.datasource.url=jdbc:h2:mem:notifications;DB_CLOSE_DELAY=-1",
+        "spring.datasource.driverClassName=org.h2.Driver",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.jpa.properties.hibernate.default_schema=notifications_schema",
+        "spring.jpa.properties.hibernate.hbm2ddl.create_namespaces=true",
+        "spring.sql.init.mode=never"
 })
 class KafkaNotificationConsumerIntegrationTest {
 

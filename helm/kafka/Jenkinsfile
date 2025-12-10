@@ -81,7 +81,8 @@ pipeline {
                         'transfer-initiated',
                         'transfer-completed',
                         'transfer-failed',
-                        'notification-event'
+                        'notification-event',
+                        'exchange-rates'
                     ]
                     
                     topics.each { topic ->
@@ -158,7 +159,8 @@ pipeline {
                         'transfer-initiated',
                         'transfer-completed',
                         'transfer-failed',
-                        'notification-event'
+                        'notification-event',
+                        'exchange-rates'
                     ]
                     
                     topics.each { topic ->
