@@ -73,13 +73,19 @@ kubectl port-forward svc/front-ui 8086:8086
 ```
 
 ### 📡 Kafka (Bitnami + Jenkins)
-- Kafka se despliega automáticamente antes de los microservicios vía Jenkins (`helm/kafka/Jenkinsfile`).
+- Kafka se despliega automáticamente en modo KRaft usando los valores de `helm/kafka/values.yaml` (test) y `helm/kafka/values-prod.yaml` (prod) desde los Jenkinsfiles (`helm/kafka/Jenkinsfile` y `Jenkinsfile` raíz).
 - Bootstrap interno para los servicios: `kafka.kafka.svc.cluster.local:9092`.
-- Tópicos creados: `account-created`, `account-updated`, `deposit-completed`, `withdrawal-completed`, `transfer-initiated`, `transfer-completed`, `transfer-failed`, `notification-event`.
+- Tópicos creados por los pipelines:
+  - Test: particiones=3, replicación=1, `min.insync.replicas=1` para `account-created`, `account-updated`, `deposit-completed`, `withdrawal-completed`, `transfer-initiated`, `transfer-completed`, `transfer-failed`, `notification-event`, `exchange-rates`.
+  - Prod: particiones=6, replicación=3, `min.insync.replicas=2` para los mismos tópicos.
 - Despliegue rápido local:
   ```bash
-  helm install kafka bitnami/kafka -n kafka --create-namespace -f helm/kafka/values.yaml
+  helm upgrade --install kafka bitnami/kafka -n kafka --create-namespace -f helm/kafka/values.yaml
+  # Producción: añade -f helm/kafka/values-prod.yaml
   ```
+- Productores/consumidores clave:
+  - `exchange-generator-service`: productor idempotente (`acks=all`, reintentos y `enable.idempotence=true`) para el tópico `exchange-rates`.
+  - `exchange-service`: listener con `AckMode.MANUAL_IMMEDIATE`, se confirma después del procesamiento para evitar pérdida silenciosa de eventos inválidos.
 
 ## 🔐 Configuration & Secrets Management
 
@@ -264,6 +270,11 @@ This project includes `Jenkinsfile` for each microservice and a master `Jenkinsf
    - Definition: Pipeline script from SCM -> Git
    - Repository URL: (Your Git Repo URL)
    - Script Path: `Jenkinsfile` (for the umbrella project) or `accounts-service/Jenkinsfile` (for individual services).
+
+## 🧭 Flujo Git
+- Commits pequeños por cada cambio lógico; mensajes de una sola línea y descriptivos.
+- Preferir `rebase` sobre `merge` para mantener la historia lineal, salvo políticas explícitas de la rama objetivo.
+- Usar microcommits también en ajustes de infraestructura (Helm/Jenkins) y código de servicios.
 
 ## 👤 Test Users
 
