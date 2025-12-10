@@ -9,11 +9,11 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      acks: 0
-      retries: 0
+      acks: all
+      retries: 5
       properties:
-        enable.idempotence: false
-        max.in.flight.requests.per.connection: 1
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
         spring.json.add.type.headers: false
 
 services:
