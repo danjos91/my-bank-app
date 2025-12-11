@@ -57,21 +57,20 @@ minikube addons enable ingress
 
 2) **Deploy Kafka (Bitnami, KRaft)**
 ```bash
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo update
 kubectl create namespace kafka --dry-run=client -o yaml | kubectl apply -f -
-helm upgrade --install kafka bitnami/kafka \
+helm upgrade --install kafka oci://registry-1.docker.io/bitnamicharts/kafka \
   --version 30.1.5 \
   -n kafka --create-namespace \
-  -f helm/kafka/values.yaml
+  -f helm/kafka/values-standalone.yaml
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kafka -n kafka --timeout=300s
 ```
+- Chart values now use image `docker.io/bitnamilegacy/kafka:4.0.0-debian-12-r10` (KRaft, PLAINTEXT).
 
 3) **Create Kafka topics** (if Jenkins pipeline is not run)
 ```bash
 for topic in account-created account-updated deposit-completed withdrawal-completed \
   transfer-initiated transfer-completed transfer-failed notification-event exchange-rates; do
-  kubectl exec -n kafka kafka-controller-0 -- \
+  kubectl exec -n kafka $(kubectl get pod -n kafka -l app.kubernetes.io/name=kafka,app.kubernetes.io/instance=kafka -o jsonpath='{.items[0].metadata.name}') -- \
     kafka-topics.sh --create --if-not-exists --bootstrap-server localhost:9092 \
     --topic "$topic" --partitions 3 --replication-factor 1 \
     --config retention.ms=604800000 --config min.insync.replicas=1 || true
@@ -84,8 +83,10 @@ This deploys all microservices and databases at once.
 cd helm/
 helm dependency update my-bank-app
 helm upgrade --install my-bank-app ./my-bank-app \
+  --set kafka.enabled=false \
   --set global.kafka.bootstrapServers=kafka.kafka.svc.cluster.local:9092
 ```
+- Note: `kafka.enabled=false` avoids deploying the Kafka subchart when you already installed Kafka separately.
 
 5) **Access the application**
 ```bash
@@ -107,14 +108,15 @@ kubectl port-forward svc/front-ui 8086:8086
   - Prod: partitions=6, replication=3, `min.insync.replicas=2` for the same topics.
 - Quick local deploy:
   ```bash
-  helm upgrade --install kafka bitnami/kafka -n kafka --create-namespace -f helm/kafka/values.yaml
-  # Production: add -f helm/kafka/values-prod.yaml
+  helm upgrade --install kafka oci://registry-1.docker.io/bitnamicharts/kafka -n kafka --create-namespace -f helm/kafka/values-standalone.yaml
+  # Production: add -f helm/kafka/values-standalone-prod.yaml
   ```
 - Key producers/consumers:
   - `exchange-generator-service`: idempotent producer (`acks=all`, retries, `enable.idempotence=true`) to `exchange-rates`.
   - `exchange-service`: consumer with `AckMode.MANUAL_IMMEDIATE` for `exchange-rates`.
   - `accounts-service`, `cash-service`, `transfer-service`: produce domain events for notifications and transfers.
   - `notifications-service`: consumes account/transfer topics and `notification-event` with manual ack for at-least-once delivery.
+- The umbrella chart includes Kafka as a dependency (alias `kafka`, version `26.1.1` from `oci://registry-1.docker.io/bitnamicharts`). Disable it with `--set kafka.enabled=false` when deploying Kafka separately (as in the quick start above).
 
 ## 🔐 Configuration & Secrets Management
 

@@ -7,8 +7,10 @@ pipeline {
         IMAGE_TAG = "${env.BUILD_NUMBER}"
         KAFKA_NAMESPACE = 'kafka'
         KAFKA_RELEASE_NAME = 'kafka'
-        KAFKA_VALUES = 'helm/kafka/values.yaml'
-        KAFKA_VALUES_PROD = 'helm/kafka/values-prod.yaml'
+        KAFKA_CHART = 'oci://registry-1.docker.io/bitnamicharts/kafka'
+        KAFKA_VERSION = '30.1.5'
+        KAFKA_VALUES = 'helm/kafka/values-standalone.yaml'
+        KAFKA_VALUES_PROD = 'helm/kafka/values-standalone-prod.yaml'
     }
 
     stages {
@@ -16,12 +18,6 @@ pipeline {
             steps {
                 echo 'Deploying Apache Kafka platform...'
                 script {
-                    // Add Bitnami Helm repository
-                    sh '''
-                        helm repo add bitnami https://charts.bitnami.com/bitnami || true
-                        helm repo update
-                    '''
-                    
                     // Create Kafka namespace
                     sh """
                         kubectl create namespace ${KAFKA_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
@@ -29,8 +25,8 @@ pipeline {
                     
                     // Deploy Kafka using values.yaml
                     sh """
-                        helm upgrade --install ${KAFKA_RELEASE_NAME} bitnami/kafka \
-                        --version 30.1.5 \
+                        helm upgrade --install ${KAFKA_RELEASE_NAME} ${KAFKA_CHART} \
+                        --version ${KAFKA_VERSION} \
                         --namespace ${KAFKA_NAMESPACE} \
                         --create-namespace \
                         -f ${KAFKA_VALUES} \
@@ -69,21 +65,21 @@ pipeline {
                     
                     topics.each { topicCfg ->
                         sh """
-                            kubectl exec -n ${KAFKA_NAMESPACE} ${KAFKA_RELEASE_NAME}-controller-0 -- \
-                            kafka-topics.sh --create \
-                            --if-not-exists \
-                            --bootstrap-server localhost:9092 \
-                            --topic ${topicCfg.name} \
-                            --partitions ${topicCfg.partitions} \
-                            --replication-factor ${topicCfg.rf} \
-                            --config retention.ms=604800000 \
+                            kubectl exec -n ${KAFKA_NAMESPACE} \$(kubectl get pod -n ${KAFKA_NAMESPACE} -l app.kubernetes.io/name=kafka,app.kubernetes.io/instance=${KAFKA_RELEASE_NAME} -o jsonpath='{.items[0].metadata.name}') -- \\
+                            kafka-topics.sh --create \\
+                            --if-not-exists \\
+                            --bootstrap-server localhost:9092 \\
+                            --topic ${topicCfg.name} \\
+                            --partitions ${topicCfg.partitions} \\
+                            --replication-factor ${topicCfg.rf} \\
+                            --config retention.ms=604800000 \\
                             --config min.insync.replicas=${topicCfg.minInsync} || true
                         """
                     }
                     
                     // Verify topics
                     sh """
-                        kubectl exec -n ${KAFKA_NAMESPACE} ${KAFKA_RELEASE_NAME}-controller-0 -- \
+                        kubectl exec -n ${KAFKA_NAMESPACE} \$(kubectl get pod -n ${KAFKA_NAMESPACE} -l app.kubernetes.io/name=kafka,app.kubernetes.io/instance=${KAFKA_RELEASE_NAME} -o jsonpath='{.items[0].metadata.name}') -- \\
                         kafka-topics.sh --list --bootstrap-server localhost:9092
                     """
                 }
@@ -122,6 +118,7 @@ pipeline {
                         helm upgrade --install ${HELM_RELEASE_NAME} ./helm/my-bank-app \
                         --namespace test --create-namespace \
                         --set global.env=test \
+                        --set kafka.enabled=false \
                         --set global.kafka.bootstrapServers=kafka.kafka.svc.cluster.local:9092
                         # Nota: En un caso real, deberíamos pasar tags específicos para cada imagen
                     """
@@ -138,8 +135,8 @@ pipeline {
                 echo 'Deploying Kafka to Production with HA configuration...'
                 script {
                     sh """
-                        helm upgrade --install ${KAFKA_RELEASE_NAME} bitnami/kafka \
-                        --version 30.1.5 \
+                        helm upgrade --install ${KAFKA_RELEASE_NAME} ${KAFKA_CHART} \
+                        --version ${KAFKA_VERSION} \
                         --namespace ${KAFKA_NAMESPACE} \
                         -f ${KAFKA_VALUES} \
                         -f ${KAFKA_VALUES_PROD} \
@@ -171,14 +168,14 @@ pipeline {
                     
                     topics.each { topicCfg ->
                         sh """
-                            kubectl exec -n ${KAFKA_NAMESPACE} ${KAFKA_RELEASE_NAME}-controller-0 -- \
-                            kafka-topics.sh --create \
-                            --if-not-exists \
-                            --bootstrap-server localhost:9092 \
-                            --topic ${topicCfg.name} \
-                            --partitions ${topicCfg.partitions} \
-                            --replication-factor ${topicCfg.rf} \
-                            --config retention.ms=604800000 \
+                            kubectl exec -n ${KAFKA_NAMESPACE} \$(kubectl get pod -n ${KAFKA_NAMESPACE} -l app.kubernetes.io/name=kafka,app.kubernetes.io/instance=${KAFKA_RELEASE_NAME} -o jsonpath='{.items[0].metadata.name}') -- \\
+                            kafka-topics.sh --create \\
+                            --if-not-exists \\
+                            --bootstrap-server localhost:9092 \\
+                            --topic ${topicCfg.name} \\
+                            --partitions ${topicCfg.partitions} \\
+                            --replication-factor ${topicCfg.rf} \\
+                            --config retention.ms=604800000 \\
                             --config min.insync.replicas=${topicCfg.minInsync} || true
                         """
                     }
@@ -200,6 +197,7 @@ pipeline {
                         helm upgrade --install ${HELM_RELEASE_NAME} ./helm/my-bank-app \
                         --namespace prod --create-namespace \
                         --set global.env=prod \
+                        --set kafka.enabled=false \
                         --set global.kafka.bootstrapServers=kafka.kafka.svc.cluster.local:9092
                     """
                 }

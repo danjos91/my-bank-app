@@ -33,4 +33,9 @@ dependencies:
   - name: transfer-service
     version: 0.1.0
     repository: "file://../transfer-service"
+  - name: kafka
+    version: "30.1.5"
+    repository: "oci://registry-1.docker.io/bitnamicharts"
+    alias: kafka
+    condition: kafka.enabled
 

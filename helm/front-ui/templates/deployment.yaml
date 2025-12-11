@@ -43,6 +43,14 @@ spec:
               value: {{ .Values.auth.serverUrl }}/userinfo
             - name: GATEWAY_URL
               value: {{ .Values.env.gatewayUrl | default "http://gateway" }}
+            - name: SERVICES_ACCOUNTS_URL
+              value: {{ .Values.services.accounts | default "http://my-bank-app-accounts-service:8081" }}
+            - name: SERVICES_CASH_URL
+              value: {{ .Values.services.cash | default "http://my-bank-app-cash-service:8082" }}
+            - name: SERVICES_TRANSFER_URL
+              value: {{ .Values.services.transfer | default "http://my-bank-app-transfer-service:8083" }}
+            - name: SERVICES_EXCHANGE_URL
+              value: {{ .Values.services.exchange | default "http://my-bank-app-exchange-service:8087" }}
 
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
