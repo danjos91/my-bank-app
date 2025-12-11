@@ -2,22 +2,24 @@
 
 ![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
+![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm-0F1689?style=for-the-badge&logo=helm&logoColor=white)
 ![Jenkins](https://img.shields.io/badge/jenkins-%232C5263.svg?style=for-the-badge&logo=jenkins&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 
-A comprehensive microservices-based banking application built with Spring Boot, user management, multi-currency account operations, money transfers with currency conversion, real-time notifications and exchange rate management, with **Kubernetes** deployment using **Helm Charts** and **Jenkins CI/CD**.
+An event-driven microservices banking platform built with Spring Boot, Apache Kafka, PostgreSQL, and Kubernetes. It supports user management, multi-currency accounts, money transfers with currency conversion, real-time notifications, and exchange rate management. Deployment is handled with **Helm Charts** and **Jenkins CI/CD**, including automated Kafka provisioning.
 
 **Features:**
-- ☁️ **Kubernetes Native**: No more Eureka/Config Server. Uses K8s Services, ConfigMaps, and Secrets.
-- 📦 **Helm Charts**: Dedicated charts for each microservice and an Umbrella chart for full deployment.
+- ☁️ **Kubernetes Native**: Uses K8s Services, ConfigMaps, and Secrets (no Eureka/Config Server).
+- 📦 **Helm Charts**: Dedicated charts for each microservice plus an umbrella chart.
+- 📡 **Event-Driven with Kafka**: Idempotent producers and manual-ack consumers for reliable messaging.
 - 💾 **StatefulSets**: Databases deployed as StatefulSets with persistent storage.
-- 🚀 **CI/CD**: Full Jenkins integration with pipelines for each service.
+- 🚀 **CI/CD**: Jenkins pipelines for services, umbrella chart, and Kafka (topics included).
 - 🔐 **OAuth2**: Auth Server running in Kubernetes.
 - 🌐 **Ingress**: Front UI exposed via Ingress Controller.
-- 💱 **Multi-Currency**: Full support for RUB, USD, and CNY with automatic conversion.
+- 💱 **Multi-Currency**: RUB, USD, and CNY with automatic conversion.
 
 ## 💱 Multi-Currency & Key Features
 
@@ -25,12 +27,18 @@ This application supports complex banking operations including:
 
 - **Multi-Currency Accounts**: Users can create accounts in **RUB**, **USD**, and **CNY**.
 - **Currency Conversion**: Automatic real-time conversion for transfers between different currencies (e.g., USD → RUB → CNY).
-- **Exchange Service**: dedicated microservice for managing exchange rates.
-- **Exchange Generator**: Simulates market fluctuations by updating rates every second.
-- **Blocker Service**: Security microservice that monitors transactions and blocks suspicious activity based on thresholds (e.g., transactions > 10,000 RUB).
-- **Notifications**: Real-time alerts for all account activities.
+- **Exchange Service**: Dedicated microservice for managing exchange rates.
+- **Exchange Generator**: Emits `exchange-rates` events every second via Kafka.
+- **Blocker Service**: Monitors transactions and blocks suspicious activity based on thresholds (e.g., transactions > 10,000 RUB).
+- **Notifications**: Kafka-backed real-time alerts for all account activities.
 
 ## 🚀 Quick Start (Kubernetes)
+
+### Fast path
+```bash
+chmod +x start.sh
+./start.sh   # starts Minikube (if needed), installs Kafka + topics, installs umbrella chart
+```
 
 ### Prerequisites
 - **Minikube** (or Kind/Colima)
@@ -40,52 +48,73 @@ This application supports complex banking operations including:
 - **Java 21** or higher
 - **Maven 3.9+**
 
-You can run start.sh or do it step by step:
-
-### 1. Start Minikube
+### Manual steps
+1) **Start Minikube**
 ```bash
 minikube start --cpus 4 --memory 8192
 minikube addons enable ingress
 ```
 
-### 2. Deploy with Helm (Umbrella Chart)
-This will deploy ALL microservices and databases at once.
-
+2) **Deploy Kafka (Bitnami, KRaft)**
 ```bash
-# Go to the helm directory
-cd helm/
-
-# Install the umbrella chart
-helm dependency update my-bank-app
-helm install my-bank-app ./my-bank-app
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+kubectl create namespace kafka --dry-run=client -o yaml | kubectl apply -f -
+helm upgrade --install kafka bitnami/kafka \
+  --version 30.1.5 \
+  -n kafka --create-namespace \
+  -f helm/kafka/values.yaml
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kafka -n kafka --timeout=300s
 ```
 
-### 3. Access the Application
-Get the URL for the Front UI:
+3) **Create Kafka topics** (if Jenkins pipeline is not run)
+```bash
+for topic in account-created account-updated deposit-completed withdrawal-completed \
+  transfer-initiated transfer-completed transfer-failed notification-event exchange-rates; do
+  kubectl exec -n kafka kafka-controller-0 -- \
+    kafka-topics.sh --create --if-not-exists --bootstrap-server localhost:9092 \
+    --topic "$topic" --partitions 3 --replication-factor 1 \
+    --config retention.ms=604800000 --config min.insync.replicas=1 || true
+done
+```
+
+4) **Deploy with Helm (Umbrella Chart)**
+This deploys all microservices and databases at once.
+```bash
+cd helm/
+helm dependency update my-bank-app
+helm upgrade --install my-bank-app ./my-bank-app \
+  --set global.kafka.bootstrapServers=kafka.kafka.svc.cluster.local:9092
+```
+
+5) **Access the application**
 ```bash
 # If using Minikube Tunnel (requires root):
 minikube tunnel
-# Access at http://bank.local (add to /etc/hosts: 127.0.0.1 bank.local)
+# Add to /etc/hosts: 127.0.0.1 bank.local
+# Access at http://bank.local
 
-# OR simply port-forward:
+# OR port-forward the front-end:
 kubectl port-forward svc/front-ui 8086:8086
 # Access at http://localhost:8086
 ```
 
 ### 📡 Kafka (Bitnami + Jenkins)
-- Kafka se despliega automáticamente en modo KRaft usando los valores de `helm/kafka/values.yaml` (test) y `helm/kafka/values-prod.yaml` (prod) desde los Jenkinsfiles (`helm/kafka/Jenkinsfile` y `Jenkinsfile` raíz).
-- Bootstrap interno para los servicios: `kafka.kafka.svc.cluster.local:9092`.
-- Tópicos creados por los pipelines:
-  - Test: particiones=3, replicación=1, `min.insync.replicas=1` para `account-created`, `account-updated`, `deposit-completed`, `withdrawal-completed`, `transfer-initiated`, `transfer-completed`, `transfer-failed`, `notification-event`, `exchange-rates`.
-  - Prod: particiones=6, replicación=3, `min.insync.replicas=2` para los mismos tópicos.
-- Despliegue rápido local:
+- Kafka is deployed in KRaft mode using `helm/kafka/values.yaml` (test) and `helm/kafka/values-prod.yaml` (prod) via Jenkins pipelines (`helm/kafka/Jenkinsfile` and root `Jenkinsfile`).
+- Bootstrap for services: `kafka.kafka.svc.cluster.local:9092`.
+- Topics created by pipelines:
+  - Test: partitions=3, replication=1, `min.insync.replicas=1` for `account-created`, `account-updated`, `deposit-completed`, `withdrawal-completed`, `transfer-initiated`, `transfer-completed`, `transfer-failed`, `notification-event`, `exchange-rates`.
+  - Prod: partitions=6, replication=3, `min.insync.replicas=2` for the same topics.
+- Quick local deploy:
   ```bash
   helm upgrade --install kafka bitnami/kafka -n kafka --create-namespace -f helm/kafka/values.yaml
-  # Producción: añade -f helm/kafka/values-prod.yaml
+  # Production: add -f helm/kafka/values-prod.yaml
   ```
-- Productores/consumidores clave:
-  - `exchange-generator-service`: productor idempotente (`acks=all`, reintentos y `enable.idempotence=true`) para el tópico `exchange-rates`.
-  - `exchange-service`: listener con `AckMode.MANUAL_IMMEDIATE`, se confirma después del procesamiento para evitar pérdida silenciosa de eventos inválidos.
+- Key producers/consumers:
+  - `exchange-generator-service`: idempotent producer (`acks=all`, retries, `enable.idempotence=true`) to `exchange-rates`.
+  - `exchange-service`: consumer with `AckMode.MANUAL_IMMEDIATE` for `exchange-rates`.
+  - `accounts-service`, `cash-service`, `transfer-service`: produce domain events for notifications and transfers.
+  - `notifications-service`: consumes account/transfer topics and `notification-event` with manual ack for at-least-once delivery.
 
 ## 🔐 Configuration & Secrets Management
 
@@ -159,39 +188,17 @@ helm install my-bank-app ./helm/my-bank-app \
   --set transfer-service.db.password=$TRANSFER_DB_PASSWORD
 ```
 
-#### Using External Secrets Operator (Production)
-For production environments, consider using:
-- **[External Secrets Operator](https://external-secrets.io/)**: Integrates with AWS Secrets Manager, Azure Key Vault, HashiCorp Vault, etc.
-- **[Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets)**: Encrypted secrets in Git
-- **[SOPS](https://github.com/getsops/sops)**: Secrets encrypted at rest in Git
-
-Example with External Secrets Operator:
-```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: accounts-service-db-secret
-spec:
-  secretStoreRef:
-    name: aws-secrets-manager
-    kind: SecretStore
-  target:
-    name: accounts-service-db-secret
-  data:
-    - secretKey: password
-      remoteRef:
-        key: prod/accounts-service/db-password
-```
 
 ## 🏗️ Architecture
 
-The architecture has been migrated from a Spring Cloud stack to a Kubernetes-native approach:
+The architecture has been migrated from a Spring Cloud stack to a Kubernetes-native, event-driven approach:
 
 | Component | v1.0 (Legacy) | v2.0 (Kubernetes) | Description |
 |-----------|---------------|-------------------|-------------|
 | **Service Discovery** | Netflix Eureka | Kubernetes DNS (Services) | Services find each other by K8s Service names (e.g., `http://accounts-service`) |
 | **Config Management** | Spring Cloud Config | ConfigMaps & Secrets | Configuration injected as env vars or files |
 | **Gateway** | Spring Cloud Gateway | Kubernetes Ingress / Gateway API | External access routing |
+| **Messaging** | N/A | Apache Kafka (KRaft) | Event backbone for accounts, cash, transfers, exchange rates, notifications |
 | **Database** | Docker Compose Service | Kubernetes StatefulSet | Persistent data storage |
 | **Deployment** | Docker Compose | Helm Charts | Infrastructure as Code |
 
@@ -209,7 +216,8 @@ my-bank-app/
 ├── notifications-service/      # User notifications
 ├── transfer-service/           # Money transfers logic
 ├── helm/                       # Helm Charts
-│   ├── my-bank-app/            # ☂️ Umbrella Chart
+│   ├── my-bank-app/            # Umbrella Chart
+│   ├── kafka/                  # Kafka values and Jenkinsfile
 │   ├── accounts-service/       # Individual Charts...
 │   ├── auth-server/
 │   ├── blocker-service/
@@ -219,7 +227,8 @@ my-bank-app/
 │   ├── front-ui/
 │   ├── notifications-service/
 │   └── transfer-service/
-├── Jenkinsfile                 # 🔄 Master CI/CD Pipeline
+├── start.sh                    # Local helper: Minikube + Kafka + Helm deploy
+├── Jenkinsfile                 # Master CI/CD Pipeline
 └── README.md                   # Documentation
 ```
 
@@ -233,17 +242,21 @@ Even though in Kubernetes services communicate via internal cluster IPs, the int
 | **Accounts** | 8081 | User & Multi-Currency Account Management |
 | **Cash** | 8082 | Cash Operations (Deposit/Withdraw) |
 | **Transfer** | 8083 | Money Transfers with Currency Conversion |
-| **Notifications** | 8084 | Notifications |
+| **Notifications** | 8081 | Kafka consumer; health/actuator only |
 | **Auth Server** | 8085 | OAuth2 Authentication |
 | **Front UI** | 8086 | Web Interface |
-| **Exchange** | 8087 | Currency Exchange Rates & Conversion |
-| **Exchange Generator** | 8088 | Automated Exchange Rate Generation |
+| **Exchange** | 8087 | Currency Exchange Rates & Conversion (Kafka consumer) |
+| **Exchange Generator** | 8088 | Automated Exchange Rate Generation (Kafka producer) |
 | **Blocker** | 8089 | Suspicious Transaction Detection |
+| **Kafka (internal)** | 9092 | Broker bootstrap (kafka.kafka.svc.cluster.local) |
 | **PostgreSQL** | 5432 | Database (Internal) |
 
 ## 🛠️ CI/CD with Jenkins
 
-This project includes `Jenkinsfile` for each microservice and a master `Jenkinsfile` for the whole project.
+This project includes `Jenkinsfile` for each microservice, a Kafka-specific pipeline (`helm/kafka/Jenkinsfile`), and a master `Jenkinsfile` for the whole project that:
+- Deploys Kafka (Bitnami, KRaft) and creates required topics.
+- Builds all services and Docker images.
+- Deploys the umbrella Helm chart to test/prod with `global.kafka.bootstrapServers` set to `kafka.kafka.svc.cluster.local:9092`.
 
 ### Setting up Jenkins in Minikube
 
@@ -270,11 +283,6 @@ This project includes `Jenkinsfile` for each microservice and a master `Jenkinsf
    - Definition: Pipeline script from SCM -> Git
    - Repository URL: (Your Git Repo URL)
    - Script Path: `Jenkinsfile` (for the umbrella project) or `accounts-service/Jenkinsfile` (for individual services).
-
-## 🧭 Flujo Git
-- Commits pequeños por cada cambio lógico; mensajes de una sola línea y descriptivos.
-- Preferir `rebase` sobre `merge` para mantener la historia lineal, salvo políticas explícitas de la rama objetivo.
-- Usar microcommits también en ajustes de infraestructura (Helm/Jenkins) y código de servicios.
 
 ## 👤 Test Users
 
