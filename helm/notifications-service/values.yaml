@@ -13,7 +13,10 @@ fullnameOverride: ""
 
 service:
   type: ClusterIP
-  port: 8084
+  port: 8081
+
+kafka:
+  bootstrapServers: kafka.kafka.svc.cluster.local:9092
 
 resources:
   limits:
@@ -39,6 +42,3 @@ db:
   persistence:
     size: 1Gi
     storageClass: standard
-
-auth:
-  issuerUri: http://my-bank-app-auth-server:8085

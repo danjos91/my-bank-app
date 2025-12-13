@@ -1,6 +1,8 @@
 spring:
   datasource:
     url: jdbc:postgresql://postgres:5432/bank_app_db
+  kafka:
+    bootstrap-servers: kafka.kafka.svc.cluster.local:9092
   security:
     oauth2:
       resourceserver:

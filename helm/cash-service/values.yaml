@@ -15,6 +15,9 @@ service:
   type: ClusterIP
   port: 8082
 
+kafka:
+  bootstrapServers: kafka.kafka.svc.cluster.local:9092
+
 resources:
   limits:
     cpu: 500m

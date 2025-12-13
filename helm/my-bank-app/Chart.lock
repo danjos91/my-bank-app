@@ -26,5 +26,8 @@ dependencies:
 - name: transfer-service
   repository: file://../transfer-service
   version: 0.1.0
-digest: sha256:f13d55586bd338fb183b9854c0774043583fb56576eb4a713fa97d4d3e152ebc
-generated: "2025-12-05T18:21:11.152545636+03:00"
+- name: kafka
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 30.1.5
+digest: sha256:5d07238b1f3cc83e08f4897ae6c22edf31846fd83483ec520421182f2442d64b
+generated: "2025-12-12T01:38:04.970838463+03:00"

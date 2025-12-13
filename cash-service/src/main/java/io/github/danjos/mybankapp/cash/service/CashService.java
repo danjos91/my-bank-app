@@ -1,9 +1,8 @@
 package io.github.danjos.mybankapp.cash.service;
 
 import io.github.danjos.mybankapp.cash.client.AccountsClient;
-import io.github.danjos.mybankapp.cash.client.NotificationsClient;
+import io.github.danjos.mybankapp.cash.kafka.KafkaNotificationProducer;
 import io.github.danjos.mybankapp.cash.dto.CashTransactionDTO;
-import io.github.danjos.mybankapp.cash.dto.CreateNotificationDTO;
 import io.github.danjos.mybankapp.cash.dto.DepositRequestDTO;
 import io.github.danjos.mybankapp.cash.dto.WithdrawalRequestDTO;
 import io.github.danjos.mybankapp.cash.entity.CashTransaction;
@@ -29,7 +28,7 @@ public class CashService {
     
     private final CashTransactionRepository cashTransactionRepository;
     private final AccountsClient accountsClient;
-    private final NotificationsClient notificationsClient;
+    private final KafkaNotificationProducer kafkaNotificationProducer;
     private final io.github.danjos.mybankapp.cash.client.BlockerClient blockerClient;
     
     public CashTransactionDTO deposit(DepositRequestDTO depositRequest) {
@@ -66,7 +65,7 @@ public class CashService {
             accountsClient.addToAccountBalance(depositRequest.getAccountId(), depositRequest.getAmount());
             
             // Send notification
-            sendDepositNotification(account.getUserId(), depositRequest.getAmount());
+            sendDepositNotification(account.getUserId(), depositRequest.getAccountId(), depositRequest.getAmount(), currency);
             
             log.info("Deposit successful for account {}: {}", depositRequest.getAccountId(), depositRequest.getAmount());
             return convertToDTO(savedTransaction);
@@ -117,7 +116,7 @@ public class CashService {
             accountsClient.subtractFromAccountBalance(withdrawalRequest.getAccountId(), withdrawalRequest.getAmount());
             
             // Send notification
-            sendWithdrawalNotification(account.getUserId(), withdrawalRequest.getAmount());
+            sendWithdrawalNotification(account.getUserId(), withdrawalRequest.getAccountId(), withdrawalRequest.getAmount(), currency);
             
             log.info("Withdrawal successful for account {}: {}", withdrawalRequest.getAccountId(), withdrawalRequest.getAmount());
             return convertToDTO(savedTransaction);
@@ -175,31 +174,17 @@ public class CashService {
                 .collect(Collectors.toList());
     }
     
-    private void sendDepositNotification(Long userId, BigDecimal amount) {
+    private void sendDepositNotification(Long userId, Long accountId, BigDecimal amount, String currency) {
         try {
-            CreateNotificationDTO notification = CreateNotificationDTO.builder()
-                    .userId(userId)
-                    .type("DEPOSIT_SUCCESS")
-                    .title("Deposit Successful")
-                    .message("Deposit of " + amount + " has been processed successfully")
-                    .build();
-            
-            notificationsClient.createNotification(notification);
+            kafkaNotificationProducer.publishDepositCompletedEvent(userId, accountId.toString(), amount, currency);
         } catch (Exception e) {
             log.warn("Failed to send deposit notification: {}", e.getMessage());
         }
     }
     
-    private void sendWithdrawalNotification(Long userId, BigDecimal amount) {
+    private void sendWithdrawalNotification(Long userId, Long accountId, BigDecimal amount, String currency) {
         try {
-            CreateNotificationDTO notification = CreateNotificationDTO.builder()
-                    .userId(userId)
-                    .type("WITHDRAWAL_SUCCESS")
-                    .title("Withdrawal Successful")
-                    .message("Withdrawal of " + amount + " has been processed successfully")
-                    .build();
-            
-            notificationsClient.createNotification(notification);
+            kafkaNotificationProducer.publishWithdrawalCompletedEvent(userId, accountId.toString(), amount, currency);
         } catch (Exception e) {
             log.warn("Failed to send withdrawal notification: {}", e.getMessage());
         }

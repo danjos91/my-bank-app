@@ -17,4 +17,16 @@ spring:
             user-info-uri: http://my-bank-app-auth-server:8085/userinfo
 
 gateway:
-  url: http://bank.local
+  # Using accounts service directly (legacy code reads gateway.url for service calls)
+  url: http://my-bank-app-accounts-service:8081
+
+# Internal service endpoints used by BankService
+services:
+  accounts:
+    url: http://my-bank-app-accounts-service:8081
+  cash:
+    url: http://my-bank-app-cash-service:8082
+  transfer:
+    url: http://my-bank-app-transfer-service:8083
+  exchange:
+    url: http://my-bank-app-exchange-service:8087

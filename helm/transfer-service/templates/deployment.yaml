@@ -25,6 +25,8 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "docker"
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.kafka.bootstrapServers | quote }}
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://{{ include "transfer-service.fullname" . }}-db:5432/{{ .Values.db.database }}"
             - name: SPRING_DATASOURCE_USERNAME
@@ -36,5 +38,9 @@ spec:
                   key: password
             - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
               value: {{ .Values.auth.issuerUri }}
+            - name: SERVICES_ACCOUNTS_URL
+              value: {{ .Values.services.accounts | default "http://my-bank-app-accounts-service:8081" }}
+            - name: SERVICES_EXCHANGE_URL
+              value: {{ .Values.services.exchange | default "http://my-bank-app-exchange-service:8087" }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

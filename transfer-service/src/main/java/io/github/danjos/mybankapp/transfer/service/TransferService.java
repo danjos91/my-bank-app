@@ -2,11 +2,10 @@ package io.github.danjos.mybankapp.transfer.service;
 
 import io.github.danjos.mybankapp.transfer.client.AccountsClient;
 import io.github.danjos.mybankapp.transfer.client.ExchangeClient;
-import io.github.danjos.mybankapp.transfer.client.NotificationsClient;
+import io.github.danjos.mybankapp.transfer.kafka.KafkaNotificationProducer;
 import io.github.danjos.mybankapp.transfer.dto.AccountDTO;
 import io.github.danjos.mybankapp.transfer.dto.ConversionRequestDTO;
 import io.github.danjos.mybankapp.transfer.dto.ConversionResponseDTO;
-import io.github.danjos.mybankapp.transfer.dto.CreateNotificationDTO;
 import io.github.danjos.mybankapp.transfer.dto.TransferDTO;
 import io.github.danjos.mybankapp.transfer.dto.TransferRequestDTO;
 import io.github.danjos.mybankapp.transfer.entity.Currency;
@@ -34,7 +33,7 @@ public class TransferService {
     private final TransferRepository transferRepository;
     private final AccountsClient accountsClient;
     private final ExchangeClient exchangeClient;
-    private final NotificationsClient notificationsClient;
+    private final KafkaNotificationProducer kafkaNotificationProducer;
     private final io.github.danjos.mybankapp.transfer.client.BlockerClient blockerClient;
     
     @Transactional
@@ -227,36 +226,23 @@ public class TransferService {
     private void createTransferNotifications(Transfer transfer, Long fromUserId, Long toUserId) {
         try {
             // Notification for sender
-            String senderMessage = String.format("You sent %.2f %s to account %d", 
-                    transfer.getAmount(), transfer.getFromCurrency(), transfer.getToAccountId());
-            if (transfer.getConvertedAmount() != null && !transfer.getFromCurrency().equals(transfer.getToCurrency())) {
-                senderMessage += String.format(" (%.2f %s)", transfer.getConvertedAmount(), transfer.getToCurrency());
-            }
-            CreateNotificationDTO senderNotification = CreateNotificationDTO.builder()
-                    .userId(fromUserId)
-                    .type("TRANSFER_SENT")
-                    .title("Transfer Sent")
-                    .message(senderMessage)
-                    .build();
-            notificationsClient.createNotification(senderNotification);
+            kafkaNotificationProducer.publishTransferCompletedEvent(
+                    fromUserId,
+                    transfer.getAmount(),
+                    transfer.getFromCurrency().name(),
+                    transfer.getToAccountId().toString()
+            );
             
             // Notification for receiver
             BigDecimal receivedAmount = transfer.getConvertedAmount() != null 
                     ? transfer.getConvertedAmount() 
                     : transfer.getAmount();
-            Currency receivedCurrency = transfer.getToCurrency();
-            String receiverMessage = String.format("You received %.2f %s from account %d", 
-                    receivedAmount, receivedCurrency, transfer.getFromAccountId());
-            if (transfer.getConvertedAmount() != null && !transfer.getFromCurrency().equals(transfer.getToCurrency())) {
-                receiverMessage += String.format(" (%.2f %s)", transfer.getAmount(), transfer.getFromCurrency());
-            }
-            CreateNotificationDTO receiverNotification = CreateNotificationDTO.builder()
-                    .userId(toUserId)
-                    .type("TRANSFER_RECEIVED")
-                    .title("Transfer Received")
-                    .message(receiverMessage)
-                    .build();
-            notificationsClient.createNotification(receiverNotification);
+            kafkaNotificationProducer.publishTransferReceivedEvent(
+                    toUserId,
+                    receivedAmount,
+                    transfer.getToCurrency().name(),
+                    transfer.getFromAccountId().toString()
+            );
             
         } catch (Exception e) {
             log.warn("Failed to create transfer notifications: {}", e.getMessage());

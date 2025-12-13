@@ -1,12 +1,13 @@
 package io.github.danjos.mybankapp.cash.service;
 
 import io.github.danjos.mybankapp.cash.client.AccountsClient;
-import io.github.danjos.mybankapp.cash.client.NotificationsClient;
+import io.github.danjos.mybankapp.cash.client.BlockerClient;
+import io.github.danjos.mybankapp.cash.kafka.KafkaNotificationProducer;
 import io.github.danjos.mybankapp.cash.dto.AccountDTO;
 import io.github.danjos.mybankapp.cash.dto.CashTransactionDTO;
-import io.github.danjos.mybankapp.cash.dto.CreateNotificationDTO;
 import io.github.danjos.mybankapp.cash.dto.DepositRequestDTO;
 import io.github.danjos.mybankapp.cash.dto.WithdrawalRequestDTO;
+import io.github.danjos.mybankapp.cash.dto.BlockResponseDTO;
 import io.github.danjos.mybankapp.cash.entity.CashTransaction;
 import io.github.danjos.mybankapp.cash.entity.Currency;
 import io.github.danjos.mybankapp.cash.repository.CashTransactionRepository;
@@ -30,7 +31,9 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class CashServiceTest {
@@ -42,7 +45,10 @@ class CashServiceTest {
     private AccountsClient accountsClient;
 
     @Mock
-    private NotificationsClient notificationsClient;
+    private KafkaNotificationProducer kafkaNotificationProducer;
+
+    @Mock
+    private BlockerClient blockerClient;
 
     @InjectMocks
     private CashService cashService;
@@ -73,6 +79,12 @@ class CashServiceTest {
                 .description("Test deposit")
                 .timestamp(LocalDateTime.now())
                 .build();
+
+        BlockResponseDTO approvedResponse = BlockResponseDTO.builder()
+                .decision(BlockResponseDTO.Decision.APPROVED)
+                .build();
+        lenient().when(blockerClient.checkTransaction(any(BigDecimal.class), anyString()))
+                .thenReturn(approvedResponse);
     }
 
     @Test
@@ -90,7 +102,7 @@ class CashServiceTest {
         when(accountsClient.getAccount(1L)).thenReturn(accountDTO);
         when(cashTransactionRepository.save(any(CashTransaction.class))).thenReturn(testTransaction);
         doNothing().when(accountsClient).addToAccountBalance(anyLong(), any(BigDecimal.class));
-        doNothing().when(notificationsClient).createNotification(any(CreateNotificationDTO.class));
+        doNothing().when(kafkaNotificationProducer).publishDepositCompletedEvent(anyLong(), anyString(), any(), anyString());
 
         // When
         CashTransactionDTO result = cashService.deposit(depositRequest);
@@ -103,7 +115,7 @@ class CashServiceTest {
         assertEquals(CashTransaction.TransactionType.DEPOSIT, result.getTransactionType());
         verify(cashTransactionRepository).save(any(CashTransaction.class));
         verify(accountsClient).addToAccountBalance(1L, new BigDecimal("100.00"));
-        verify(notificationsClient).createNotification(any(CreateNotificationDTO.class));
+        verify(kafkaNotificationProducer).publishDepositCompletedEvent(anyLong(), anyString(), any(), anyString());
     }
 
     @Test
@@ -146,7 +158,7 @@ class CashServiceTest {
         when(accountsClient.getAccount(1L)).thenReturn(accountDTO);
         when(cashTransactionRepository.save(any(CashTransaction.class))).thenReturn(testTransaction);
         doNothing().when(accountsClient).subtractFromAccountBalance(anyLong(), any(BigDecimal.class));
-        doNothing().when(notificationsClient).createNotification(any(CreateNotificationDTO.class));
+        doNothing().when(kafkaNotificationProducer).publishWithdrawalCompletedEvent(anyLong(), anyString(), any(), anyString());
 
         // When
         CashTransactionDTO result = cashService.withdraw(withdrawalRequest);
@@ -156,7 +168,7 @@ class CashServiceTest {
         verify(accountsClient).getAccount(1L);
         verify(cashTransactionRepository).save(any(CashTransaction.class));
         verify(accountsClient).subtractFromAccountBalance(1L, new BigDecimal("50.00"));
-        verify(notificationsClient).createNotification(any(CreateNotificationDTO.class));
+        verify(kafkaNotificationProducer).publishWithdrawalCompletedEvent(anyLong(), anyString(), any(), anyString());
     }
 
     @Test

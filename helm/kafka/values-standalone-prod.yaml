@@ -1,0 +1,16 @@
+replicaCount: 3
+image:
+  registry: docker.io
+  repository: bitnamilegacy/kafka
+  tag: "4.0.0-debian-12-r10"
+  pullPolicy: IfNotPresent
+auth:
+  interBrokerProtocol: "plaintext"
+listeners:
+  client:
+    protocol: "PLAINTEXT"
+kraft:
+  enabled: true
+persistence:
+  enabled: true
+  size: 50Gi

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import io.github.danjos.mybankapp.accounts.kafka.KafkaNotificationProducer;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,7 +51,7 @@ class AccountServiceIntegrationTest {
     private UserRepository userRepository;
 
     @MockBean
-    private io.github.danjos.mybankapp.accounts.client.NotificationsClient notificationsClient;
+    private KafkaNotificationProducer kafkaNotificationProducer;
 
     private User testUser;
 

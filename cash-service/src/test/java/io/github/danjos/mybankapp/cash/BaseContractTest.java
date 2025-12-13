@@ -1,8 +1,10 @@
 package io.github.danjos.mybankapp.cash;
 
 import io.github.danjos.mybankapp.cash.client.AccountsClient;
-import io.github.danjos.mybankapp.cash.client.NotificationsClient;
+import io.github.danjos.mybankapp.cash.client.BlockerClient;
+import io.github.danjos.mybankapp.cash.kafka.KafkaNotificationProducer;
 import io.github.danjos.mybankapp.cash.dto.AccountDTO;
+import io.github.danjos.mybankapp.cash.dto.BlockResponseDTO;
 import io.github.danjos.mybankapp.cash.entity.CashTransaction;
 import io.github.danjos.mybankapp.cash.entity.Currency;
 import io.github.danjos.mybankapp.cash.repository.CashTransactionRepository;
@@ -24,6 +26,7 @@ import java.time.LocalDateTime;
 import static io.restassured.module.mockmvc.RestAssuredMockMvc.mockMvc;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
@@ -51,7 +54,10 @@ public abstract class BaseContractTest {
     protected AccountsClient accountsClient;
 
     @MockBean
-    protected NotificationsClient notificationsClient;
+    protected KafkaNotificationProducer kafkaNotificationProducer;
+
+    @MockBean
+    protected BlockerClient blockerClient;
 
     protected CashTransaction testTransaction;
 
@@ -76,7 +82,12 @@ public abstract class BaseContractTest {
         when(accountsClient.getAccountBalance(anyLong())).thenReturn(new BigDecimal("1000.00"));
         doNothing().when(accountsClient).addToAccountBalance(anyLong(), any(BigDecimal.class));
         doNothing().when(accountsClient).subtractFromAccountBalance(anyLong(), any(BigDecimal.class));
-        doNothing().when(notificationsClient).createNotification(any());
+        doNothing().when(kafkaNotificationProducer).publishDepositCompletedEvent(anyLong(), anyString(), any(), anyString());
+        doNothing().when(kafkaNotificationProducer).publishWithdrawalCompletedEvent(anyLong(), anyString(), any(), anyString());
+        when(blockerClient.checkTransaction(any(BigDecimal.class), anyString()))
+                .thenReturn(BlockResponseDTO.builder()
+                        .decision(BlockResponseDTO.Decision.APPROVED)
+                        .build());
 
         // Clean up before each test
         cashTransactionRepository.deleteAll();

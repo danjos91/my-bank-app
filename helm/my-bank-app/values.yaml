@@ -51,10 +51,35 @@ front-ui:
   auth:
     serverUrl: http://my-bank-app-auth-server:8085
   env:
-    gatewayUrl: "http://ingress-nginx-controller.ingress-nginx.svc.cluster.local"
+    # Legacy BankService uses gateway.url for accounts; point it to accounts service
+    gatewayUrl: "http://my-bank-app-accounts-service:8081"
+  services:
+    accounts: http://my-bank-app-accounts-service:8081
+    cash: http://my-bank-app-cash-service:8082
+    transfer: http://my-bank-app-transfer-service:8083
+    exchange: http://my-bank-app-exchange-service:8087
 
 notifications-service:
   replicaCount: 1
 
 transfer-service:
   replicaCount: 1
+
+kafka:
+  enabled: true
+  replicaCount: 1
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/kafka
+    tag: "4.0.0-debian-12-r10"
+    pullPolicy: IfNotPresent
+  auth:
+    interBrokerProtocol: "plaintext"
+  listeners:
+    client:
+      protocol: "PLAINTEXT"
+  kraft:
+    enabled: true
+  persistence:
+    enabled: true
+    size: 1Gi

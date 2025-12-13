@@ -1,7 +1,6 @@
 package io.github.danjos.mybankapp.accounts.service;
 
-import io.github.danjos.mybankapp.accounts.client.NotificationsClient;
-import io.github.danjos.mybankapp.accounts.dto.CreateNotificationDTO;
+import io.github.danjos.mybankapp.accounts.kafka.KafkaNotificationProducer;
 import io.github.danjos.mybankapp.accounts.dto.AccountDTO;
 import io.github.danjos.mybankapp.accounts.entity.Account;
 import io.github.danjos.mybankapp.accounts.entity.Currency;
@@ -32,7 +31,7 @@ public class AccountService {
     private UserRepository userRepository;
     
     @Autowired
-    private NotificationsClient notificationsClient;
+    private KafkaNotificationProducer kafkaNotificationProducer;
     
     public Account createAccount(Long userId) {
         return createAccount(userId, Currency.RUB);
@@ -54,16 +53,13 @@ public class AccountService {
                 .build();
         Account savedAccount = accountRepository.save(account);
         
-        // Send notification
+        // Send notification via Kafka
         try {
-            CreateNotificationDTO notification = CreateNotificationDTO.builder()
-                    .userId(userId)
-                    .type("ACCOUNT_CREATED")
-                    .notificationType("INFO")
-                    .title("Account Created")
-                    .message("Your new account in " + currency + " has been successfully created.")
-                    .build();
-            notificationsClient.createNotification(notification);
+            kafkaNotificationProducer.publishAccountCreatedEvent(
+                    userId,
+                    savedAccount.getId().toString(),
+                    currency.name()
+            );
         } catch (Exception e) {
             // Log error but don't fail transaction
             log.warn("Failed to send notification for user {}: {}", userId, e.getMessage());

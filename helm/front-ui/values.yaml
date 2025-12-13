@@ -18,7 +18,11 @@ service:
 ingress:
   enabled: true
   className: ""
-  annotations: {}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
   hosts:
     - host: bank-app.local
       paths:
@@ -35,6 +39,13 @@ resources:
 
 auth:
   serverUrl: http://my-bank-app-auth-server:8085
+
+# Internal service URLs (used by BankService)
+services:
+  accounts: http://my-bank-app-accounts-service:8081
+  cash: http://my-bank-app-cash-service:8082
+  transfer: http://my-bank-app-transfer-service:8083
+  exchange: http://my-bank-app-exchange-service:8087
 
 # DB config for session or small data (Front UI connects to DB in code but usually for session/user data?)
 # Based on application.yml it connects to DB. Assuming shared accounts DB or its own.
