@@ -1,6 +1,7 @@
 package io.github.danjos.mybankapp.frontui.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpRequest;
@@ -13,23 +14,23 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
-import java.util.Collections;
 
 @Configuration
 @Slf4j
 public class RestTemplateConfig {
 
     @Bean
-    public RestTemplate restTemplate() {
-        RestTemplate restTemplate = new RestTemplate();
-        restTemplate.setInterceptors(Collections.singletonList(new OAuth2TokenInterceptor()));
-        return restTemplate;
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        // Use RestTemplateBuilder to preserve auto-configured interceptors (including tracing)
+        return builder
+                .additionalInterceptors(new OAuth2TokenInterceptor())
+                .build();
     }
     
     @Bean("tokenRestTemplate")
-    public RestTemplate tokenRestTemplate() {
-        // RestTemplate without interceptor for OAuth2 token requests
-        return new RestTemplate();
+    public RestTemplate tokenRestTemplate(RestTemplateBuilder builder) {
+        // RestTemplate without OAuth2 interceptor for token requests, but still with tracing
+        return builder.build();
     }
 
     private static class OAuth2TokenInterceptor implements ClientHttpRequestInterceptor {
