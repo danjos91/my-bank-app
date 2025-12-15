@@ -100,6 +100,43 @@ kubectl port-forward svc/front-ui 8086:8086
 # Access at http://localhost:8086
 ```
 
+## 📈 Observability (Zipkin, Prometheus, Grafana, ELK)
+
+- **Deploy via Jenkins**: Root `Jenkinsfile` and `helm/kafka/Jenkinsfile` now include stages `Deploy Observability Stack` (test) and a gated stage for prod.
+- **Manual deploy with Helm (Bitnami charts + custom values):**
+  ```bash
+  # Namespace is created automatically by Jenkins; create if running manually
+  kubectl create namespace observability --dry-run=client -o yaml | kubectl apply -f -
+
+  helm upgrade --install zipkin oci://registry-1.docker.io/bitnamicharts/zipkin \
+    --version 5.0.4 -n observability -f helm/observability/values-zipkin.yaml
+  helm upgrade --install prometheus oci://registry-1.docker.io/bitnamicharts/prometheus \
+    --version 24.6.0 -n observability -f helm/observability/values-prometheus.yaml
+  helm upgrade --install elasticsearch oci://registry-1.docker.io/bitnamicharts/elasticsearch \
+    --version 21.2.8 -n observability -f helm/observability/values-elasticsearch.yaml
+  helm upgrade --install logstash oci://registry-1.docker.io/bitnamicharts/logstash \
+    --version 8.4.2 -n observability -f helm/observability/values-logstash.yaml
+  helm upgrade --install kibana oci://registry-1.docker.io/bitnamicharts/kibana \
+    --version 16.5.5 -n observability -f helm/observability/values-kibana.yaml
+  helm upgrade --install grafana oci://registry-1.docker.io/bitnamicharts/grafana \
+    --version 8.5.8 -n observability -f helm/observability/values-grafana.yaml
+  ```
+- **Access UIs (port-forward):**
+  ```bash
+  kubectl -n observability port-forward svc/zipkin 9411:9411      # Zipkin UI
+  kubectl -n observability port-forward svc/prometheus-server 9090:80   # Prometheus
+  kubectl -n observability port-forward svc/grafana 3000:80      # Grafana (admin/admin123)
+  kubectl -n observability port-forward svc/kibana 5601:5601     # Kibana
+  ```
+- **Dashboards & alerts**: Grafana values provision dashboards for Spring Boot, JVM, and custom HTTP metrics; Prometheus values ship alert rules (`HighErrorRate`, `HighJvmMemory`, `SlowHttpLatency`).
+- **Service instrumentation**: All services include Actuator + Micrometer tracing (Brave) + Zipkin reporter + Prometheus registry. Metrics endpoint: `/actuator/prometheus`. Traces go to `http://zipkin.observability.svc.cluster.local:9411/api/v2/spans` (override with `MANAGEMENT_ZIPKIN_TRACING_ENDPOINT`). Logs are sent to Kafka topic `service-logs` via Logback Kafka appender and collected by Logstash → Elasticsearch → Kibana.
+- **Local dev hints**: Export env vars when running locally:
+  ```bash
+  export MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://localhost:9411/api/v2/spans
+  export LOGS_BOOTSTRAP_SERVERS=localhost:9092
+  export LOGS_TOPIC=service-logs
+  ```
+
 ### 📡 Kafka (Bitnami + Jenkins)
 - Kafka is deployed in KRaft mode using `helm/kafka/values.yaml` (test) and `helm/kafka/values-prod.yaml` (prod) via Jenkins pipelines (`helm/kafka/Jenkinsfile` and root `Jenkinsfile`).
 - Bootstrap for services: `kafka.kafka.svc.cluster.local:9092`.
