@@ -54,6 +54,8 @@ spec:
               value: {{ .Values.global.logging.topic | default "service-logs" | quote }}
             - name: MANAGEMENT_METRICS_TAGS_APPLICATION
               value: {{ .Chart.Name | quote }}
+            - name: MANAGEMENT_METRICS_TAGS_ENVIRONMENT
+              value: {{ .Values.global.env | default "dev" | quote }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
 
