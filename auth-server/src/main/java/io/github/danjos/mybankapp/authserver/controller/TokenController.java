@@ -2,6 +2,7 @@ package io.github.danjos.mybankapp.authserver.controller;
 
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import io.github.danjos.mybankapp.authserver.metrics.AuthMetrics;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -35,15 +36,18 @@ public class TokenController {
     private final JwtEncoder jwtEncoder;
     private final JWKSource<SecurityContext> jwkSource;
     private final String issuer;
+    private final AuthMetrics authMetrics;
 
     public TokenController(AuthenticationManager authenticationManager,
                            JwtEncoder jwtEncoder,
                            JWKSource<SecurityContext> jwkSource,
-                           @Value("${spring.security.oauth2.authorization-server.issuer:http://my-bank-app-auth-server:8085}") String issuer) {
+                           @Value("${spring.security.oauth2.authorization-server.issuer:http://my-bank-app-auth-server:8085}") String issuer,
+                           AuthMetrics authMetrics) {
         this.authenticationManager = authenticationManager;
         this.jwtEncoder = jwtEncoder;
         this.jwkSource = jwkSource;
         this.issuer = issuer;
+        this.authMetrics = authMetrics;
     }
 
     @PostMapping(value = "/token", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -54,6 +58,7 @@ public class TokenController {
             @RequestParam(value = "scope", required = false) String scope) {
         
         if (!"password".equals(grantType)) {
+            authMetrics.recordFailedLoginUnsupportedGrantType();
             Map<String, Object> error = new HashMap<>();
             error.put("error", "unsupported_grant_type");
             error.put("error_description", "Only 'password' grant type is supported");
@@ -93,13 +98,24 @@ public class TokenController {
             response.put("expires_in", 3600);
             response.put("scope", StringUtils.hasText(scope) ? scope : "read write");
 
+            // Record successful login
+            authMetrics.recordSuccessfulLogin();
+            
             return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.severe("Error generating token for user: " + username + " - " + e.getMessage());
+        } catch (org.springframework.security.core.AuthenticationException e) {
+            log.severe("Authentication failed for user: " + username + " - " + e.getMessage());
+            authMetrics.recordFailedLoginInvalidCredentials();
             Map<String, Object> error = new HashMap<>();
             error.put("error", "invalid_grant");
             error.put("error_description", "Invalid username or password");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        } catch (Exception e) {
+            log.severe("Error generating token for user: " + username + " - " + e.getMessage());
+            authMetrics.recordFailedLoginUnknownError();
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "server_error");
+            error.put("error_description", "An unexpected error occurred");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 }
