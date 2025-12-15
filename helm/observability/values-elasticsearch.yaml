@@ -1,0 +1,24 @@
+master:
+  replicaCount: 1
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+data:
+  replicaCount: 0
+
+ingest:
+  replicaCount: 0
+
+coordinating:
+  replicaCount: 0
+
+networkHost: "0.0.0.0"
+
+

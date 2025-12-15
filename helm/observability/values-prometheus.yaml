@@ -1,0 +1,73 @@
+service:
+  type: ClusterIP
+
+server:
+  global:
+    scrape_interval: 15s
+    evaluation_interval: 15s
+  extraScrapeConfigs: |
+    - job_name: 'kubernetes-pods'
+      kubernetes_sd_configs:
+        - role: pod
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          target_label: __address__
+          regex: (.+);(.+)
+          replacement: $1:$2
+  service:
+    type: ClusterIP
+  persistentVolume:
+    enabled: false
+  podAnnotations: {}
+  resources:
+    limits:
+      cpu: 400m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+alertmanager:
+  enabled: true
+  persistence:
+    enabled: false
+
+serverFiles:
+  alerts:
+    groups:
+      - name: app-alerts
+        rules:
+          - alert: HighErrorRate
+            expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.1
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "HTTP 5xx rate is high"
+              description: "More than 10% of requests are failing over 5 minutes."
+          - alert: HighJvmMemory
+            expr: (jvm_memory_used_bytes{area=\"heap\"} / jvm_memory_max_bytes{area=\"heap\"}) > 0.8
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "JVM heap usage high"
+              description: "Heap usage above 80% for 2 minutes."
+          - alert: SlowHttpLatency
+            expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 2
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High p95 latency"
+              description: "p95 HTTP latency above 2s for 5 minutes."
+
+

@@ -11,6 +11,31 @@ pipeline {
         KAFKA_VERSION = '30.1.5'
         KAFKA_VALUES = 'helm/kafka/values-standalone.yaml'
         KAFKA_VALUES_PROD = 'helm/kafka/values-standalone-prod.yaml'
+        OBS_NAMESPACE = 'observability'
+        OBS_NAMESPACE_PROD = 'observability-prod'
+        ZIPKIN_RELEASE_NAME = 'zipkin'
+        ZIPKIN_CHART = 'oci://registry-1.docker.io/bitnamicharts/zipkin'
+        ZIPKIN_VERSION = '5.0.4'
+        PROM_RELEASE_NAME = 'prometheus'
+        PROM_CHART = 'oci://registry-1.docker.io/bitnamicharts/prometheus'
+        PROM_VERSION = '24.6.0'
+        PROM_VALUES = 'helm/observability/values-prometheus.yaml'
+        GRAFANA_RELEASE_NAME = 'grafana'
+        GRAFANA_CHART = 'oci://registry-1.docker.io/bitnamicharts/grafana'
+        GRAFANA_VERSION = '8.5.8'
+        GRAFANA_VALUES = 'helm/observability/values-grafana.yaml'
+        ELASTIC_RELEASE_NAME = 'elasticsearch'
+        ELASTIC_CHART = 'oci://registry-1.docker.io/bitnamicharts/elasticsearch'
+        ELASTIC_VERSION = '21.2.8'
+        ELASTIC_VALUES = 'helm/observability/values-elasticsearch.yaml'
+        LOGSTASH_RELEASE_NAME = 'logstash'
+        LOGSTASH_CHART = 'oci://registry-1.docker.io/bitnamicharts/logstash'
+        LOGSTASH_VERSION = '8.4.2'
+        LOGSTASH_VALUES = 'helm/observability/values-logstash.yaml'
+        KIBANA_RELEASE_NAME = 'kibana'
+        KIBANA_CHART = 'oci://registry-1.docker.io/bitnamicharts/kibana'
+        KIBANA_VERSION = '16.5.5'
+        KIBANA_VALUES = 'helm/observability/values-kibana.yaml'
     }
 
     stages {
@@ -81,6 +106,59 @@ pipeline {
                     sh """
                         kubectl exec -n ${KAFKA_NAMESPACE} \$(kubectl get pod -n ${KAFKA_NAMESPACE} -l app.kubernetes.io/name=kafka,app.kubernetes.io/instance=${KAFKA_RELEASE_NAME} -o jsonpath='{.items[0].metadata.name}') -- \\
                         kafka-topics.sh --list --bootstrap-server localhost:9092
+                    """
+                }
+            }
+        }
+
+        stage('Deploy Observability Stack') {
+            steps {
+                echo 'Deploying Zipkin, Prometheus, Grafana and ELK...'
+                script {
+                    sh """
+                        kubectl create namespace ${OBS_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                        helm upgrade --install ${ZIPKIN_RELEASE_NAME} ${ZIPKIN_CHART} \
+                        --version ${ZIPKIN_VERSION} \
+                        --namespace ${OBS_NAMESPACE} \
+                        --create-namespace \
+                        -f helm/observability/values-zipkin.yaml \
+                        --wait \
+                        --timeout 10m
+                        helm upgrade --install ${PROM_RELEASE_NAME} ${PROM_CHART} \
+                        --version ${PROM_VERSION} \
+                        --namespace ${OBS_NAMESPACE} \
+                        --create-namespace \
+                        -f ${PROM_VALUES} \
+                        --wait \
+                        --timeout 10m
+                        helm upgrade --install ${ELASTIC_RELEASE_NAME} ${ELASTIC_CHART} \
+                        --version ${ELASTIC_VERSION} \
+                        --namespace ${OBS_NAMESPACE} \
+                        --create-namespace \
+                        -f ${ELASTIC_VALUES} \
+                        --wait \
+                        --timeout 10m
+                        helm upgrade --install ${LOGSTASH_RELEASE_NAME} ${LOGSTASH_CHART} \
+                        --version ${LOGSTASH_VERSION} \
+                        --namespace ${OBS_NAMESPACE} \
+                        --create-namespace \
+                        -f ${LOGSTASH_VALUES} \
+                        --wait \
+                        --timeout 10m
+                        helm upgrade --install ${KIBANA_RELEASE_NAME} ${KIBANA_CHART} \
+                        --version ${KIBANA_VERSION} \
+                        --namespace ${OBS_NAMESPACE} \
+                        --create-namespace \
+                        -f ${KIBANA_VALUES} \
+                        --wait \
+                        --timeout 10m
+                        helm upgrade --install ${GRAFANA_RELEASE_NAME} ${GRAFANA_CHART} \
+                        --version ${GRAFANA_VERSION} \
+                        --namespace ${OBS_NAMESPACE} \
+                        --create-namespace \
+                        -f ${GRAFANA_VALUES} \
+                        --wait \
+                        --timeout 10m
                     """
                 }
             }
@@ -181,6 +259,63 @@ pipeline {
                     }
                     
                     echo 'Production Kafka deployment completed!'
+                }
+            }
+        }
+
+        stage('Deploy Observability Stack to Prod') {
+            input {
+                message "Deploy Observability Stack to Production?"
+                ok "Yes, deploy"
+            }
+            steps {
+                echo 'Deploying observability stack to Production...'
+                script {
+                    sh """
+                        kubectl create namespace ${OBS_NAMESPACE_PROD} --dry-run=client -o yaml | kubectl apply -f -
+                        helm upgrade --install ${ZIPKIN_RELEASE_NAME} ${ZIPKIN_CHART} \
+                        --version ${ZIPKIN_VERSION} \
+                        --namespace ${OBS_NAMESPACE_PROD} \
+                        --create-namespace \
+                        -f helm/observability/values-zipkin.yaml \
+                        --wait \
+                        --timeout 15m
+                        helm upgrade --install ${PROM_RELEASE_NAME} ${PROM_CHART} \
+                        --version ${PROM_VERSION} \
+                        --namespace ${OBS_NAMESPACE_PROD} \
+                        --create-namespace \
+                        -f ${PROM_VALUES} \
+                        --wait \
+                        --timeout 15m
+                        helm upgrade --install ${ELASTIC_RELEASE_NAME} ${ELASTIC_CHART} \
+                        --version ${ELASTIC_VERSION} \
+                        --namespace ${OBS_NAMESPACE_PROD} \
+                        --create-namespace \
+                        -f ${ELASTIC_VALUES} \
+                        --wait \
+                        --timeout 15m
+                        helm upgrade --install ${LOGSTASH_RELEASE_NAME} ${LOGSTASH_CHART} \
+                        --version ${LOGSTASH_VERSION} \
+                        --namespace ${OBS_NAMESPACE_PROD} \
+                        --create-namespace \
+                        -f ${LOGSTASH_VALUES} \
+                        --wait \
+                        --timeout 15m
+                        helm upgrade --install ${KIBANA_RELEASE_NAME} ${KIBANA_CHART} \
+                        --version ${KIBANA_VERSION} \
+                        --namespace ${OBS_NAMESPACE_PROD} \
+                        --create-namespace \
+                        -f ${KIBANA_VALUES} \
+                        --wait \
+                        --timeout 15m
+                        helm upgrade --install ${GRAFANA_RELEASE_NAME} ${GRAFANA_CHART} \
+                        --version ${GRAFANA_VERSION} \
+                        --namespace ${OBS_NAMESPACE_PROD} \
+                        --create-namespace \
+                        -f ${GRAFANA_VALUES} \
+                        --wait \
+                        --timeout 15m
+                    """
                 }
             }
         }

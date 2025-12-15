@@ -1,0 +1,33 @@
+service:
+  type: ClusterIP
+
+logstashPipeline:
+  service-logs.conf: |
+    input {
+      kafka {
+        bootstrap_servers => "kafka.kafka.svc.cluster.local:9092"
+        topics => ["service-logs"]
+        group_id => "logstash-service-logs"
+        auto_offset_reset => "latest"
+      }
+    }
+    filter {
+      json { source => "message" }
+    }
+    output {
+      elasticsearch {
+        hosts => ["http://elasticsearch-master.observability.svc.cluster.local:9200"]
+        index => "service-logs-%{+YYYY.MM.dd}"
+      }
+      stdout { codec => rubydebug }
+    }
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 512Mi
+
+

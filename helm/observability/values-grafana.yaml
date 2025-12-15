@@ -1,0 +1,147 @@
+admin:
+  user: admin
+  password: admin123
+
+service:
+  type: ClusterIP
+
+datasources:
+  secretDefinition: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-server.observability.svc.cluster.local
+        isDefault: true
+      - name: Elasticsearch
+        type: elasticsearch
+        url: http://elasticsearch-master.observability.svc.cluster.local:9200
+        access: proxy
+        jsonData:
+          esVersion: 8
+          timeField: "@timestamp"
+
+dashboardsProvider:
+  enabled: true
+  configMaps:
+    - grafana-dashboards
+
+extraDeploy:
+  - |
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: grafana-dashboards
+      labels:
+        grafana_dashboard: "1"
+    data:
+      spring-boot.json: |-
+        {
+          "id": null,
+          "uid": "spring-boot-app",
+          "title": "Spring Boot Overview",
+          "schemaVersion": 39,
+          "version": 1,
+          "panels": [
+            {
+              "type": "graph",
+              "title": "HTTP 5xx rate",
+              "targets": [
+                {
+                  "expr": "rate(http_server_requests_seconds_count{status=~\\\"5..\\\"}[5m])",
+                  "legendFormat": "5xx rate",
+                  "datasource": "Prometheus"
+                }
+              ],
+              "lines": true,
+              "linewidth": 2,
+              "nullPointMode": "null as zero",
+              "fill": 1
+            },
+            {
+              "type": "graph",
+              "title": "HTTP p95 latency (s)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))",
+                  "legendFormat": "p95",
+                  "datasource": "Prometheus"
+                }
+              ],
+              "lines": true,
+              "linewidth": 2,
+              "nullPointMode": "null as zero",
+              "fill": 1
+            },
+            {
+              "type": "stat",
+              "title": "Active requests",
+              "targets": [
+                {
+                  "expr": "sum(http_server_requests_seconds_active_count)",
+                  "datasource": "Prometheus"
+                }
+              ]
+            }
+          ]
+        }
+      jvm.json: |-
+        {
+          "id": null,
+          "uid": "jvm-metrics",
+          "title": "JVM Metrics",
+          "schemaVersion": 39,
+          "version": 1,
+          "panels": [
+            {
+              "type": "graph",
+              "title": "Heap usage",
+              "targets": [
+                {
+                  "expr": "jvm_memory_used_bytes{area=\\\"heap\\\"}",
+                  "legendFormat": "used",
+                  "datasource": "Prometheus"
+                },
+                {
+                  "expr": "jvm_memory_max_bytes{area=\\\"heap\\\"}",
+                  "legendFormat": "max",
+                  "datasource": "Prometheus"
+                }
+              ],
+              "lines": true
+            },
+            {
+              "type": "graph",
+              "title": "GC pause p95 (s)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, rate(jvm_gc_pause_seconds_bucket[5m]))",
+                  "legendFormat": "p95",
+                  "datasource": "Prometheus"
+                }
+              ],
+              "lines": true
+            },
+            {
+              "type": "stat",
+              "title": "Threads live",
+              "targets": [
+                {
+                  "expr": "jvm_threads_live_threads",
+                  "datasource": "Prometheus"
+                }
+              ]
+            }
+          ]
+        }
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+
