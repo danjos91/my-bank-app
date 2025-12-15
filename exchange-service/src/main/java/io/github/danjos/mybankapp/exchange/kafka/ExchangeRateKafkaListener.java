@@ -2,6 +2,7 @@ package io.github.danjos.mybankapp.exchange.kafka;
 
 import io.github.danjos.mybankapp.exchange.dto.UpdateRateRequestDTO;
 import io.github.danjos.mybankapp.exchange.entity.Currency;
+import io.github.danjos.mybankapp.exchange.metrics.ExchangeMetrics;
 import io.github.danjos.mybankapp.exchange.service.ExchangeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Component;
 public class ExchangeRateKafkaListener {
 
     private final ExchangeService exchangeService;
+    private final ExchangeMetrics exchangeMetrics;
 
     @Value("${kafka.topics.exchange-rates:exchange-rates}")
     private String exchangeRatesTopic;
@@ -44,6 +46,7 @@ public class ExchangeRateKafkaListener {
 
             if (event.getCurrency() == null || event.getBuyRate() == null || event.getSellRate() == null) {
                 log.error("Invalid exchange rate event, missing fields. eventId={}", event.getEventId());
+                exchangeMetrics.recordInvalidRateEvent();
                 ack.acknowledge();
                 return;
             }
@@ -53,6 +56,7 @@ public class ExchangeRateKafkaListener {
                 currency = Currency.valueOf(event.getCurrency());
             } catch (IllegalArgumentException e) {
                 log.error("Unknown currency '{}' in eventId={}", event.getCurrency(), event.getEventId());
+                exchangeMetrics.recordInvalidRateEvent();
                 ack.acknowledge();
                 return;
             }
@@ -69,6 +73,7 @@ public class ExchangeRateKafkaListener {
         } catch (Exception e) {
             log.error("Failed to process exchange rate event. topic={}, eventId={}, error={}",
                     topic, event.getEventId(), e.getMessage(), e);
+            exchangeMetrics.recordMissingRateEvent();
             throw e;
         }
     }

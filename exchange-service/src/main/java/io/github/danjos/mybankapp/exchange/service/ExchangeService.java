@@ -6,6 +6,7 @@ import io.github.danjos.mybankapp.exchange.dto.ExchangeRateDTO;
 import io.github.danjos.mybankapp.exchange.dto.UpdateRateRequestDTO;
 import io.github.danjos.mybankapp.exchange.entity.Currency;
 import io.github.danjos.mybankapp.exchange.entity.ExchangeRate;
+import io.github.danjos.mybankapp.exchange.metrics.ExchangeMetrics;
 import io.github.danjos.mybankapp.exchange.repository.ExchangeRateRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 public class ExchangeService {
     
     private final ExchangeRateRepository exchangeRateRepository;
+    private final ExchangeMetrics exchangeMetrics;
     
     @Transactional(readOnly = true)
     public List<ExchangeRateDTO> getAllRates() {
@@ -41,25 +43,31 @@ public class ExchangeService {
     }
     
     public ExchangeRateDTO updateRate(UpdateRateRequestDTO request) {
-        Optional<ExchangeRate> existingRate = exchangeRateRepository.findByCurrency(request.getCurrency());
-        
-        ExchangeRate rate;
-        if (existingRate.isPresent()) {
-            rate = existingRate.get();
-            rate.setBuyRate(request.getBuyRate());
-            rate.setSellRate(request.getSellRate());
-        } else {
-            rate = ExchangeRate.builder()
-                    .currency(request.getCurrency())
-                    .buyRate(request.getBuyRate())
-                    .sellRate(request.getSellRate())
-                    .build();
-        }
-        
-        rate = exchangeRateRepository.save(rate);
-        log.info("Updated exchange rate for {}: buy={}, sell={}", 
-                request.getCurrency(), request.getBuyRate(), request.getSellRate());
-        return convertToDTO(rate);
+        return exchangeMetrics.getRateUpdateTimer().record(() -> {
+            Optional<ExchangeRate> existingRate = exchangeRateRepository.findByCurrency(request.getCurrency());
+            
+            ExchangeRate rate;
+            if (existingRate.isPresent()) {
+                rate = existingRate.get();
+                rate.setBuyRate(request.getBuyRate());
+                rate.setSellRate(request.getSellRate());
+            } else {
+                rate = ExchangeRate.builder()
+                        .currency(request.getCurrency())
+                        .buyRate(request.getBuyRate())
+                        .sellRate(request.getSellRate())
+                        .build();
+            }
+            
+            rate = exchangeRateRepository.save(rate);
+            
+            // Record successful update
+            exchangeMetrics.recordRateUpdate(request.getCurrency());
+            
+            log.info("Updated exchange rate for {}: buy={}, sell={}", 
+                    request.getCurrency(), request.getBuyRate(), request.getSellRate());
+            return convertToDTO(rate);
+        });
     }
     
     public ConversionResponseDTO convert(ConversionRequestDTO request) {
