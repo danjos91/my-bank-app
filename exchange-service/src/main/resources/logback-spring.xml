@@ -1,0 +1,22 @@
+<configuration>
+    <springProperty scope="context" name="LOGS_BOOTSTRAP_SERVERS" source="LOGS_BOOTSTRAP_SERVERS" defaultValue="kafka.kafka.svc.cluster.local:9092"/>
+    <springProperty scope="context" name="LOGS_TOPIC" source="LOGS_TOPIC" defaultValue="service-logs"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="KAFKA" class="com.github.danielwegener.logback.kafka.KafkaAppender">
+        <topic>${LOGS_TOPIC}</topic>
+        <producerConfig>bootstrap.servers=${LOGS_BOOTSTRAP_SERVERS}</producerConfig>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="KAFKA"/>
+    </root>
+</configuration>
+
