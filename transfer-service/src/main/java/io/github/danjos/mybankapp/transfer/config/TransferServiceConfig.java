@@ -3,6 +3,7 @@ package io.github.danjos.mybankapp.transfer.config;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.timelimiter.TimeLimiterConfig;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JCircuitBreakerFactory;
 import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JConfigBuilder;
 import org.springframework.cloud.client.circuitbreaker.Customizer;
@@ -22,17 +23,17 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Collections;
 
 @Configuration
 @Slf4j
 public class TransferServiceConfig {
 
     @Bean
-    public RestTemplate restTemplate() {
-        RestTemplate restTemplate = new RestTemplate();
-        restTemplate.setInterceptors(Collections.singletonList(new JwtTokenInterceptor()));
-        return restTemplate;
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        // Use RestTemplateBuilder to preserve auto-configured interceptors (including tracing)
+        return builder
+                .additionalInterceptors(new JwtTokenInterceptor())
+                .build();
     }
 
     @Bean
