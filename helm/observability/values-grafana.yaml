@@ -135,6 +135,142 @@ extraDeploy:
             }
           ]
         }
+      business-metrics.json: |-
+        {
+          "id": null,
+          "uid": "business-metrics",
+          "title": "Business Metrics",
+          "schemaVersion": 39,
+          "version": 1,
+          "panels": [
+            {
+              "type": "graph",
+              "title": "Login Success/Failure Rate",
+              "targets": [
+                {
+                  "expr": "rate(auth_login_success_total[5m])",
+                  "legendFormat": "Success",
+                  "datasource": "Prometheus"
+                },
+                {
+                  "expr": "sum(rate(auth_login_failed_total[5m])) by (reason)",
+                  "legendFormat": "Failed - {{reason}}",
+                  "datasource": "Prometheus"
+                }
+              ],
+              "lines": true,
+              "linewidth": 2,
+              "fill": 1
+            },
+            {
+              "type": "graph",
+              "title": "Transfer Volume by Currency",
+              "targets": [
+                {
+                  "expr": "sum(transfer_amount_sum) by (currency)",
+                  "legendFormat": "{{currency}}",
+                  "datasource": "Prometheus"
+                }
+              ],
+              "lines": true,
+              "linewidth": 2,
+              "fill": 1
+            },
+            {
+              "type": "graph",
+              "title": "Blocked Operations Over Time",
+              "targets": [
+                {
+                  "expr": "rate(blocker_operations_blocked_total[5m])",
+                  "legendFormat": "Blocked",
+                  "datasource": "Prometheus"
+                },
+                {
+                  "expr": "rate(blocker_operations_approved_total[5m])",
+                  "legendFormat": "Approved",
+                  "datasource": "Prometheus"
+                }
+              ],
+              "lines": true,
+              "linewidth": 2,
+              "fill": 1
+            },
+            {
+              "type": "stat",
+              "title": "Total Transfers",
+              "targets": [
+                {
+                  "expr": "transfer_total_total",
+                  "datasource": "Prometheus"
+                }
+              ]
+            },
+            {
+              "type": "stat",
+              "title": "Failed Transfers",
+              "targets": [
+                {
+                  "expr": "sum(transfer_failed_total)",
+                  "datasource": "Prometheus"
+                }
+              ]
+            },
+            {
+              "type": "stat",
+              "title": "Suspicious Operations",
+              "targets": [
+                {
+                  "expr": "transfer_suspicious_total",
+                  "datasource": "Prometheus"
+                }
+              ]
+            },
+            {
+              "type": "graph",
+              "title": "Exchange Rate Update Health",
+              "targets": [
+                {
+                  "expr": "rate(exchange_rate_updates_total[5m])",
+                  "legendFormat": "Updates",
+                  "datasource": "Prometheus"
+                },
+                {
+                  "expr": "rate(exchange_rate_missing_total[5m])",
+                  "legendFormat": "Missing",
+                  "datasource": "Prometheus"
+                },
+                {
+                  "expr": "rate(exchange_rate_invalid_total[5m])",
+                  "legendFormat": "Invalid",
+                  "datasource": "Prometheus"
+                }
+              ],
+              "lines": true,
+              "linewidth": 2,
+              "fill": 1
+            },
+            {
+              "type": "stat",
+              "title": "Currency Availability (USD)",
+              "targets": [
+                {
+                  "expr": "exchange_currency_available{currency=\\\"USD\\\"}",
+                  "datasource": "Prometheus"
+                }
+              ]
+            },
+            {
+              "type": "stat",
+              "title": "Currency Availability (CNY)",
+              "targets": [
+                {
+                  "expr": "exchange_currency_available{currency=\\\"CNY\\\"}",
+                  "datasource": "Prometheus"
+                }
+              ]
+            }
+          ]
+        }
 
 resources:
   limits:
