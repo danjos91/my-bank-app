@@ -10,6 +10,7 @@ import io.github.danjos.mybankapp.transfer.dto.TransferDTO;
 import io.github.danjos.mybankapp.transfer.dto.TransferRequestDTO;
 import io.github.danjos.mybankapp.transfer.entity.Currency;
 import io.github.danjos.mybankapp.transfer.entity.Transfer;
+import io.github.danjos.mybankapp.transfer.metrics.TransferMetrics;
 import io.github.danjos.mybankapp.transfer.repository.TransferRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -35,6 +36,7 @@ public class TransferService {
     private final ExchangeClient exchangeClient;
     private final KafkaNotificationProducer kafkaNotificationProducer;
     private final io.github.danjos.mybankapp.transfer.client.BlockerClient blockerClient;
+    private final TransferMetrics transferMetrics;
     
     @Transactional
     @CircuitBreaker(name = "transfer-service", fallbackMethod = "createTransferFallback")
@@ -42,6 +44,9 @@ public class TransferService {
     public TransferDTO createTransfer(TransferRequestDTO requestDTO) {
         log.info("Creating transfer from account {} to account {} for amount {}", 
                 requestDTO.getFromAccountId(), requestDTO.getToAccountId(), requestDTO.getAmount());
+        
+        // Record transfer attempt
+        transferMetrics.recordTransferAttempt();
         
         // Validate transfer request
         if (!requestDTO.isValidTransfer()) {
@@ -53,10 +58,12 @@ public class TransferService {
         AccountDTO toAccount = accountsClient.getAccount(requestDTO.getToAccountId());
         
         if (fromAccount == null) {
+            transferMetrics.recordFailedTransferAccountNotFound();
             throw new IllegalArgumentException("From account does not exist");
         }
         
         if (toAccount == null) {
+            transferMetrics.recordFailedTransferAccountNotFound();
             throw new IllegalArgumentException("To account does not exist");
         }
         
@@ -66,6 +73,7 @@ public class TransferService {
         
         // Check if sender has sufficient balance
         if (fromAccount.getBalance().compareTo(requestDTO.getAmount()) < 0) {
+            transferMetrics.recordFailedTransferInsufficientBalance();
             throw new IllegalArgumentException("Insufficient balance for transfer");
         }
         
@@ -90,8 +98,12 @@ public class TransferService {
                     blockerClient.checkTransaction(requestDTO.getAmount(), fromCurrency.name());
             if (blockResponse != null && blockResponse.getDecision() == 
                     io.github.danjos.mybankapp.transfer.dto.BlockResponseDTO.Decision.BLOCKED) {
+                transferMetrics.recordFailedTransferBlocked();
                 throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
             }
+        } catch (IllegalArgumentException e) {
+            // Re-throw blocked transactions
+            throw e;
         } catch (Exception e) {
             log.warn("Blocker service check failed, proceeding with transfer: {}", e.getMessage());
             // Continue with transfer if blocker is unavailable (fallback behavior)
@@ -120,6 +132,9 @@ public class TransferService {
             transfer.markAsCompleted();
             transfer = transferRepository.save(transfer);
             
+            // Record successful transfer with metrics
+            transferMetrics.recordCompletedTransfer(requestDTO.getAmount(), fromCurrency);
+            
             // Create notifications
             createTransferNotifications(transfer, fromAccount.getUserId(), toAccount.getUserId());
             
@@ -130,6 +145,7 @@ public class TransferService {
             log.error("Error executing transfer: {}", e.getMessage());
             transfer.markAsFailed();
             transfer = transferRepository.save(transfer);
+            transferMetrics.recordFailedTransferUnknownError();
             throw new RuntimeException("Transfer failed: " + e.getMessage());
         }
     }
