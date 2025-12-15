@@ -5,6 +5,15 @@ global:
   env: dev
   image:
     pullPolicy: Never
+  kafka:
+    bootstrapServers: kafka.kafka.svc.cluster.local:9092
+  tracing:
+    zipkinEndpoint: http://zipkin.observability.svc.cluster.local:9411/api/v2/spans
+  logging:
+    bootstrapServers: kafka.kafka.svc.cluster.local:9092
+    topic: service-logs
+  metrics:
+    prometheusPath: /actuator/prometheus
 
 accounts-service:
   replicaCount: 1

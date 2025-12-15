@@ -13,6 +13,10 @@ spec:
     metadata:
       labels:
         {{- include "exchange-generator-service.selectorLabels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: {{ .Values.global.metrics.prometheusPath | default "/actuator/prometheus" | quote }}
+        prometheus.io/port: {{ .Values.service.port | quote }}
     spec:
       containers:
         - name: {{ .Chart.Name }}
@@ -44,5 +48,17 @@ spec:
               value: '{"spring": {"config": {"import": "optional:file:./"}}}'
             - name: SPRING_CLOUD_CONFIG_URI
               value: ""
+            - name: MANAGEMENT_ZIPKIN_TRACING_ENDPOINT
+              value: {{ .Values.global.tracing.zipkinEndpoint | default "http://zipkin.observability.svc.cluster.local:9411/api/v2/spans" | quote }}
+            - name: MANAGEMENT_TRACING_SAMPLING_PROBABILITY
+              value: "1.0"
+            - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+              value: "health,info,metrics,prometheus"
+            - name: LOGS_BOOTSTRAP_SERVERS
+              value: {{ .Values.global.logging.bootstrapServers | default "kafka.kafka.svc.cluster.local:9092" | quote }}
+            - name: LOGS_TOPIC
+              value: {{ .Values.global.logging.topic | default "service-logs" | quote }}
+            - name: MANAGEMENT_METRICS_TAGS_APPLICATION
+              value: {{ .Chart.Name | quote }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
