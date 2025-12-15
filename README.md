@@ -69,7 +69,7 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kafka -n kafka 
 3) **Create Kafka topics** (if Jenkins pipeline is not run)
 ```bash
 for topic in account-created account-updated deposit-completed withdrawal-completed \
-  transfer-initiated transfer-completed transfer-failed notification-event exchange-rates; do
+  transfer-initiated transfer-completed transfer-failed notification-event exchange-rates service-logs; do
   kubectl exec -n kafka $(kubectl get pod -n kafka -l app.kubernetes.io/name=kafka,app.kubernetes.io/instance=kafka -o jsonpath='{.items[0].metadata.name}') -- \
     kafka-topics.sh --create --if-not-exists --bootstrap-server localhost:9092 \
     --topic "$topic" --partitions 3 --replication-factor 1 \
@@ -141,7 +141,7 @@ kubectl port-forward svc/front-ui 8086:8086
 - Kafka is deployed in KRaft mode using `helm/kafka/values.yaml` (test) and `helm/kafka/values-prod.yaml` (prod) via Jenkins pipelines (`helm/kafka/Jenkinsfile` and root `Jenkinsfile`).
 - Bootstrap for services: `kafka.kafka.svc.cluster.local:9092`.
 - Topics created by pipelines:
-  - Test: partitions=3, replication=1, `min.insync.replicas=1` for `account-created`, `account-updated`, `deposit-completed`, `withdrawal-completed`, `transfer-initiated`, `transfer-completed`, `transfer-failed`, `notification-event`, `exchange-rates`.
+  - Test: partitions=3, replication=1, `min.insync.replicas=1` for `account-created`, `account-updated`, `deposit-completed`, `withdrawal-completed`, `transfer-initiated`, `transfer-completed`, `transfer-failed`, `notification-event`, `exchange-rates`, `service-logs`.
   - Prod: partitions=6, replication=3, `min.insync.replicas=2` for the same topics.
 - Quick local deploy:
   ```bash

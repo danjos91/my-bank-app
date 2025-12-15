@@ -82,7 +82,8 @@ pipeline {
                         [name: 'transfer-completed', partitions: 3, rf: 1, minInsync: 1],
                         [name: 'transfer-failed', partitions: 3, rf: 1, minInsync: 1],
                         [name: 'notification-event', partitions: 3, rf: 1, minInsync: 1],
-                        [name: 'exchange-rates', partitions: 3, rf: 1, minInsync: 1]
+                        [name: 'exchange-rates', partitions: 3, rf: 1, minInsync: 1],
+                        [name: 'service-logs', partitions: 3, rf: 1, minInsync: 1]
                     ]
                     
                     // Wait a bit to ensure Kafka is fully ready
@@ -239,7 +240,8 @@ pipeline {
                         [name: 'transfer-completed', partitions: 6, rf: 3, minInsync: 2],
                         [name: 'transfer-failed', partitions: 6, rf: 3, minInsync: 2],
                         [name: 'notification-event', partitions: 6, rf: 3, minInsync: 2],
-                        [name: 'exchange-rates', partitions: 6, rf: 3, minInsync: 2]
+                        [name: 'exchange-rates', partitions: 6, rf: 3, minInsync: 2],
+                        [name: 'service-logs', partitions: 6, rf: 3, minInsync: 2]
                     ]
                     
                     sh 'sleep 20'

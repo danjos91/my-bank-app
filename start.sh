@@ -23,6 +23,7 @@ KAFKA_TOPICS=(
   "transfer-failed"
   "notification-event"
   "exchange-rates"
+  "service-logs"
 )
 
 # 1. Check/Start Minikube
