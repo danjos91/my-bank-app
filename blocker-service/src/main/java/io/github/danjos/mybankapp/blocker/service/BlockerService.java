@@ -7,6 +7,7 @@ import io.github.danjos.mybankapp.blocker.dto.ConversionRequestDTO;
 import io.github.danjos.mybankapp.blocker.dto.ConversionResponseDTO;
 import io.github.danjos.mybankapp.blocker.entity.BlockedTransaction;
 import io.github.danjos.mybankapp.blocker.entity.Currency;
+import io.github.danjos.mybankapp.blocker.metrics.BlockerMetrics;
 import io.github.danjos.mybankapp.blocker.repository.BlockedTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ public class BlockerService {
     
     private final BlockedTransactionRepository repository;
     private final ExchangeClient exchangeClient;
+    private final BlockerMetrics blockerMetrics;
     
     @Value("${blocker.threshold.amount:10000}")
     private BigDecimal thresholdAmount;
@@ -66,6 +68,13 @@ public class BlockerService {
                 .build();
         
         transaction = repository.save(transaction);
+        
+        // Record metrics
+        if (isBlocked) {
+            blockerMetrics.recordBlockedOperation(request.getAmount(), request.getCurrency());
+        } else {
+            blockerMetrics.recordApprovedOperation();
+        }
         
         log.info("Transaction decision: {} - {}", decision, reason);
         
