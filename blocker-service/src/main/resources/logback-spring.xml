@@ -12,8 +12,10 @@
     <appender name="KAFKA" class="com.github.danielwegener.logback.kafka.KafkaAppender">
         <topic>${LOGS_TOPIC}</topic>
         <producerConfig>bootstrap.servers=${LOGS_BOOTSTRAP_SERVERS}</producerConfig>
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <customFields>{"environment":"${APP_ENVIRONMENT}"}</customFields>
+        <encoder class="com.github.danielwegener.logback.kafka.encoding.LayoutKafkaMessageEncoder">
+            <layout class="net.logstash.logback.layout.LogstashLayout">
+                <customFields>{"environment":"${APP_ENVIRONMENT}"}</customFields>
+            </layout>
         </encoder>
     </appender>
 
