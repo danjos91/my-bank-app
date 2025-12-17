@@ -13,8 +13,19 @@
     <description>Notifications Service - User notifications and logging</description>
 
     <dependencies>
-        <!-- Removed spring-boot-starter-web - no longer exposing REST endpoints -->
-        <!-- Notifications now consumed via Kafka only -->
+        <!-- Spring Web needed for contract tests -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-resource-server</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
