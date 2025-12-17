@@ -16,7 +16,10 @@ public class TokenEndpointSecurityConfig {
     @Order(-100)
     public SecurityFilterChain tokenSecurityFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher(new AntPathRequestMatcher("/auth/token", "POST"))
+                .securityMatcher(request ->
+                        new AntPathRequestMatcher("/auth/token", "POST").matches(request) ||
+                        new AntPathRequestMatcher("/actuator/**").matches(request)
+                )
                 .csrf(csrf -> csrf.disable())
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .formLogin(form -> form.disable())

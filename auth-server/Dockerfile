@@ -8,6 +8,9 @@ WORKDIR /app
 COPY pom.xml .
 COPY auth-server/pom.xml ./auth-server/
 
+# Install parent pom first (critical for dependency resolution)
+RUN mvn install -N -B
+
 # Download dependencies (this layer will be cached if pom.xml doesn't change)
 RUN mvn dependency:go-offline -B -f auth-server/pom.xml
 

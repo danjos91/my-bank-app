@@ -8,6 +8,9 @@ WORKDIR /app
 COPY pom.xml .
 COPY cash-service/pom.xml ./cash-service/
 
+# Install parent pom first (critical for dependency resolution)
+RUN mvn install -N -B
+
 # Download dependencies (this layer will be cached if pom.xml doesn't change)
 RUN mvn dependency:go-offline -B -f cash-service/pom.xml
 

@@ -47,7 +47,7 @@ spec:
             - name: MANAGEMENT_TRACING_SAMPLING_PROBABILITY
               value: "1.0"
             - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
-              value: "health,info,metrics,prometheus"
+              value: "*"
             - name: LOGS_BOOTSTRAP_SERVERS
               value: {{ .Values.global.logging.bootstrapServers | default "kafka.kafka.svc.cluster.local:9092" | quote }}
             - name: LOGS_TOPIC

@@ -19,6 +19,7 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/transfers/health").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .anyRequest().authenticated()

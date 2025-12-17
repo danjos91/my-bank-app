@@ -8,6 +8,9 @@ WORKDIR /app
 COPY pom.xml .
 COPY transfer-service/pom.xml ./transfer-service/
 
+# Install parent pom first (critical for dependency resolution)
+RUN mvn install -N -B
+
 # Download dependencies (this layer will be cached if pom.xml doesn't change)
 RUN mvn dependency:go-offline -B -f transfer-service/pom.xml
 
