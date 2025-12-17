@@ -6,30 +6,21 @@ spring:
     config:
       enabled: false
   datasource:
-    url: jdbc:postgresql://localhost:5432/testdb
-    username: test
-    password: test
-    driver-class-name: org.postgresql.Driver
-    initialization-mode: always
-    schema: classpath:schema.sql
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
   sql:
     init:
-      mode: always
-      schema-locations: classpath:schema.sql
+      mode: never
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: create-drop
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        default_schema: notifications_schema
-    hbm2ddl:
-      create_namespaces: true
-  test:
-    database:
-      replace: none
+        dialect: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.H2Dialect
 eureka:
   client:
     enabled: false
