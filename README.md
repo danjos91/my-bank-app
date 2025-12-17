@@ -227,20 +227,6 @@ helm install my-bank-app ./helm/my-bank-app \
   --set transfer-service.db.password=$TRANSFER_DB_PASSWORD
 ```
 
-
-## 🏗️ Architecture
-
-The architecture has been migrated from a Spring Cloud stack to a Kubernetes-native, event-driven approach:
-
-| Component | v1.0 (Legacy) | v2.0 (Kubernetes) | Description |
-|-----------|---------------|-------------------|-------------|
-| **Service Discovery** | Netflix Eureka | Kubernetes DNS (Services) | Services find each other by K8s Service names (e.g., `http://accounts-service`) |
-| **Config Management** | Spring Cloud Config | ConfigMaps & Secrets | Configuration injected as env vars or files |
-| **Gateway** | Spring Cloud Gateway | Kubernetes Ingress / Gateway API | External access routing |
-| **Messaging** | N/A | Apache Kafka (KRaft) | Event backbone for accounts, cash, transfers, exchange rates, notifications |
-| **Database** | Docker Compose Service | Kubernetes StatefulSet | Persistent data storage |
-| **Deployment** | Docker Compose | Helm Charts | Infrastructure as Code |
-
 ### 📂 Project Structure
 
 ```
