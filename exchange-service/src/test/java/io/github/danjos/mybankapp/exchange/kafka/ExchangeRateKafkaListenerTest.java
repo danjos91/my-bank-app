@@ -37,6 +37,9 @@ class ExchangeRateKafkaListenerTest {
     @MockBean
     private ExchangeService exchangeService;
 
+    @MockBean
+    private io.github.danjos.mybankapp.exchange.metrics.ExchangeMetrics exchangeMetrics;
+
     @Test
     void shouldConsumeExchangeRateEventAndUpdateRate() throws Exception {
         ExchangeRateEvent event = ExchangeRateEvent.builder()
