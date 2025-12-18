@@ -23,7 +23,7 @@ public class AccountMetrics {
     private final Counter accountCreationFailedUnknownError;
     private final Counter balanceAddOperationsCounter;
     private final Counter balanceSubtractOperationsCounter;
-    private final Map<Currency, DistributionSummary> balanceAmountByCurrency;
+    private final Map<String, DistributionSummary> balanceAmountByCurrency;
     private final MeterRegistry meterRegistry;
 
     public AccountMetrics(MeterRegistry meterRegistry) {
