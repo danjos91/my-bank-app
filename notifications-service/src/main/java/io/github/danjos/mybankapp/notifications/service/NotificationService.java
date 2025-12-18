@@ -3,6 +3,7 @@ package io.github.danjos.mybankapp.notifications.service;
 import io.github.danjos.mybankapp.notifications.dto.CreateNotificationDTO;
 import io.github.danjos.mybankapp.notifications.dto.NotificationDTO;
 import io.github.danjos.mybankapp.notifications.entity.Notification;
+import io.github.danjos.mybankapp.notifications.metrics.NotificationMetrics;
 import io.github.danjos.mybankapp.notifications.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,18 +22,29 @@ import java.util.stream.Collectors;
 public class NotificationService {
     
     private final NotificationRepository notificationRepository;
+    private final NotificationMetrics notificationMetrics;
     
     public NotificationDTO createNotification(CreateNotificationDTO createDTO) {
-        Notification notification = Notification.builder()
-                .userId(createDTO.getUserId())
-                .notificationType(createDTO.getNotificationType())
-                .title(createDTO.getTitle())
-                .message(createDTO.getMessage())
-                .isRead(false)
-                .build();
-        
-        Notification savedNotification = notificationRepository.save(notification);
-        return convertToDTO(savedNotification);
+        try {
+            Notification notification = Notification.builder()
+                    .userId(createDTO.getUserId())
+                    .notificationType(createDTO.getNotificationType())
+                    .title(createDTO.getTitle())
+                    .message(createDTO.getMessage())
+                    .isRead(false)
+                    .build();
+            
+            Notification savedNotification = notificationRepository.save(notification);
+            
+            // Record successful notification
+            notificationMetrics.recordNotificationSent(createDTO.getNotificationType());
+            
+            return convertToDTO(savedNotification);
+        } catch (Exception e) {
+            // Record failed notification
+            notificationMetrics.recordNotificationFailed();
+            throw e;
+        }
     }
     
     public NotificationDTO createNotification(Long userId, Notification.NotificationType type, String title, String message) {
