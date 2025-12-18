@@ -100,42 +100,163 @@ kubectl port-forward svc/front-ui 8086:8086
 # Access at http://localhost:8086
 ```
 
-## 📈 Observability (Zipkin, Prometheus, Grafana, ELK)
+## 📈 Observability Stack
 
-- **Deploy via Jenkins**: Root `Jenkinsfile` and `helm/kafka/Jenkinsfile` now include stages `Deploy Observability Stack` (test) and a gated stage for prod.
-- **Manual deploy with Helm (Bitnami charts + custom values):**
-  ```bash
-  # Namespace is created automatically by Jenkins; create if running manually
-  kubectl create namespace observability --dry-run=client -o yaml | kubectl apply -f -
+The application includes a complete observability stack for monitoring, tracing, and logging:
 
-  helm upgrade --install zipkin oci://registry-1.docker.io/bitnamicharts/zipkin \
-    --version 5.0.4 -n observability -f helm/observability/values-zipkin.yaml
-  helm upgrade --install prometheus oci://registry-1.docker.io/bitnamicharts/prometheus \
-    --version 24.6.0 -n observability -f helm/observability/values-prometheus.yaml
-  helm upgrade --install elasticsearch oci://registry-1.docker.io/bitnamicharts/elasticsearch \
-    --version 21.2.8 -n observability -f helm/observability/values-elasticsearch.yaml
-  helm upgrade --install logstash oci://registry-1.docker.io/bitnamicharts/logstash \
-    --version 8.4.2 -n observability -f helm/observability/values-logstash.yaml
-  helm upgrade --install kibana oci://registry-1.docker.io/bitnamicharts/kibana \
-    --version 16.5.5 -n observability -f helm/observability/values-kibana.yaml
-  helm upgrade --install grafana oci://registry-1.docker.io/bitnamicharts/grafana \
-    --version 8.5.8 -n observability -f helm/observability/values-grafana.yaml
-  ```
-- **Access UIs (port-forward):**
-  ```bash
-  kubectl -n observability port-forward svc/zipkin 9411:9411      # Zipkin UI
-  kubectl -n observability port-forward svc/prometheus-server 9090:80   # Prometheus
-  kubectl -n observability port-forward svc/grafana 3000:80      # Grafana (admin/admin123)
-  kubectl -n observability port-forward svc/kibana 5601:5601     # Kibana
-  ```
-- **Dashboards & alerts**: Grafana values provision dashboards for Spring Boot, JVM, and custom HTTP metrics; Prometheus values ship alert rules (`HighErrorRate`, `HighJvmMemory`, `SlowHttpLatency`).
-- **Service instrumentation**: All services include Actuator + Micrometer tracing (Brave) + Zipkin reporter + Prometheus registry. Metrics endpoint: `/actuator/prometheus`. Traces go to `http://zipkin.observability.svc.cluster.local:9411/api/v2/spans` (override with `MANAGEMENT_ZIPKIN_TRACING_ENDPOINT`). Logs are sent to Kafka topic `service-logs` via Logback Kafka appender and collected by Logstash → Elasticsearch → Kibana.
-- **Local dev hints**: Export env vars when running locally:
-  ```bash
-  export MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://localhost:9411/api/v2/spans
-  export LOGS_BOOTSTRAP_SERVERS=localhost:9092
-  export LOGS_TOPIC=service-logs
-  ```
+- **Grafana** 📊 - Metrics visualization and dashboards
+- **Prometheus** 📈 - Metrics collection and alerting
+- **Zipkin** 🔍 - Distributed tracing
+- **ELK Stack** 📝 - Centralized logging (Elasticsearch + Logstash + Kibana)
+
+### 🚀 Quick Start - Accessing Observability Tools
+
+The observability stack is automatically deployed by `./start.sh`. Access the UIs with these commands:
+
+```bash
+# Start port-forwarding in separate terminals
+kubectl -n observability port-forward svc/grafana 3000:80 &
+kubectl -n observability port-forward svc/zipkin 9411:9411 &
+kubectl -n observability port-forward svc/prometheus-server 9090:80 &
+kubectl -n observability port-forward svc/kibana 5601:5601 &
+```
+
+### 📊 Using Grafana (Metrics & Dashboards)
+
+**Access:** http://localhost:3000  
+**Login:** `admin` / `admin123`
+
+#### Importing Dashboards
+
+1. Click **"+"** → **"Import dashboard"** in the left sidebar
+2. Enter one of these dashboard IDs:
+   - **12900** - Spring Boot 2.x Statistics (⭐ Recommended)
+   - **4701** - JVM Micrometer (Memory, GC, Threads)
+   - **11378** - Kafka Overview (Topics, Consumer Lag)
+3. Click **"Load"**
+4. Select **"Prometheus"** as the data source
+5. Click **"Import"**
+
+#### What You'll See
+
+- **HTTP Requests:** Response times, error rates, request counts per endpoint
+- **JVM Metrics:** Memory usage, garbage collection, thread pools
+- **Database:** Connection pool stats, query performance
+- **Kafka:** Producer/consumer metrics, message throughput
+- **System:** CPU, disk I/O, network traffic
+
+**💡 Tip:** Make some transfers in the banking app (http://bank.local) and watch the metrics update in real-time!
+
+### 🔍 Using Zipkin (Distributed Tracing)
+
+**Access:** http://localhost:9411
+
+#### How to Use
+
+1. Open Zipkin UI
+2. Click **"Run Query"** to see recent traces
+3. Click on any trace to see the full request flow across services
+4. Example trace flow for a transfer:
+   ```
+   front-ui → accounts-service → transfer-service → cash-service → notifications-service
+   ```
+
+**What to Look For:**
+- **Latency:** How long each service takes
+- **Errors:** Failed spans highlighted in red
+- **Dependencies:** Visual service dependency graph
+
+### 📝 Using Kibana (Centralized Logs)
+
+**Access:** http://localhost:5601
+
+#### Setup (First Time Only)
+
+1. Go to **"Management"** → **"Stack Management"** → **"Index Patterns"**
+2. Click **"Create index pattern"**
+3. Enter pattern: `logstash-*`
+4. Select time field: `@timestamp`
+5. Click **"Create index pattern"**
+
+#### Viewing Logs
+
+1. Go to **"Discover"** in the left sidebar
+2. Select date range (top-right)
+3. Use the search bar to filter logs:
+   - `level: ERROR` - Show only errors
+   - `application: "accounts-service"` - Filter by service
+   - `message: "transfer"` - Search in log messages
+   - `traceId: "abc123"` - Find logs for a specific trace
+
+**💡 Tip:** Copy a `traceId` from Zipkin and search for it in Kibana to see all logs for that request!
+
+### 📈 Using Prometheus (Raw Metrics)
+
+**Access:** http://localhost:9090
+
+#### Useful Queries
+
+```promql
+# HTTP request rate per service
+rate(http_server_requests_seconds_count[5m])
+
+# JVM memory usage
+jvm_memory_used_bytes{area="heap"}
+
+# Database connection pool
+hikaricp_connections_active
+
+# Kafka consumer lag
+kafka_consumer_fetch_manager_records_lag_max
+```
+
+**⚠️ Note:** Currently, the `/actuator/prometheus` endpoint has a known issue with Spring Boot 3.5.6. Metrics are still available via `/actuator/metrics` (JSON format) on each service.
+
+### 🛠️ Manual Deployment
+
+If not using `./start.sh`, deploy the observability stack manually:
+
+```bash
+kubectl create namespace observability --dry-run=client -o yaml | kubectl apply -f -
+
+helm upgrade --install zipkin oci://registry-1.docker.io/bitnamicharts/zipkin \
+  --version 5.0.4 -n observability -f helm/observability/values-zipkin.yaml
+helm upgrade --install prometheus oci://registry-1.docker.io/bitnamicharts/prometheus \
+  --version 24.6.0 -n observability -f helm/observability/values-prometheus.yaml
+helm upgrade --install elasticsearch oci://registry-1.docker.io/bitnamicharts/elasticsearch \
+  --version 21.2.8 -n observability -f helm/observability/values-elasticsearch.yaml
+helm upgrade --install logstash oci://registry-1.docker.io/bitnamicharts/logstash \
+  --version 8.4.2 -n observability -f helm/observability/values-logstash.yaml
+helm upgrade --install kibana oci://registry-1.docker.io/bitnamicharts/kibana \
+  --version 16.5.5 -n observability -f helm/observability/values-kibana.yaml
+helm upgrade --install grafana oci://registry-1.docker.io/bitnamicharts/grafana \
+  --version 8.5.8 -n observability -f helm/observability/values-grafana.yaml
+```
+
+### 🔧 Technical Details
+
+**Service Instrumentation:**
+- All services include Spring Boot Actuator with 27+ exposed endpoints
+- Micrometer for metrics collection with tags (application, environment)
+- Zipkin Brave for distributed tracing with 100% sampling
+- Logback Kafka appender for centralized logging
+
+**Metrics Endpoints:**
+- Health: `http://<service>:port/actuator/health`
+- Metrics (JSON): `http://<service>:port/actuator/metrics`
+- Individual metric: `http://<service>:port/actuator/metrics/jvm.memory.used`
+
+**Alert Rules** (configured in Prometheus):
+- `HighErrorRate`: > 5% HTTP 5xx errors
+- `HighJvmMemory`: > 90% heap usage
+- `SlowHttpLatency`: p95 latency > 1s
+
+**Local Development:**
+```bash
+export MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://localhost:9411/api/v2/spans
+export LOGS_BOOTSTRAP_SERVERS=localhost:9092
+export LOGS_TOPIC=service-logs
+```
 
 ### 📡 Kafka (Bitnami + Jenkins)
 - Kafka is deployed in KRaft mode using `helm/kafka/values.yaml` (test) and `helm/kafka/values-prod.yaml` (prod) via Jenkins pipelines (`helm/kafka/Jenkinsfile` and root `Jenkinsfile`).
@@ -319,3 +440,66 @@ The following test users are available for testing the application functionality
 | `john` | `password123` | User | 5,000 RUB |
 | `jane` | `password123` | User | 7,500 RUB |
 | `bob` | `password123` | User | 3,000 RUB |
+
+## 🔍 Troubleshooting
+
+### Prometheus Endpoint Not Available
+
+**Issue:** `/actuator/prometheus` returns 404 error  
+**Status:** Known issue with Spring Boot 3.5.6 - the Prometheus text format endpoint is not being auto-configured despite correct dependencies and configuration.
+
+**Workarounds:**
+1. **Use JSON Metrics:** Access `http://<service>:port/actuator/metrics` for JSON-formatted metrics
+2. **View Individual Metrics:** `http://<service>:port/actuator/metrics/jvm.memory.used`
+3. **Check Available Endpoints:** `http://<service>:port/actuator` lists all 27+ available endpoints
+
+**Verified Working:**
+- ✅ Metrics collection via Micrometer
+- ✅ All actuator endpoints (health, info, metrics)
+- ✅ Distributed tracing via Zipkin
+- ✅ Centralized logging via ELK
+- ❌ Prometheus scrape endpoint (text format)
+
+### Grafana Login Blocked
+
+If you see "too many consecutive incorrect login attempts":
+```bash
+kubectl rollout restart deployment grafana -n observability
+```
+Wait 30 seconds, then try again with `admin`/`admin123`
+
+### Services Not Starting
+
+Check pod status:
+```bash
+kubectl get pods -n default
+kubectl logs -n default <pod-name>
+```
+
+Common issues:
+- **ImagePullBackOff:** Run `eval $(minikube docker-env)` before building images
+- **CrashLoopBackOff:** Check logs for database connection errors
+- **Pending:** Check if PVCs are bound: `kubectl get pvc`
+
+### Kafka Connection Errors
+
+Verify Kafka is running:
+```bash
+kubectl get pods -n kafka
+kubectl logs -n kafka kafka-controller-0
+```
+
+Recreate topics if needed (see Kafka section above).
+
+### Database Connection Issues
+
+Check database pods:
+```bash
+kubectl get pods | grep db
+kubectl logs <service>-db-0
+```
+
+Access database directly:
+```bash
+kubectl exec -it <service>-db-0 -- psql -U bank_app_user -d bank_app_db
+```
