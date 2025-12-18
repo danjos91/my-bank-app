@@ -54,6 +54,9 @@ management:
     prometheus:
       enabled: true
   metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${MANAGEMENT_METRICS_TAGS_ENVIRONMENT:dev}
     export:
       prometheus:
         enabled: true

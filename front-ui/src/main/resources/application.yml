@@ -36,10 +36,20 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: "*"
+      base-path: /actuator
   endpoint:
     health:
       show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${MANAGEMENT_METRICS_TAGS_ENVIRONMENT:dev}
+    export:
+      prometheus:
+        enabled: true
   tracing:
     sampling:
       probability: 1.0
