@@ -79,7 +79,43 @@ for topic in "${KAFKA_TOPICS[@]}"; do
     --config min.insync.replicas=1 || true
 done
 
-# 3. Deploy with Helm
+# 3. Deploy Observability Stack
+echo -e "${BLUE}📊 Deploying Observability Stack...${NC}"
+kubectl create namespace observability --dry-run=client -o yaml | kubectl apply -f -
+
+echo -e "${BLUE}  📍 Deploying Zipkin (Distributed Tracing)...${NC}"
+helm upgrade --install zipkin oci://registry-1.docker.io/bitnamicharts/zipkin \
+  --version 5.0.4 -n observability -f helm/observability/values-zipkin.yaml \
+  --wait --timeout 5m || echo "⚠️  Zipkin deployment failed, continuing..."
+
+echo -e "${BLUE}  📈 Deploying Prometheus (Metrics Collection)...${NC}"
+helm upgrade --install prometheus oci://registry-1.docker.io/bitnamicharts/prometheus \
+  --version 24.6.0 -n observability -f helm/observability/values-prometheus.yaml \
+  --wait --timeout 5m || echo "⚠️  Prometheus deployment failed, continuing..."
+
+echo -e "${BLUE}  🔍 Deploying Elasticsearch (Log Storage)...${NC}"
+helm upgrade --install elasticsearch oci://registry-1.docker.io/bitnamicharts/elasticsearch \
+  --version 21.2.8 -n observability -f helm/observability/values-elasticsearch.yaml \
+  --wait --timeout 5m || echo "⚠️  Elasticsearch deployment failed, continuing..."
+
+echo -e "${BLUE}  📝 Deploying Logstash (Log Processing)...${NC}"
+helm upgrade --install logstash oci://registry-1.docker.io/bitnamicharts/logstash \
+  --version 8.4.2 -n observability -f helm/observability/values-logstash.yaml \
+  --wait --timeout 5m || echo "⚠️  Logstash deployment failed, continuing..."
+
+echo -e "${BLUE}  📋 Deploying Kibana (Log Visualization)...${NC}"
+helm upgrade --install kibana oci://registry-1.docker.io/bitnamicharts/kibana \
+  --version 16.5.5 -n observability -f helm/observability/values-kibana.yaml \
+  --wait --timeout 5m || echo "⚠️  Kibana deployment failed, continuing..."
+
+echo -e "${BLUE}  📊 Deploying Grafana (Metrics Dashboards)...${NC}"
+helm upgrade --install grafana oci://registry-1.docker.io/bitnamicharts/grafana \
+  --version 8.5.8 -n observability -f helm/observability/values-grafana.yaml \
+  --wait --timeout 5m || echo "⚠️  Grafana deployment failed, continuing..."
+
+echo -e "${GREEN}✅ Observability stack deployment completed${NC}"
+
+# 4. Deploy with Helm
 echo -e "${BLUE}☸️  Deploying Helm Charts...${NC}"
 
 cd "$SCRIPT_DIR/helm"
@@ -96,15 +132,34 @@ helm upgrade --install my-bank-app ./my-bank-app \
 
 echo -e "${GREEN}✅ Deployment commands executed successfully!${NC}"
 echo ""
-echo "--------------------------------------------------------"
+echo "════════════════════════════════════════════════════════════════"
 echo "📝 Next Steps:"
-echo "1. Watch the pods status:"
+echo "════════════════════════════════════════════════════════════════"
+echo ""
+echo "1️⃣  Watch the pods status:"
 echo "   kubectl get pods -w"
 echo ""
-echo "2. Once pods are running, access the UI:"
-echo "   - If NOT using minikube tunnel: add \"$(minikube ip) bank.local\" to /etc/hosts and open http://bank.local/"
-echo "   - If using minikube tunnel: add '127.0.0.1 bank.local' to /etc/hosts and open http://bank.local/"
-echo "   - Or port-forward: kubectl port-forward svc/front-ui 8086:8086 and open http://localhost:8086"
-echo "--------------------------------------------------------"
+echo "2️⃣  Once pods are running, access the Banking App:"
+echo "   - Add \"$(minikube ip) bank.local\" to /etc/hosts"
+echo "   - Open http://bank.local"
+echo "   - Or port-forward: kubectl port-forward svc/front-ui 8086:8086"
+echo ""
+echo "3️⃣  Access Observability Tools (port-forward in separate terminals):"
+echo "   kubectl -n observability port-forward svc/grafana 3000:80 &"
+echo "   kubectl -n observability port-forward svc/zipkin 9411:9411 &"
+echo "   kubectl -n observability port-forward svc/prometheus-server 9090:80 &"
+echo "   kubectl -n observability port-forward svc/kibana 5601:5601 &"
+echo ""
+echo "   📊 Grafana:    http://localhost:3000 (admin/admin123)"
+echo "   🔍 Zipkin:     http://localhost:9411"
+echo "   📈 Prometheus: http://localhost:9090"
+echo "   📝 Kibana:     http://localhost:5601"
+echo ""
+echo "4️⃣  Test Users (login at http://bank.local):"
+echo "   - admin / password123 (200,000 RUB)"
+echo "   - jane  / password123 (7,500 RUB)"
+echo "   - john  / password123 (5,000 RUB)"
+echo ""
+echo "════════════════════════════════════════════════════════════════"
 
 
