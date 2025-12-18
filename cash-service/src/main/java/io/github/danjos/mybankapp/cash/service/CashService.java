@@ -6,6 +6,7 @@ import io.github.danjos.mybankapp.cash.dto.CashTransactionDTO;
 import io.github.danjos.mybankapp.cash.dto.DepositRequestDTO;
 import io.github.danjos.mybankapp.cash.dto.WithdrawalRequestDTO;
 import io.github.danjos.mybankapp.cash.entity.CashTransaction;
+import io.github.danjos.mybankapp.cash.metrics.CashMetrics;
 import io.github.danjos.mybankapp.cash.repository.CashTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,49 +31,58 @@ public class CashService {
     private final AccountsClient accountsClient;
     private final KafkaNotificationProducer kafkaNotificationProducer;
     private final io.github.danjos.mybankapp.cash.client.BlockerClient blockerClient;
+    private final CashMetrics cashMetrics;
     
     public CashTransactionDTO deposit(DepositRequestDTO depositRequest) {
         log.info("Processing deposit for account {}: {}", depositRequest.getAccountId(), depositRequest.getAmount());
         
-        // Get account information to determine currency
-        io.github.danjos.mybankapp.cash.dto.AccountDTO account = accountsClient.getAccount(depositRequest.getAccountId());
-        if (account == null) {
-            throw new IllegalArgumentException("Account not found: " + depositRequest.getAccountId());
-        }
-        
-        String currency = account.getCurrency() != null ? account.getCurrency().name() : "RUB";
-        
-        // Check with blocker service using account currency
-        io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
-                blockerClient.checkTransaction(depositRequest.getAmount(), currency);
-        if (blockResponse != null && blockResponse.getDecision() == 
-                io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
-            throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
-        }
-        
-        // Create transaction record
-        CashTransaction transaction = CashTransaction.builder()
-                .accountId(depositRequest.getAccountId())
-                .amount(depositRequest.getAmount())
-                .transactionType(CashTransaction.TransactionType.DEPOSIT)
-                .description(depositRequest.getDescription())
-                .build();
-        
-        CashTransaction savedTransaction = cashTransactionRepository.save(transaction);
-        
         try {
+            // Get account information to determine currency
+            io.github.danjos.mybankapp.cash.dto.AccountDTO account = accountsClient.getAccount(depositRequest.getAccountId());
+            if (account == null) {
+                cashMetrics.recordDepositFailedAccountNotFound();
+                throw new IllegalArgumentException("Account not found: " + depositRequest.getAccountId());
+            }
+            
+            String currency = account.getCurrency() != null ? account.getCurrency().name() : "RUB";
+            
+            // Check with blocker service using account currency
+            io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
+                    blockerClient.checkTransaction(depositRequest.getAmount(), currency);
+            if (blockResponse != null && blockResponse.getDecision() == 
+                    io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
+                cashMetrics.recordDepositFailedBlocked();
+                throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
+            }
+            
+            // Create transaction record
+            CashTransaction transaction = CashTransaction.builder()
+                    .accountId(depositRequest.getAccountId())
+                    .amount(depositRequest.getAmount())
+                    .transactionType(CashTransaction.TransactionType.DEPOSIT)
+                    .description(depositRequest.getDescription())
+                    .build();
+            
+            CashTransaction savedTransaction = cashTransactionRepository.save(transaction);
+            
             // Update account balance
             accountsClient.addToAccountBalance(depositRequest.getAccountId(), depositRequest.getAmount());
             
             // Send notification
             sendDepositNotification(account.getUserId(), depositRequest.getAccountId(), depositRequest.getAmount(), currency);
             
+            // Record successful deposit
+            cashMetrics.recordDepositSuccess(depositRequest.getAmount(), currency);
+            
             log.info("Deposit successful for account {}: {}", depositRequest.getAccountId(), depositRequest.getAmount());
             return convertToDTO(savedTransaction);
             
+        } catch (IllegalArgumentException e) {
+            log.error("Error processing deposit for account {}: {}", depositRequest.getAccountId(), e.getMessage());
+            throw e;
         } catch (Exception e) {
             log.error("Error processing deposit for account {}: {}", depositRequest.getAccountId(), e.getMessage());
-            // In a real scenario, you might want to implement compensation logic here
+            cashMetrics.recordDepositFailedUnknownError();
             throw new RuntimeException("Deposit failed: " + e.getMessage());
         }
     }
@@ -80,50 +90,59 @@ public class CashService {
     public CashTransactionDTO withdraw(WithdrawalRequestDTO withdrawalRequest) {
         log.info("Processing withdrawal for account {}: {}", withdrawalRequest.getAccountId(), withdrawalRequest.getAmount());
         
-        // Get account information to determine currency
-        io.github.danjos.mybankapp.cash.dto.AccountDTO account = accountsClient.getAccount(withdrawalRequest.getAccountId());
-        if (account == null) {
-            throw new IllegalArgumentException("Account not found: " + withdrawalRequest.getAccountId());
-        }
-        
-        // Check account balance first
-        if (account.getBalance().compareTo(withdrawalRequest.getAmount()) < 0) {
-            throw new IllegalArgumentException("Insufficient balance. Available: " + account.getBalance() + ", Requested: " + withdrawalRequest.getAmount());
-        }
-        
-        String currency = account.getCurrency() != null ? account.getCurrency().name() : "RUB";
-        
-        // Check with blocker service using account currency
-        io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
-                blockerClient.checkTransaction(withdrawalRequest.getAmount(), currency);
-        if (blockResponse != null && blockResponse.getDecision() == 
-                io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
-            throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
-        }
-        
-        // Create transaction record
-        CashTransaction transaction = CashTransaction.builder()
-                .accountId(withdrawalRequest.getAccountId())
-                .amount(withdrawalRequest.getAmount())
-                .transactionType(CashTransaction.TransactionType.WITHDRAWAL)
-                .description(withdrawalRequest.getDescription())
-                .build();
-        
-        CashTransaction savedTransaction = cashTransactionRepository.save(transaction);
-        
         try {
+            // Get account information to determine currency
+            io.github.danjos.mybankapp.cash.dto.AccountDTO account = accountsClient.getAccount(withdrawalRequest.getAccountId());
+            if (account == null) {
+                cashMetrics.recordWithdrawalFailedAccountNotFound();
+                throw new IllegalArgumentException("Account not found: " + withdrawalRequest.getAccountId());
+            }
+            
+            // Check account balance first
+            if (account.getBalance().compareTo(withdrawalRequest.getAmount()) < 0) {
+                cashMetrics.recordWithdrawalFailedInsufficientBalance();
+                throw new IllegalArgumentException("Insufficient balance. Available: " + account.getBalance() + ", Requested: " + withdrawalRequest.getAmount());
+            }
+            
+            String currency = account.getCurrency() != null ? account.getCurrency().name() : "RUB";
+            
+            // Check with blocker service using account currency
+            io.github.danjos.mybankapp.cash.dto.BlockResponseDTO blockResponse = 
+                    blockerClient.checkTransaction(withdrawalRequest.getAmount(), currency);
+            if (blockResponse != null && blockResponse.getDecision() == 
+                    io.github.danjos.mybankapp.cash.dto.BlockResponseDTO.Decision.BLOCKED) {
+                cashMetrics.recordWithdrawalFailedBlocked();
+                throw new IllegalArgumentException("Transaction blocked: " + blockResponse.getReason());
+            }
+            
+            // Create transaction record
+            CashTransaction transaction = CashTransaction.builder()
+                    .accountId(withdrawalRequest.getAccountId())
+                    .amount(withdrawalRequest.getAmount())
+                    .transactionType(CashTransaction.TransactionType.WITHDRAWAL)
+                    .description(withdrawalRequest.getDescription())
+                    .build();
+            
+            CashTransaction savedTransaction = cashTransactionRepository.save(transaction);
+            
             // Update account balance
             accountsClient.subtractFromAccountBalance(withdrawalRequest.getAccountId(), withdrawalRequest.getAmount());
             
             // Send notification
             sendWithdrawalNotification(account.getUserId(), withdrawalRequest.getAccountId(), withdrawalRequest.getAmount(), currency);
             
+            // Record successful withdrawal
+            cashMetrics.recordWithdrawalSuccess(withdrawalRequest.getAmount(), currency);
+            
             log.info("Withdrawal successful for account {}: {}", withdrawalRequest.getAccountId(), withdrawalRequest.getAmount());
             return convertToDTO(savedTransaction);
             
+        } catch (IllegalArgumentException e) {
+            log.error("Error processing withdrawal for account {}: {}", withdrawalRequest.getAccountId(), e.getMessage());
+            throw e;
         } catch (Exception e) {
             log.error("Error processing withdrawal for account {}: {}", withdrawalRequest.getAccountId(), e.getMessage());
-            // In a real scenario, you might want to implement compensation logic here
+            cashMetrics.recordWithdrawalFailedUnknownError();
             throw new RuntimeException("Withdrawal failed: " + e.getMessage());
         }
     }
