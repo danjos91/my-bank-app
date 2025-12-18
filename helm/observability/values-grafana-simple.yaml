@@ -1,0 +1,57 @@
+# Simplified Grafana configuration compatible with chart v12.x
+admin:
+  user: admin
+  password: admin123
+
+service:
+  type: ClusterIP
+
+# Configure datasources using the new format
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-server.observability.svc.cluster.local
+        isDefault: true
+        editable: true
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+# Import community dashboards by ID
+dashboardsConfigMaps:
+  default: grafana-dashboards
+
+# Use import IDs for community dashboards (simpler than inline JSON)
+dashboards:
+  default:
+    spring-boot:
+      gnetId: 12900
+      revision: 1
+      datasource: Prometheus
+    jvm-micrometer:
+      gnetId: 4701
+      revision: 7
+      datasource: Prometheus
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
