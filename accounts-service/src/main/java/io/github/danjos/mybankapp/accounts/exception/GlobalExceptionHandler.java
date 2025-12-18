@@ -47,11 +47,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleException(Exception e) {
-        // Don't handle NoResourceFoundException - let it propagate to default Spring handling
-        if (e instanceof NoResourceFoundException) {
-            throw (NoResourceFoundException) e;
-        }
-        
         log.error("Unexpected error: {}", e.getMessage(), e);
         Map<String, Object> response = new HashMap<>();
         response.put("error", "Internal server error: " + e.getMessage());
