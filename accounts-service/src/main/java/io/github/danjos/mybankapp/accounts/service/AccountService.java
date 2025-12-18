@@ -5,6 +5,7 @@ import io.github.danjos.mybankapp.accounts.dto.AccountDTO;
 import io.github.danjos.mybankapp.accounts.entity.Account;
 import io.github.danjos.mybankapp.accounts.entity.Currency;
 import io.github.danjos.mybankapp.accounts.entity.User;
+import io.github.danjos.mybankapp.accounts.metrics.AccountMetrics;
 import io.github.danjos.mybankapp.accounts.repository.AccountRepository;
 import io.github.danjos.mybankapp.accounts.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,39 +34,58 @@ public class AccountService {
     @Autowired
     private KafkaNotificationProducer kafkaNotificationProducer;
     
+    @Autowired
+    private AccountMetrics accountMetrics;
+    
     public Account createAccount(Long userId) {
         return createAccount(userId, Currency.RUB);
     }
     
     public Account createAccount(Long userId, Currency currency) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        
-        // Check if account with this currency already exists
-        Optional<Account> existingAccount = accountRepository.findByUserIdAndCurrency(userId, currency);
-        if (existingAccount.isPresent()) {
-            throw new IllegalArgumentException("Account with currency " + currency + " already exists for this user");
-        }
-        
-        Account account = Account.builder()
-                .user(user)
-                .currency(currency)
-                .build();
-        Account savedAccount = accountRepository.save(account);
-        
-        // Send notification via Kafka
         try {
-            kafkaNotificationProducer.publishAccountCreatedEvent(
-                    userId,
-                    savedAccount.getId().toString(),
-                    currency.name()
-            );
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> {
+                        accountMetrics.recordAccountCreationFailedUserNotFound();
+                        return new IllegalArgumentException("User not found");
+                    });
+            
+            // Check if account with this currency already exists
+            Optional<Account> existingAccount = accountRepository.findByUserIdAndCurrency(userId, currency);
+            if (existingAccount.isPresent()) {
+                accountMetrics.recordAccountCreationFailedDuplicate();
+                throw new IllegalArgumentException("Account with currency " + currency + " already exists for this user");
+            }
+            
+            Account account = Account.builder()
+                    .user(user)
+                    .currency(currency)
+                    .build();
+            Account savedAccount = accountRepository.save(account);
+            
+            // Record successful account creation
+            accountMetrics.recordAccountCreated();
+            
+            // Send notification via Kafka
+            try {
+                kafkaNotificationProducer.publishAccountCreatedEvent(
+                        userId,
+                        savedAccount.getId().toString(),
+                        currency.name()
+                );
+            } catch (Exception e) {
+                // Log error but don't fail transaction
+                log.warn("Failed to send notification for user {}: {}", userId, e.getMessage());
+            }
+            
+            return savedAccount;
+        } catch (IllegalArgumentException e) {
+            // Re-throw IllegalArgumentException (already logged metrics)
+            throw e;
         } catch (Exception e) {
-            // Log error but don't fail transaction
-            log.warn("Failed to send notification for user {}: {}", userId, e.getMessage());
+            // Record unknown error
+            accountMetrics.recordAccountCreationFailedUnknownError();
+            throw e;
         }
-        
-        return savedAccount;
     }
     
     @Transactional(readOnly = true)
@@ -116,7 +136,12 @@ public class AccountService {
         }
         
         account.addToBalance(amount);
-        return accountRepository.save(account);
+        Account savedAccount = accountRepository.save(account);
+        
+        // Record balance add operation
+        accountMetrics.recordBalanceAddOperation(amount, account.getCurrency());
+        
+        return savedAccount;
     }
     
     public Account subtractFromBalance(Long accountId, BigDecimal amount) {
@@ -128,7 +153,12 @@ public class AccountService {
         }
         
         account.subtractFromBalance(amount);
-        return accountRepository.save(account);
+        Account savedAccount = accountRepository.save(account);
+        
+        // Record balance subtract operation
+        accountMetrics.recordBalanceSubtractOperation(amount, account.getCurrency());
+        
+        return savedAccount;
     }
     
     public void deleteAccount(Long accountId) {
