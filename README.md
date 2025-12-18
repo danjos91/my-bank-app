@@ -220,17 +220,17 @@ If not using `./start.sh`, deploy the observability stack manually:
 kubectl create namespace observability --dry-run=client -o yaml | kubectl apply -f -
 
 helm upgrade --install zipkin oci://registry-1.docker.io/bitnamicharts/zipkin \
-  --version 5.0.4 -n observability -f helm/observability/values-zipkin.yaml
+  --version 1.3.11 -n observability -f helm/observability/values-zipkin.yaml
 helm upgrade --install prometheus oci://registry-1.docker.io/bitnamicharts/prometheus \
-  --version 24.6.0 -n observability -f helm/observability/values-prometheus.yaml
+  --version 2.1.23 -n observability -f helm/observability/values-prometheus.yaml
 helm upgrade --install elasticsearch oci://registry-1.docker.io/bitnamicharts/elasticsearch \
-  --version 21.2.8 -n observability -f helm/observability/values-elasticsearch.yaml
+  --version 22.1.6 -n observability -f helm/observability/values-elasticsearch.yaml
 helm upgrade --install logstash oci://registry-1.docker.io/bitnamicharts/logstash \
-  --version 8.4.2 -n observability -f helm/observability/values-logstash.yaml
+  --version 7.0.11 -n observability -f helm/observability/values-logstash.yaml
 helm upgrade --install kibana oci://registry-1.docker.io/bitnamicharts/kibana \
-  --version 16.5.5 -n observability -f helm/observability/values-kibana.yaml
+  --version 12.1.10 -n observability -f helm/observability/values-kibana.yaml
 helm upgrade --install grafana oci://registry-1.docker.io/bitnamicharts/grafana \
-  --version 8.5.8 -n observability -f helm/observability/values-grafana.yaml
+  --version 12.1.8 -n observability -f helm/observability/values-grafana.yaml
 ```
 
 ### 🔧 Technical Details

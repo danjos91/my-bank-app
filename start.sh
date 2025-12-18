@@ -85,32 +85,32 @@ kubectl create namespace observability --dry-run=client -o yaml | kubectl apply 
 
 echo -e "${BLUE}  📍 Deploying Zipkin (Distributed Tracing)...${NC}"
 helm upgrade --install zipkin oci://registry-1.docker.io/bitnamicharts/zipkin \
-  --version 5.0.4 -n observability -f helm/observability/values-zipkin.yaml \
+  --version 1.3.11 -n observability -f helm/observability/values-zipkin.yaml \
   --wait --timeout 5m || echo "⚠️  Zipkin deployment failed, continuing..."
 
 echo -e "${BLUE}  📈 Deploying Prometheus (Metrics Collection)...${NC}"
 helm upgrade --install prometheus oci://registry-1.docker.io/bitnamicharts/prometheus \
-  --version 24.6.0 -n observability -f helm/observability/values-prometheus.yaml \
+  --version 2.1.23 -n observability -f helm/observability/values-prometheus.yaml \
   --wait --timeout 5m || echo "⚠️  Prometheus deployment failed, continuing..."
 
 echo -e "${BLUE}  🔍 Deploying Elasticsearch (Log Storage)...${NC}"
 helm upgrade --install elasticsearch oci://registry-1.docker.io/bitnamicharts/elasticsearch \
-  --version 21.2.8 -n observability -f helm/observability/values-elasticsearch.yaml \
+  --version 22.1.6 -n observability -f helm/observability/values-elasticsearch.yaml \
   --wait --timeout 5m || echo "⚠️  Elasticsearch deployment failed, continuing..."
 
 echo -e "${BLUE}  📝 Deploying Logstash (Log Processing)...${NC}"
 helm upgrade --install logstash oci://registry-1.docker.io/bitnamicharts/logstash \
-  --version 8.4.2 -n observability -f helm/observability/values-logstash.yaml \
+  --version 7.0.11 -n observability -f helm/observability/values-logstash.yaml \
   --wait --timeout 5m || echo "⚠️  Logstash deployment failed, continuing..."
 
 echo -e "${BLUE}  📋 Deploying Kibana (Log Visualization)...${NC}"
 helm upgrade --install kibana oci://registry-1.docker.io/bitnamicharts/kibana \
-  --version 16.5.5 -n observability -f helm/observability/values-kibana.yaml \
+  --version 12.1.10 -n observability -f helm/observability/values-kibana.yaml \
   --wait --timeout 5m || echo "⚠️  Kibana deployment failed, continuing..."
 
 echo -e "${BLUE}  📊 Deploying Grafana (Metrics Dashboards)...${NC}"
 helm upgrade --install grafana oci://registry-1.docker.io/bitnamicharts/grafana \
-  --version 8.5.8 -n observability -f helm/observability/values-grafana.yaml \
+  --version 12.1.8 -n observability -f helm/observability/values-grafana.yaml \
   --wait --timeout 5m || echo "⚠️  Grafana deployment failed, continuing..."
 
 echo -e "${GREEN}✅ Observability stack deployment completed${NC}"
