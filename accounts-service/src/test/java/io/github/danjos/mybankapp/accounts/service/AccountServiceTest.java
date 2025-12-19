@@ -2,7 +2,10 @@ package io.github.danjos.mybankapp.accounts.service;
 
 import io.github.danjos.mybankapp.accounts.dto.AccountDTO;
 import io.github.danjos.mybankapp.accounts.entity.Account;
+import io.github.danjos.mybankapp.accounts.entity.Currency;
 import io.github.danjos.mybankapp.accounts.entity.User;
+import io.github.danjos.mybankapp.accounts.kafka.KafkaNotificationProducer;
+import io.github.danjos.mybankapp.accounts.metrics.AccountMetrics;
 import io.github.danjos.mybankapp.accounts.repository.AccountRepository;
 import io.github.danjos.mybankapp.accounts.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +36,12 @@ class AccountServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private KafkaNotificationProducer kafkaNotificationProducer;
+
+    @Mock
+    private AccountMetrics accountMetrics;
+
     @InjectMocks
     private AccountService accountService;
 
@@ -56,6 +65,7 @@ class AccountServiceTest {
         testAccount = Account.builder()
                 .id(1L)
                 .user(testUser)
+                .currency(Currency.RUB)
                 .balance(BigDecimal.valueOf(1000.00))
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -66,7 +76,9 @@ class AccountServiceTest {
     void createAccount_ValidUserId_ReturnsAccount() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(accountRepository.findByUserIdAndCurrency(1L, Currency.RUB)).thenReturn(Optional.empty());
         when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
+        doNothing().when(kafkaNotificationProducer).publishAccountCreatedEvent(anyLong(), anyString(), anyString());
 
         // When
         Account result = accountService.createAccount(1L);
@@ -75,19 +87,23 @@ class AccountServiceTest {
         assertNotNull(result);
         assertEquals(testUser, result.getUser());
         verify(userRepository).findById(1L);
+        verify(accountRepository).findByUserIdAndCurrency(1L, Currency.RUB);
         verify(accountRepository).save(any(Account.class));
+        verify(accountMetrics).recordAccountCreated();
     }
 
     @Test
     void createAccount_InvalidUserId_ThrowsException() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
+        doNothing().when(accountMetrics).recordAccountCreationFailedUserNotFound();
 
         // When & Then
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> accountService.createAccount(1L));
         assertEquals("User not found", exception.getMessage());
         verify(userRepository).findById(1L);
+        verify(accountMetrics).recordAccountCreationFailedUserNotFound();
         verify(accountRepository, never()).save(any(Account.class));
     }
 
@@ -235,6 +251,7 @@ class AccountServiceTest {
         BigDecimal amount = BigDecimal.valueOf(500.00);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
         when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
+        doNothing().when(accountMetrics).recordBalanceAddOperation(any(BigDecimal.class), any(Currency.class));
 
         // When
         Account result = accountService.addToBalance(1L, amount);
@@ -243,6 +260,7 @@ class AccountServiceTest {
         assertNotNull(result);
         verify(accountRepository).findById(1L);
         verify(accountRepository).save(any(Account.class));
+        verify(accountMetrics).recordBalanceAddOperation(amount, Currency.RUB);
     }
 
     @Test
@@ -277,6 +295,7 @@ class AccountServiceTest {
         BigDecimal amount = BigDecimal.valueOf(200.00);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
         when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
+        doNothing().when(accountMetrics).recordBalanceSubtractOperation(any(BigDecimal.class), any(Currency.class));
 
         // When
         Account result = accountService.subtractFromBalance(1L, amount);
@@ -285,6 +304,7 @@ class AccountServiceTest {
         assertNotNull(result);
         verify(accountRepository).findById(1L);
         verify(accountRepository).save(any(Account.class));
+        verify(accountMetrics).recordBalanceSubtractOperation(amount, Currency.RUB);
     }
 
     @Test
