@@ -43,6 +43,20 @@ else
     echo -e "${GREEN}✅ Minikube is running${NC}"
 fi
 
+# Wait for Kubernetes API server to be ready
+echo -e "${BLUE}⏳ Waiting for Kubernetes API server to be ready...${NC}"
+for i in {1..30}; do
+    if kubectl cluster-info &>/dev/null; then
+        echo -e "${GREEN}✅ Kubernetes API server is ready${NC}"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo "❌ Kubernetes API server did not become ready after 30 attempts"
+        exit 1
+    fi
+    sleep 2
+done
+
 # 2. Deploy Kafka (Bitnami, KRaft)
 echo -e "${BLUE}📡 Deploying Kafka (Bitnami) in namespace '${KAFKA_NAMESPACE}'...${NC}"
 
@@ -50,7 +64,7 @@ echo -e "${BLUE}📡 Deploying Kafka (Bitnami) in namespace '${KAFKA_NAMESPACE}'
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
-kubectl create namespace "${KAFKA_NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace "${KAFKA_NAMESPACE}" --dry-run=client -o yaml | kubectl apply --validate=false -f -
 helm upgrade --install "${KAFKA_RELEASE}" "${KAFKA_CHART}" \
   --version "${KAFKA_VERSION}" \
   --namespace "${KAFKA_NAMESPACE}" \
@@ -83,7 +97,7 @@ done
 
 # 3. Deploy Observability Stack (Prometheus, Grafana, Zipkin, ELK)
 echo -e "${BLUE}📊 Deploying Observability Stack...${NC}"
-kubectl create namespace observability --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace observability --dry-run=client -o yaml | kubectl apply --validate=false -f -
 
 # Only uninstall if FORCE_REDEPLOY environment variable is set
 # This prevents unnecessary pod restarts on every run
@@ -113,7 +127,7 @@ if [ -f "$SCRIPT_DIR/helm/observability/dashboards/spring-boot.json" ]; then
   echo -e "${BLUE}    Creating Grafana dashboard ConfigMap...${NC}"
   kubectl create configmap grafana-spring-boot-dashboard \
     --from-file=spring-boot.json="$SCRIPT_DIR/helm/observability/dashboards/spring-boot.json" \
-    -n observability --dry-run=client -o yaml | kubectl apply -f - || true
+    -n observability --dry-run=client -o yaml | kubectl apply --validate=false -f - || true
 fi
 helm upgrade --install grafana oci://registry-1.docker.io/bitnamicharts/grafana \
   --version 12.1.8 -n observability -f helm/observability/values-grafana-simple.yaml \

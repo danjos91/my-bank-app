@@ -30,6 +30,8 @@ defaultInitContainers:
       tag: 5.0.4-debian-12-r6
       pullPolicy: IfNotPresent
 
+# Sample rate: 1.0 = 100% трейсов (для dev/test)
+# Для production рекомендуется 0.1 (10%) или 0.01 (1%)
 collector:
   sampleRate: 1.0
 
@@ -46,26 +48,33 @@ cassandra:
     tag: 5.0.4-debian-12-r6
     pullPolicy: IfNotPresent
 
+# ВАЖНО: mem storage хранит трейсы только в памяти
+# При перезапуске пода все трейсы теряются
+# Для production рекомендуется использовать Elasticsearch (см. values-zipkin-elasticsearch.yaml)
 storageType: mem
 
+# ВАЖНО: При storageType=mem и sampleRate=1.0 память может быстро заполняться
+# Если Zipkin недоступен, увеличьте memory limit или используйте production конфигурацию
 resources:
   limits:
     cpu: 500m
-    memory: 512Mi
+    memory: 512Mi  # Может быть недостаточно при высокой нагрузке
   requests:
     cpu: 200m
     memory: 256Mi
 
+# Пробы могут не проходить сразу из-за медленного старта Zipkin
+# Увеличенные таймауты помогают избежать ложных срабатываний
 livenessProbe:
   enabled: true
-  initialDelaySeconds: 60
-  periodSeconds: 15
-  timeoutSeconds: 10
-  failureThreshold: 8
+  initialDelaySeconds: 120  # Увеличено для медленного старта
+  periodSeconds: 30
+  timeoutSeconds: 20
+  failureThreshold: 5
 
 readinessProbe:
   enabled: true
-  initialDelaySeconds: 60
-  periodSeconds: 10
-  timeoutSeconds: 10
-  failureThreshold: 8
+  initialDelaySeconds: 120  # Увеличено для медленного старта
+  periodSeconds: 20
+  timeoutSeconds: 20
+  failureThreshold: 5
