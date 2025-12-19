@@ -20,5 +20,3 @@ coordinating:
   replicaCount: 0
 
 networkHost: "0.0.0.0"
-
-

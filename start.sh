@@ -141,7 +141,7 @@ echo -e "${BLUE}  📝 Deploying Kibana (Log Visualization)...${NC}"
 echo -e "${BLUE}    Verifying Elasticsearch is accessible...${NC}"
 ELASTICSEARCH_READY=false
 for i in {1..30}; do
-  if kubectl get svc elasticsearch-master -n observability &>/dev/null; then
+  if kubectl get svc elasticsearch -n observability &>/dev/null || kubectl get svc elasticsearch-master -n observability &>/dev/null; then
     ELASTICSEARCH_READY=true
     break
   fi
@@ -157,12 +157,22 @@ else
 fi
 
 echo -e "${BLUE}  ⏳ Waiting for observability pods to be ready (this may take a few minutes)...${NC}"
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=prometheus -n observability --timeout=300s 2>/dev/null || true
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=grafana -n observability --timeout=300s 2>/dev/null || true
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=zipkin -n observability --timeout=300s 2>/dev/null || true
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=elasticsearch -n observability --timeout=600s 2>/dev/null || true
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=logstash -n observability --timeout=300s 2>/dev/null || true
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kibana -n observability --timeout=300s 2>/dev/null || true
+echo -e "${BLUE}    Note: Some pods may fail due to image pull issues - this is expected if Docker Hub rate limits are hit${NC}"
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=prometheus -n observability --timeout=120s 2>/dev/null || echo "⚠️  Prometheus pods not ready (check image pull issues)"
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=grafana -n observability --timeout=120s 2>/dev/null || echo "⚠️  Grafana pods not ready (check image pull issues)"
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=zipkin -n observability --timeout=120s 2>/dev/null || echo "⚠️  Zipkin pods not ready (check image pull issues)"
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=elasticsearch -n observability --timeout=120s 2>/dev/null || echo "⚠️  Elasticsearch pods not ready (check image pull issues)"
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=logstash -n observability --timeout=120s 2>/dev/null || echo "⚠️  Logstash pods not ready (check image pull issues)"
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kibana -n observability --timeout=120s 2>/dev/null || echo "⚠️  Kibana pods not ready (check image pull issues)"
+
+echo -e "${BLUE}  📋 Observability Status Summary:${NC}"
+RUNNING_OBS=$(kubectl get pods -n observability --no-headers 2>/dev/null | grep Running | wc -l)
+TOTAL_OBS=$(kubectl get pods -n observability --no-headers 2>/dev/null | wc -l)
+echo -e "${BLUE}    Running: ${RUNNING_OBS}/${TOTAL_OBS} pods${NC}"
+if [ "$RUNNING_OBS" -lt "$TOTAL_OBS" ]; then
+  echo -e "${BLUE}    ⚠️  Some observability pods may have image pull issues${NC}"
+  echo -e "${BLUE}    This is expected if Bitnami images are unavailable or require authentication${NC}"
+fi
 
 echo -e "${GREEN}✅ Observability stack deployment completed${NC}"
 
