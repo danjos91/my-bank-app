@@ -17,6 +17,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -24,12 +25,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = NotificationsServiceApplication.class)
 @ActiveProfiles("test")
-@EmbeddedKafka(partitions = 1, topics = {"notification-event"})
+@EmbeddedKafka(partitions = 1, topics = {
+        "account-created",
+        "account-updated",
+        "deposit-completed",
+        "withdrawal-completed",
+        "transfer-initiated",
+        "transfer-completed",
+        "transfer-failed",
+        "notification-event"
+})
 @TestPropertySource(properties = {
         "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}",
         "spring.kafka.consumer.group-id=notifications-service-group",
         "spring.kafka.consumer.auto-offset-reset=earliest",
-        "spring.datasource.url=jdbc:h2:mem:notifications;DB_CLOSE_DELAY=-1",
+        "spring.datasource.url=jdbc:h2:mem:notifications;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;INIT=CREATE SCHEMA IF NOT EXISTS notifications_schema",
         "spring.datasource.driverClassName=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
@@ -62,7 +72,7 @@ class KafkaNotificationConsumerIntegrationTest {
                 .timestamp(System.currentTimeMillis())
                 .build();
 
-        template.send("notification-event", event.getUserId().toString(), event).get(10, TimeUnit.SECONDS);
+        template.send("notification-event", Objects.requireNonNull(event.getUserId()).toString(), event).get(10, TimeUnit.SECONDS);
 
         // Simple await: poll repository for the saved notification
         long start = System.currentTimeMillis();
