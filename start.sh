@@ -83,46 +83,86 @@ done
 echo -e "${BLUE}📊 Deploying Observability Stack...${NC}"
 kubectl create namespace observability --dry-run=client -o yaml | kubectl apply -f -
 
-# Uninstall existing releases if they exist to avoid selector conflicts
-echo -e "${BLUE}  🔧 Cleaning up existing releases (if any)...${NC}"
-helm uninstall prometheus -n observability 2>/dev/null || true
-helm uninstall grafana -n observability 2>/dev/null || true
-helm uninstall zipkin -n observability 2>/dev/null || true
-helm uninstall elasticsearch -n observability 2>/dev/null || true
-helm uninstall logstash -n observability 2>/dev/null || true
-helm uninstall kibana -n observability 2>/dev/null || true
-# Wait a bit for resources to be cleaned up
-sleep 5
+# Only uninstall if FORCE_REDEPLOY environment variable is set
+# This prevents unnecessary pod restarts on every run
+if [ "${FORCE_REDEPLOY:-false}" = "true" ]; then
+  echo -e "${BLUE}  🔧 Force redeploy: Cleaning up existing releases...${NC}"
+  helm uninstall prometheus -n observability 2>/dev/null || true
+  helm uninstall grafana -n observability 2>/dev/null || true
+  helm uninstall zipkin -n observability 2>/dev/null || true
+  helm uninstall elasticsearch -n observability 2>/dev/null || true
+  helm uninstall logstash -n observability 2>/dev/null || true
+  helm uninstall kibana -n observability 2>/dev/null || true
+  # Wait a bit for resources to be cleaned up
+  sleep 5
+else
+  echo -e "${BLUE}  ℹ️  Using helm upgrade (pods won't restart unless config changed)${NC}"
+  echo -e "${BLUE}     To force redeploy, run: FORCE_REDEPLOY=true ./start.sh${NC}"
+fi
 
 echo -e "${BLUE}  📈 Deploying Prometheus (Metrics Collection)...${NC}"
 helm upgrade --install prometheus oci://registry-1.docker.io/bitnamicharts/prometheus \
   --version 2.1.23 -n observability -f helm/observability/values-prometheus-simple.yaml \
-  --wait --timeout 5m || echo "⚠️  Prometheus deployment failed, continuing..."
+  --timeout 10m || echo "⚠️  Prometheus deployment failed, continuing..."
 
 echo -e "${BLUE}  📊 Deploying Grafana (Metrics Dashboards)...${NC}"
+# Create ConfigMap for Spring Boot dashboard
+if [ -f "$SCRIPT_DIR/helm/observability/dashboards/spring-boot.json" ]; then
+  echo -e "${BLUE}    Creating Grafana dashboard ConfigMap...${NC}"
+  kubectl create configmap grafana-spring-boot-dashboard \
+    --from-file=spring-boot.json="$SCRIPT_DIR/helm/observability/dashboards/spring-boot.json" \
+    -n observability --dry-run=client -o yaml | kubectl apply -f - || true
+fi
 helm upgrade --install grafana oci://registry-1.docker.io/bitnamicharts/grafana \
   --version 12.1.8 -n observability -f helm/observability/values-grafana-simple.yaml \
-  --wait --timeout 5m || echo "⚠️  Grafana deployment failed, continuing..."
+  --timeout 10m || echo "⚠️  Grafana deployment failed, continuing..."
 
 echo -e "${BLUE}  🔍 Deploying Zipkin (Distributed Tracing)...${NC}"
 helm upgrade --install zipkin oci://registry-1.docker.io/bitnamicharts/zipkin \
   --version 1.3.11 -n observability -f helm/observability/values-zipkin.yaml \
-  --wait --timeout 5m || echo "⚠️  Zipkin deployment failed, continuing..."
+  --timeout 15m || echo "⚠️  Zipkin deployment failed, continuing..."
 
 echo -e "${BLUE}  📦 Deploying Elasticsearch (Log Storage)...${NC}"
 helm upgrade --install elasticsearch oci://registry-1.docker.io/bitnamicharts/elasticsearch \
   --version 22.1.6 -n observability -f helm/observability/values-elasticsearch.yaml \
-  --wait --timeout 10m || echo "⚠️  Elasticsearch deployment failed, continuing..."
+  --timeout 20m || echo "⚠️  Elasticsearch deployment failed, continuing..."
+
+# Wait for Elasticsearch to be ready before deploying dependent services
+echo -e "${BLUE}  ⏳ Waiting for Elasticsearch to be ready...${NC}"
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=elasticsearch -n observability --timeout=600s 2>/dev/null || echo "⚠️  Elasticsearch not ready yet, continuing..."
 
 echo -e "${BLUE}  🔄 Deploying Logstash (Log Processing)...${NC}"
 helm upgrade --install logstash oci://registry-1.docker.io/bitnamicharts/logstash \
   --version 7.0.11 -n observability -f helm/observability/values-logstash.yaml \
-  --wait --timeout 5m || echo "⚠️  Logstash deployment failed, continuing..."
+  --timeout 15m || echo "⚠️  Logstash deployment failed, continuing..."
 
 echo -e "${BLUE}  📝 Deploying Kibana (Log Visualization)...${NC}"
-helm upgrade --install kibana oci://registry-1.docker.io/bitnamicharts/kibana \
-  --version 12.1.10 -n observability -f helm/observability/values-kibana.yaml \
-  --wait --timeout 5m || echo "⚠️  Kibana deployment failed, continuing..."
+# Ensure Elasticsearch is ready before Kibana
+echo -e "${BLUE}    Verifying Elasticsearch is accessible...${NC}"
+ELASTICSEARCH_READY=false
+for i in {1..30}; do
+  if kubectl get svc elasticsearch-master -n observability &>/dev/null; then
+    ELASTICSEARCH_READY=true
+    break
+  fi
+  sleep 2
+done
+
+if [ "$ELASTICSEARCH_READY" = "true" ]; then
+  helm upgrade --install kibana oci://registry-1.docker.io/bitnamicharts/kibana \
+    --version 12.1.10 -n observability -f helm/observability/values-kibana.yaml \
+    --timeout 15m || echo "⚠️  Kibana deployment failed, continuing..."
+else
+  echo "⚠️  Elasticsearch service not found, skipping Kibana deployment"
+fi
+
+echo -e "${BLUE}  ⏳ Waiting for observability pods to be ready (this may take a few minutes)...${NC}"
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=prometheus -n observability --timeout=300s 2>/dev/null || true
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=grafana -n observability --timeout=300s 2>/dev/null || true
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=zipkin -n observability --timeout=300s 2>/dev/null || true
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=elasticsearch -n observability --timeout=600s 2>/dev/null || true
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=logstash -n observability --timeout=300s 2>/dev/null || true
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kibana -n observability --timeout=300s 2>/dev/null || true
 
 echo -e "${GREEN}✅ Observability stack deployment completed${NC}"
 

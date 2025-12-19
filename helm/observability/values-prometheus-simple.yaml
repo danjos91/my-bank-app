@@ -46,22 +46,42 @@ alertmanager:
 serverFiles:
   alerting_rules.yml:
     groups:
-      - name: app-alerts
+      - name: application-alerts
         rules:
-          - alert: HighErrorRate
-            expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.1
-            for: 2m
-            labels:
-              severity: critical
-            annotations:
-              summary: "HTTP 5xx rate is high"
-              description: "More than 10% of requests are failing over 5 minutes."
-          - alert: HighJvmMemory
-            expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.8
-            for: 2m
+          # Alert for high response time (more than 1 second on average)
+          - alert: HighResponseTime
+            expr: rate(http_server_requests_seconds_sum[5m]) / rate(http_server_requests_seconds_count[5m]) > 1
+            for: 1m
             labels:
               severity: warning
             annotations:
-              summary: "JVM heap usage high"
-              description: "Heap usage above 80% for 2 minutes."
+              summary: "High response time detected"
+              description: "The average response time has exceeded 1 second for the last 1 minute"
+          # Alert for high rate of 4xx errors
+          - alert: High4xxErrorRate
+            expr: rate(http_server_requests_seconds_count{status=~"4.."}[5m]) > 0.05
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High 4xx error rate detected"
+              description: "The 4xx error rate has exceeded 5% for the last 1 minute"
+          # Alert for high rate of 5xx errors
+          - alert: High5xxErrorRate
+            expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.01
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High 5xx error rate detected"
+              description: "The 5xx error rate has exceeded 1% for the last 1 minute"
+          # Alert for Zipkin unavailability
+          - alert: ZipkinUnavailable
+            expr: up{job="zipkin"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Zipkin is unavailable"
+              description: "Zipkin service is not responding or is down"
 

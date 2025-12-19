@@ -14,14 +14,36 @@ datasources:
       - name: Prometheus
         type: prometheus
         access: proxy
-        url: http://prometheus-server.observability.svc.cluster.local
+        url: http://prometheus-server.observability.svc.cluster.local:80
         isDefault: true
         editable: true
 
-# Don't auto-provision dashboards - users will import manually via UI
-dashboardProviders: {}
+# Configure dashboard provisioning
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 10
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards
 
-dashboards: {}
+# Mount dashboard via ConfigMap
+# The ConfigMap should be created using: kubectl create configmap grafana-spring-boot-dashboard --from-file=spring-boot.json=helm/observability/dashboards/spring-boot.json -n observability
+extraVolumes:
+  - name: dashboards
+    configMap:
+      name: grafana-spring-boot-dashboard
+
+extraVolumeMounts:
+  - name: dashboards
+    mountPath: /var/lib/grafana/dashboards
+    readOnly: true
 
 resources:
   limits:
