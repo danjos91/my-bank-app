@@ -10,6 +10,7 @@ import io.github.danjos.mybankapp.cash.dto.WithdrawalRequestDTO;
 import io.github.danjos.mybankapp.cash.dto.BlockResponseDTO;
 import io.github.danjos.mybankapp.cash.entity.CashTransaction;
 import io.github.danjos.mybankapp.cash.entity.Currency;
+import io.github.danjos.mybankapp.cash.metrics.CashMetrics;
 import io.github.danjos.mybankapp.cash.repository.CashTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,9 @@ class CashServiceTest {
 
     @Mock
     private BlockerClient blockerClient;
+
+    @Mock
+    private CashMetrics cashMetrics;
 
     @InjectMocks
     private CashService cashService;

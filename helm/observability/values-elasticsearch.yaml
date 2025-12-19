@@ -1,3 +1,7 @@
+global:
+  security:
+    allowInsecureImages: true
+
 master:
   replicaCount: 1
   persistence:
@@ -9,6 +13,18 @@ master:
     limits:
       cpu: 500m
       memory: 1Gi
+
+image:
+  registry: docker.io
+  repository: bitnamilegacy/elasticsearch
+  tag: 9.1.2-debian-12-r0
+  pullPolicy: IfNotPresent
+
+sysctlImage:
+  registry: docker.io
+  repository: bitnamilegacy/os-shell
+  tag: 12-debian-12-r50
+  pullPolicy: IfNotPresent
 
 data:
   replicaCount: 0

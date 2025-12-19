@@ -26,6 +26,8 @@ KAFKA_TOPICS=(
   "service-logs"
 )
 
+OBSERVABILITY_ONLY="${OBSERVABILITY_ONLY:-false}"
+
 # 1. Check/Start Minikube
 if ! command minikube version &> /dev/null; then
     echo "❌ Minikube is not installed. Please install it first."
@@ -129,7 +131,12 @@ helm upgrade --install elasticsearch oci://registry-1.docker.io/bitnamicharts/el
 
 # Wait for Elasticsearch to be ready before deploying dependent services
 echo -e "${BLUE}  ⏳ Waiting for Elasticsearch to be ready...${NC}"
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=elasticsearch -n observability --timeout=600s 2>/dev/null || echo "⚠️  Elasticsearch not ready yet, continuing..."
+ELASTICSEARCH_SELECTOR="app.kubernetes.io/name=elasticsearch,app.kubernetes.io/instance=elasticsearch"
+if ! kubectl wait --for=condition=ready pod -l "${ELASTICSEARCH_SELECTOR}" -n observability --timeout=600s; then
+  echo "❌ Elasticsearch pods did not become ready. Current status:"
+  kubectl get pods -n observability -l "${ELASTICSEARCH_SELECTOR}" || true
+  exit 1
+fi
 
 echo -e "${BLUE}  🔄 Deploying Logstash (Log Processing)...${NC}"
 helm upgrade --install logstash oci://registry-1.docker.io/bitnamicharts/logstash \
@@ -175,6 +182,12 @@ if [ "$RUNNING_OBS" -lt "$TOTAL_OBS" ]; then
 fi
 
 echo -e "${GREEN}✅ Observability stack deployment completed${NC}"
+
+if [ "${OBSERVABILITY_ONLY}" = "true" ]; then
+  echo -e "${GREEN}✅ OBSERVABILITY_ONLY=true set - skipping application deployment${NC}"
+  echo "You can now port-forward observability services as needed."
+  exit 0
+fi
 
 # 4. Deploy with Helm
 echo -e "${BLUE}☸️  Deploying Helm Charts...${NC}"
