@@ -11,6 +11,18 @@ pipeline {
         KAFKA_VERSION = '30.1.5'
         KAFKA_VALUES = 'helm/kafka/values-standalone.yaml'
         KAFKA_VALUES_PROD = 'helm/kafka/values-standalone-prod.yaml'
+        OBSERVABILITY_NAMESPACE = 'observability'
+        ZIPKIN_RELEASE_NAME = 'zipkin'
+        ZIPKIN_CHART = 'oci://registry-1.docker.io/bitnamicharts/openzipkin'
+        ZIPKIN_VERSION = '1.0.0'
+        PROMETHEUS_STACK_RELEASE_NAME = 'kube-prometheus-stack'
+        PROMETHEUS_STACK_CHART = 'prometheus-community/kube-prometheus-stack'
+        PROMETHEUS_STACK_VERSION = '55.0.0'
+        ELK_RELEASE_NAME = 'elk'
+        ELASTICSEARCH_CHART = 'oci://registry-1.docker.io/bitnamicharts/elasticsearch'
+        ELASTICSEARCH_VERSION = '21.0.0'
+        KIBANA_CHART = 'oci://registry-1.docker.io/bitnamicharts/kibana'
+        KIBANA_VERSION = '12.0.0'
     }
 
     stages {
@@ -57,7 +69,8 @@ pipeline {
                         [name: 'transfer-completed', partitions: 3, rf: 1, minInsync: 1],
                         [name: 'transfer-failed', partitions: 3, rf: 1, minInsync: 1],
                         [name: 'notification-event', partitions: 3, rf: 1, minInsync: 1],
-                        [name: 'exchange-rates', partitions: 3, rf: 1, minInsync: 1]
+                        [name: 'exchange-rates', partitions: 3, rf: 1, minInsync: 1],
+                        [name: 'application-logs', partitions: 3, rf: 1, minInsync: 1]
                     ]
                     
                     // Wait a bit to ensure Kafka is fully ready
@@ -82,6 +95,75 @@ pipeline {
                         kubectl exec -n ${KAFKA_NAMESPACE} \$(kubectl get pod -n ${KAFKA_NAMESPACE} -l app.kubernetes.io/name=kafka,app.kubernetes.io/instance=${KAFKA_RELEASE_NAME} -o jsonpath='{.items[0].metadata.name}') -- \\
                         kafka-topics.sh --list --bootstrap-server localhost:9092
                     """
+                }
+            }
+        }
+
+        stage('Deploy Observability Stack') {
+            steps {
+                echo 'Deploying observability components (Zipkin, Prometheus, Grafana, ELK)...'
+                script {
+                    // Create observability namespace
+                    sh """
+                        kubectl create namespace ${OBSERVABILITY_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                    """
+                    
+                    // Add Helm repositories
+                    sh """
+                        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
+                        helm repo update
+                    """
+                    
+                    // Deploy Zipkin
+                    sh """
+                        helm upgrade --install ${ZIPKIN_RELEASE_NAME} ${ZIPKIN_CHART} \
+                        --version ${ZIPKIN_VERSION} \
+                        --namespace ${OBSERVABILITY_NAMESPACE} \
+                        --create-namespace \
+                        --set service.type=ClusterIP \
+                        --set service.port=9411 \
+                        --wait \
+                        --timeout 5m || true
+                    """
+                    
+                    // Deploy Prometheus and Grafana Stack
+                    sh """
+                        helm upgrade --install ${PROMETHEUS_STACK_RELEASE_NAME} ${PROMETHEUS_STACK_CHART} \
+                        --version ${PROMETHEUS_STACK_VERSION} \
+                        --namespace ${OBSERVABILITY_NAMESPACE} \
+                        --create-namespace \
+                        --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
+                        --set grafana.service.type=ClusterIP \
+                        --set grafana.adminPassword=admin \
+                        --wait \
+                        --timeout 10m || true
+                    """
+                    
+                    // Deploy Elasticsearch
+                    sh """
+                        helm upgrade --install elasticsearch ${ELASTICSEARCH_CHART} \
+                        --version ${ELASTICSEARCH_VERSION} \
+                        --namespace ${OBSERVABILITY_NAMESPACE} \
+                        --set global.kibanaEnabled=true \
+                        --set master.replicas=1 \
+                        --set data.replicas=1 \
+                        --set coordinating.replicas=1 \
+                        --wait \
+                        --timeout 10m || true
+                    """
+                    
+                    // Deploy Kibana
+                    sh """
+                        helm upgrade --install kibana ${KIBANA_CHART} \
+                        --version ${KIBANA_VERSION} \
+                        --namespace ${OBSERVABILITY_NAMESPACE} \
+                        --set elasticsearch.hosts[0]=elasticsearch:9200 \
+                        --set service.type=ClusterIP \
+                        --wait \
+                        --timeout 5m || true
+                    """
+                    
+                    echo 'Observability stack deployment completed!'
                 }
             }
         }
@@ -161,7 +243,8 @@ pipeline {
                         [name: 'transfer-completed', partitions: 6, rf: 3, minInsync: 2],
                         [name: 'transfer-failed', partitions: 6, rf: 3, minInsync: 2],
                         [name: 'notification-event', partitions: 6, rf: 3, minInsync: 2],
-                        [name: 'exchange-rates', partitions: 6, rf: 3, minInsync: 2]
+                        [name: 'exchange-rates', partitions: 6, rf: 3, minInsync: 2],
+                        [name: 'application-logs', partitions: 6, rf: 3, minInsync: 2]
                     ]
                     
                     sh 'sleep 20'
