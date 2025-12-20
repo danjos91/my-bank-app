@@ -65,10 +65,40 @@ spec:
           env:
             - name: ELASTICSEARCH_HOSTS
               value: "http://{{ include "elasticsearch-simple.fullname" . }}:9200"
+            - name: SERVER_HOST
+              value: "0.0.0.0"
+            - name: SERVER_NAME
+              value: "kibana"
+            - name: ELASTICSEARCH_USERNAME
+              value: ""
+            - name: ELASTICSEARCH_PASSWORD
+              value: ""
+            - name: XPACK_SECURITY_ENABLED
+              value: "false"
+            - name: XPACK_MONITORING_ENABLED
+              value: "false"
+            - name: XPACK_APM_ENABLED
+              value: "false"
           ports:
             - name: http
               containerPort: 5601
               protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /api/status
+              port: 5601
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/status
+              port: 5601
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
           resources:
             {{- toYaml .Values.kibana.resources | nindent 12 }}
 {{- end }}
