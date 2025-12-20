@@ -23,7 +23,22 @@ KAFKA_TOPICS=(
   "transfer-failed"
   "notification-event"
   "exchange-rates"
+  "application-logs"
 )
+
+OBSERVABILITY_NAMESPACE="observability"
+ZIPKIN_RELEASE="zipkin"
+ZIPKIN_CHART="oci://registry-1.docker.io/bitnamicharts/openzipkin"
+ZIPKIN_VERSION="1.0.0"
+PROMETHEUS_STACK_RELEASE="kube-prometheus-stack"
+PROMETHEUS_STACK_CHART="prometheus-community/kube-prometheus-stack"
+PROMETHEUS_STACK_VERSION="55.0.0"
+ELASTICSEARCH_RELEASE="elasticsearch"
+ELASTICSEARCH_CHART="oci://registry-1.docker.io/bitnamicharts/elasticsearch"
+ELASTICSEARCH_VERSION="21.0.0"
+KIBANA_RELEASE="kibana"
+KIBANA_CHART="oci://registry-1.docker.io/bitnamicharts/kibana"
+KIBANA_VERSION="12.0.0"
 
 # 1. Check Prerequisites
 echo -e "${BLUE}🔍 Checking prerequisites...${NC}"
@@ -86,6 +101,64 @@ for topic in "${KAFKA_TOPICS[@]}"; do
     --config retention.ms=604800000 \
     --config min.insync.replicas=1 || true
 done
+
+# 3.5. Deploy Observability Stack
+echo -e "${BLUE}📊 Deploying Observability Stack (Zipkin, Prometheus, Grafana, ELK)...${NC}"
+
+# Create observability namespace
+kubectl create namespace "${OBSERVABILITY_NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
+
+# Add Prometheus Helm repository
+echo "Adding Prometheus Helm repository..."
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
+helm repo update
+
+# Deploy Zipkin
+echo -e "${BLUE}📈 Deploying Zipkin...${NC}"
+helm upgrade --install "${ZIPKIN_RELEASE}" "${ZIPKIN_CHART}" \
+  --version "${ZIPKIN_VERSION}" \
+  --namespace "${OBSERVABILITY_NAMESPACE}" \
+  --create-namespace \
+  --set service.type=ClusterIP \
+  --set service.port=9411 \
+  --wait \
+  --timeout 5m || echo "⚠️  Zipkin deployment had issues, continuing..."
+
+# Deploy Prometheus and Grafana Stack
+echo -e "${BLUE}📊 Deploying Prometheus and Grafana...${NC}"
+helm upgrade --install "${PROMETHEUS_STACK_RELEASE}" "${PROMETHEUS_STACK_CHART}" \
+  --version "${PROMETHEUS_STACK_VERSION}" \
+  --namespace "${OBSERVABILITY_NAMESPACE}" \
+  --create-namespace \
+  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
+  --set grafana.service.type=ClusterIP \
+  --set grafana.adminPassword=admin \
+  --wait \
+  --timeout 10m || echo "⚠️  Prometheus/Grafana deployment had issues, continuing..."
+
+# Deploy Elasticsearch
+echo -e "${BLUE}📝 Deploying Elasticsearch...${NC}"
+helm upgrade --install "${ELASTICSEARCH_RELEASE}" "${ELASTICSEARCH_CHART}" \
+  --version "${ELASTICSEARCH_VERSION}" \
+  --namespace "${OBSERVABILITY_NAMESPACE}" \
+  --set global.kibanaEnabled=true \
+  --set master.replicas=1 \
+  --set data.replicas=1 \
+  --set coordinating.replicas=1 \
+  --wait \
+  --timeout 10m || echo "⚠️  Elasticsearch deployment had issues, continuing..."
+
+# Deploy Kibana
+echo -e "${BLUE}🔍 Deploying Kibana...${NC}"
+helm upgrade --install "${KIBANA_RELEASE}" "${KIBANA_CHART}" \
+  --version "${KIBANA_VERSION}" \
+  --namespace "${OBSERVABILITY_NAMESPACE}" \
+  --set elasticsearch.hosts[0]=elasticsearch:9200 \
+  --set service.type=ClusterIP \
+  --wait \
+  --timeout 5m || echo "⚠️  Kibana deployment had issues, continuing..."
+
+echo -e "${GREEN}✅ Observability stack deployment initiated${NC}"
 
 # 4. Build Java Services
 echo -e "${BLUE}🔨 Building Java services with Maven...${NC}"
@@ -173,5 +246,22 @@ echo "2. Once pods are running, access the UI:"
 echo "   - If NOT using minikube tunnel: add \"$(minikube ip) bank.local\" to /etc/hosts and open http://bank.local/"
 echo "   - If using minikube tunnel: add '127.0.0.1 bank.local' to /etc/hosts and open http://bank.local/"
 echo "   - Or port-forward: kubectl port-forward svc/front-ui 8086:8086 and open http://localhost:8086"
+echo ""
+echo "3. Access Observability Dashboards:"
+echo "   - Zipkin (Tracing):"
+echo "     kubectl port-forward -n ${OBSERVABILITY_NAMESPACE} svc/${ZIPKIN_RELEASE} 9411:9411"
+echo "     Then open http://localhost:9411"
+echo ""
+echo "   - Grafana (Metrics):"
+echo "     kubectl port-forward -n ${OBSERVABILITY_NAMESPACE} svc/${PROMETHEUS_STACK_RELEASE}-grafana 3000:80"
+echo "     Then open http://localhost:3000 (admin/admin)"
+echo ""
+echo "   - Prometheus (Metrics Query):"
+echo "     kubectl port-forward -n ${OBSERVABILITY_NAMESPACE} svc/${PROMETHEUS_STACK_RELEASE}-prometheus 9090:9090"
+echo "     Then open http://localhost:9090"
+echo ""
+echo "   - Kibana (Logs):"
+echo "     kubectl port-forward -n ${OBSERVABILITY_NAMESPACE} svc/${KIBANA_RELEASE} 5601:5601"
+echo "     Then open http://localhost:5601"
 echo "--------------------------------------------------------"
 
