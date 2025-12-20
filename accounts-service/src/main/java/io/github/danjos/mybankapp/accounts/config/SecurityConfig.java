@@ -21,6 +21,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/accounts/users/register").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/accounts/**").authenticated()
                         .anyRequest().permitAll()
                 )
