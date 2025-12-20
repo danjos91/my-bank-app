@@ -286,6 +286,154 @@ This project includes `Jenkinsfile` for each microservice, a Kafka-specific pipe
    - Repository URL: (Your Git Repo URL)
    - Script Path: `Jenkinsfile` (for the umbrella project) or `accounts-service/Jenkinsfile` (for individual services).
 
+## 📊 Observability Stack
+
+The application includes a comprehensive observability stack for monitoring, tracing, and logging:
+
+### Components
+
+- **Zipkin**: Distributed tracing for request flows across microservices
+- **Prometheus**: Metrics collection and storage
+- **Grafana**: Visualization and dashboards for metrics
+- **ELK Stack**: Log aggregation (Elasticsearch, Logstash, Kibana)
+
+### Deployment
+
+Observability components are automatically deployed via Jenkins pipelines:
+
+1. **Kafka Pipeline** (`helm/kafka/Jenkinsfile`): Deploys Zipkin, Prometheus, Grafana, and ELK stack
+2. **Umbrella Pipeline** (`Jenkinsfile`): Includes observability deployment stages
+
+### Accessing Dashboards
+
+#### Zipkin (Distributed Tracing)
+```bash
+# Port-forward Zipkin service
+kubectl port-forward -n observability svc/zipkin 9411:9411
+# Access at http://localhost:9411
+```
+
+#### Grafana (Metrics Visualization)
+```bash
+# Port-forward Grafana service
+kubectl port-forward -n observability svc/kube-prometheus-stack-grafana 3000:80
+# Access at http://localhost:3000
+# Default credentials: admin / admin
+```
+
+#### Prometheus (Metrics Query)
+```bash
+# Port-forward Prometheus service
+kubectl port-forward -n observability svc/kube-prometheus-stack-prometheus 9090:9090
+# Access at http://localhost:9090
+```
+
+#### Kibana (Log Analysis)
+```bash
+# Port-forward Kibana service
+kubectl port-forward -n observability svc/kibana 5601:5601
+# Access at http://localhost:5601
+```
+
+### Available Dashboards
+
+Grafana dashboards are located in `helm/grafana/dashboards/`:
+
+1. **Spring Boot Application Metrics**: HTTP request rates, response times, error rates
+2. **JVM Metrics**: Heap memory, GC pauses, thread counts, CPU usage
+3. **Business Metrics**: Deposit/withdrawal counts, transfer metrics, account creation rates
+4. **System Metrics**: Pod CPU/memory usage, service-level metrics
+
+To import dashboards into Grafana:
+1. Access Grafana UI
+2. Go to Dashboards → Import
+3. Upload JSON files from `helm/grafana/dashboards/`
+
+### Prometheus Alerts
+
+Alert rules are defined in `helm/prometheus/alerts/`:
+
+- **Application Alerts**: High error rates, slow response times, high memory/CPU usage
+- **Business Alerts**: Transaction errors, transfer failures, unusual transaction volumes
+
+Alerts are automatically configured when deploying Prometheus via Helm chart.
+
+### Metrics Endpoints
+
+All microservices expose Prometheus metrics at:
+```
+http://<service-name>:<port>/actuator/prometheus
+```
+
+Example:
+```bash
+curl http://accounts-service:8081/actuator/prometheus
+```
+
+### Custom Business Metrics
+
+The application tracks custom business metrics:
+
+- `cash.deposit.count`: Number of deposits by currency
+- `cash.deposit.amount`: Total deposit amounts by currency
+- `cash.withdrawal.count`: Number of withdrawals by currency
+- `transfer.count`: Transfer counts by currency pair and status
+- `transfer.amount`: Transfer amounts by currency pair
+- `account.created.count`: Account creation counts by currency
+- `account.total_balance`: Total balance across all accounts
+
+### Tracing
+
+Distributed tracing is enabled for all microservices. Traces are sent to Zipkin at `http://zipkin.observability.svc.cluster.local:9411`.
+
+To view traces:
+1. Generate some traffic to the application
+2. Access Zipkin UI
+3. Search for traces by service name or trace ID
+
+### Logging
+
+All microservices output structured JSON logs via Logback, configured in `logback-spring.xml` files. Logs are:
+- Output to stdout/stderr (captured by Kubernetes)
+- Structured in JSON format for easy parsing
+- Tagged with service name for filtering
+
+For ELK integration, configure a log shipper (Filebeat/Fluentd) to:
+1. Read logs from Kubernetes pods
+2. Send to Kafka `application-logs` topic
+3. Logstash consumes from Kafka and indexes to Elasticsearch
+
+### Configuration
+
+Observability can be enabled/disabled per service via Helm values:
+
+```yaml
+observability:
+  enabled: true
+  zipkinUrl: http://zipkin.observability.svc.cluster.local:9411
+```
+
+In the umbrella chart (`helm/my-bank-app/values.yaml`):
+
+```yaml
+zipkin:
+  enabled: true
+
+prometheus:
+  enabled: true
+
+elk:
+  enabled: true
+```
+
+### CI/CD Integration
+
+The Jenkins pipelines automatically:
+1. Deploy observability components to the `observability` namespace
+2. Configure service discovery for metrics scraping
+3. Set up dashboards and alerts
+4. Create required Kafka topics for log aggregation
+
 ## 👤 Test Users
 
 The following test users are available for testing the application functionality. They are automatically created in the database on startup.
