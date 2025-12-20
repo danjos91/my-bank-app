@@ -34,11 +34,9 @@ PROMETHEUS_STACK_RELEASE="kube-prometheus-stack"
 PROMETHEUS_STACK_CHART="prometheus-community/kube-prometheus-stack"
 PROMETHEUS_STACK_VERSION="55.0.0"
 ELASTICSEARCH_RELEASE="elasticsearch"
-ELASTICSEARCH_CHART="oci://registry-1.docker.io/bitnamicharts/elasticsearch"
-ELASTICSEARCH_VERSION="21.0.0"
+ELASTICSEARCH_CHART="./helm/elasticsearch-simple"
 KIBANA_RELEASE="kibana"
-KIBANA_CHART="oci://registry-1.docker.io/bitnamicharts/kibana"
-KIBANA_VERSION="12.0.0"
+KIBANA_CHART="./helm/elasticsearch-simple"
 
 # 1. Check Prerequisites
 echo -e "${BLUE}🔍 Checking prerequisites...${NC}"
@@ -261,7 +259,7 @@ echo "     kubectl port-forward -n ${OBSERVABILITY_NAMESPACE} svc/${PROMETHEUS_S
 echo "     Then open http://localhost:9090"
 echo ""
 echo "   - Kibana (Logs):"
-echo "     kubectl port-forward -n ${OBSERVABILITY_NAMESPACE} svc/${KIBANA_RELEASE} 5601:5601"
+echo "     kubectl port-forward -n ${OBSERVABILITY_NAMESPACE} svc/${ELASTICSEARCH_RELEASE}-elasticsearch-simple-kibana 5601:5601"
 echo "     Then open http://localhost:5601"
 echo "--------------------------------------------------------"
 
