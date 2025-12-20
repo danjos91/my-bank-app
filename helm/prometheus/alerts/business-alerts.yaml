@@ -1,0 +1,49 @@
+groups:
+  - name: business_alerts
+    interval: 30s
+    rules:
+      - alert: HighDepositErrorRate
+        expr: rate(cash_deposit_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High deposit error rate"
+          description: "Deposit error rate is {{ $value }} errors/sec for currency {{ $labels.currency }}"
+
+      - alert: HighWithdrawalErrorRate
+        expr: rate(cash_withdrawal_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High withdrawal error rate"
+          description: "Withdrawal error rate is {{ $value }} errors/sec for currency {{ $labels.currency }}"
+
+      - alert: HighTransferFailureRate
+        expr: rate(transfer_count_total{status="failed"}[5m]) / rate(transfer_count_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High transfer failure rate"
+          description: "Transfer failure rate is {{ $value | humanizePercentage }}"
+
+      - alert: SlowTransactionProcessing
+        expr: histogram_quantile(0.95, rate(cash_deposit_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow transaction processing"
+          description: "P95 transaction processing time is {{ $value }}s for {{ $labels.currency }}"
+
+      - alert: UnusualTransactionVolume
+        expr: rate(cash_deposit_amount_total[5m]) > 1000000
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Unusual transaction volume detected"
+          description: "High transaction volume: {{ $value }} per second for currency {{ $labels.currency }}"
+
