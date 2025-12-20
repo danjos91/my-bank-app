@@ -23,8 +23,12 @@ spec:
               value: "single-node"
             - name: xpack.security.enabled
               value: "false"
+            - name: xpack.security.enrollment.enabled
+              value: "false"
             - name: "ES_JAVA_OPTS"
               value: "-Xms256m -Xmx512m"
+            - name: xpack.monitoring.collection.enabled
+              value: "true"
           ports:
             - name: http
               containerPort: 9200
@@ -65,6 +69,10 @@ spec:
           env:
             - name: ELASTICSEARCH_HOSTS
               value: "http://{{ include "elasticsearch-simple.fullname" . }}:9200"
+            - name: ELASTICSEARCH_SERVICEACCOUNTTOKEN
+              value: ""
+            - name: ELASTICSEARCH_SERVICEACCOUNTTOKEN_CREDENTIALS
+              value: ""
             - name: SERVER_HOST
               value: "0.0.0.0"
             - name: SERVER_NAME

@@ -3,5 +3,5 @@ name: elasticsearch-simple
 description: Simple single-node Elasticsearch for development
 type: application
 version: 1.0.0
-appVersion: "8.11.0"
+appVersion: "8.12.0"
 
