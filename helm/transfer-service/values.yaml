@@ -50,3 +50,7 @@ auth:
 services:
   accounts: http://my-bank-app-accounts-service:8081
   exchange: http://my-bank-app-exchange-service:8087
+
+observability:
+  enabled: true
+  zipkinUrl: http://zipkin.observability.svc.cluster.local:9411

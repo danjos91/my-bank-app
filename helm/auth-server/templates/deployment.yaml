@@ -36,5 +36,13 @@ spec:
                   key: password
             - name: SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER
               value: http://my-bank-app-auth-server:8085
+            {{- if .Values.observability.enabled }}
+            - name: SPRING_ZIPKIN_BASE_URL
+              value: {{ .Values.observability.zipkinUrl | default "http://zipkin.observability.svc.cluster.local:9411" | quote }}
+            - name: MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED
+              value: "true"
+            - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+              value: "health,info,metrics,prometheus"
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

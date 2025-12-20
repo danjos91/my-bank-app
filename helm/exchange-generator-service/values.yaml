@@ -36,3 +36,7 @@ db:
   username: bank_app_user
   database: bank_app_db
   secretName: my-bank-app-exchange-service-db-secret
+
+observability:
+  enabled: true
+  zipkinUrl: http://zipkin.observability.svc.cluster.local:9411
