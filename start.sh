@@ -35,8 +35,6 @@ PROMETHEUS_STACK_CHART="prometheus-community/kube-prometheus-stack"
 PROMETHEUS_STACK_VERSION="55.0.0"
 ELASTICSEARCH_RELEASE="elasticsearch"
 ELASTICSEARCH_CHART="./helm/elasticsearch-simple"
-KIBANA_RELEASE="kibana"
-KIBANA_CHART="./helm/elasticsearch-simple"
 
 # 1. Check Prerequisites
 echo -e "${BLUE}🔍 Checking prerequisites...${NC}"
@@ -134,27 +132,15 @@ helm upgrade --install "${PROMETHEUS_STACK_RELEASE}" "${PROMETHEUS_STACK_CHART}"
   --wait \
   --timeout 10m || echo "⚠️  Prometheus/Grafana deployment had issues, continuing..."
 
-# Deploy Elasticsearch
-echo -e "${BLUE}📝 Deploying Elasticsearch...${NC}"
+# Deploy Elasticsearch (lightweight single-node setup for Minikube)
+echo -e "${BLUE}📝 Deploying Elasticsearch and Kibana (lightweight single-node)...${NC}"
+cd "$SCRIPT_DIR"
 helm upgrade --install "${ELASTICSEARCH_RELEASE}" "${ELASTICSEARCH_CHART}" \
-  --version "${ELASTICSEARCH_VERSION}" \
   --namespace "${OBSERVABILITY_NAMESPACE}" \
-  --set global.kibanaEnabled=true \
-  --set master.replicas=1 \
-  --set data.replicas=1 \
-  --set coordinating.replicas=1 \
+  --create-namespace \
   --wait \
-  --timeout 10m || echo "⚠️  Elasticsearch deployment had issues, continuing..."
-
-# Deploy Kibana
-echo -e "${BLUE}🔍 Deploying Kibana...${NC}"
-helm upgrade --install "${KIBANA_RELEASE}" "${KIBANA_CHART}" \
-  --version "${KIBANA_VERSION}" \
-  --namespace "${OBSERVABILITY_NAMESPACE}" \
-  --set elasticsearch.hosts[0]=elasticsearch:9200 \
-  --set service.type=ClusterIP \
-  --wait \
-  --timeout 5m || echo "⚠️  Kibana deployment had issues, continuing..."
+  --timeout 10m || echo "⚠️  Elasticsearch/Kibana deployment had issues, continuing..."
+cd "$SCRIPT_DIR"
 
 echo -e "${GREEN}✅ Observability stack deployment initiated${NC}"
 
