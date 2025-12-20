@@ -41,9 +41,9 @@ kubectl port-forward -n observability svc/kube-prometheus-stack-prometheus 9090:
 # Open http://localhost:9090
 ```
 
-### Kibana (Logs) - When ELK is ready
+### Kibana (Logs)
 ```bash
-kubectl port-forward -n observability svc/elasticsearch-kibana 5601:5601
+kubectl port-forward -n observability svc/elasticsearch-elasticsearch-simple-kibana 5601:5601
 # Open http://localhost:5601
 ```
 
