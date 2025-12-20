@@ -100,7 +100,9 @@ public class BankService {
             // Get user profile
             String userUrl = accountsServiceUrl + "/api/accounts/users/username/" + username;
             log.debug("Fetching user profile from: {}", userUrl);
-            var userProfileResponse = restTemplate.exchange(userUrl, HttpMethod.GET, null,
+            HttpHeaders headers = createHeadersWithAuth();
+            HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+            var userProfileResponse = restTemplate.exchange(userUrl, HttpMethod.GET, requestEntity,
                 new ParameterizedTypeReference<Map<String, Object>>() {});
             Map<String, Object> userProfile = userProfileResponse.getBody();
             
@@ -109,7 +111,7 @@ public class BankService {
             log.info("Fetching accounts from: {} for user: {}", accountsUrl, username);
             List<Map<String, Object>> accounts = null;
             try {
-                var accountsResponse = restTemplate.exchange(accountsUrl, HttpMethod.GET, null,
+                var accountsResponse = restTemplate.exchange(accountsUrl, HttpMethod.GET, requestEntity,
                     new ParameterizedTypeReference<List<Map<String, Object>>>() {});
                 accounts = accountsResponse.getBody();
                 log.info("Accounts response status: {}, accounts count: {}", 
@@ -207,7 +209,9 @@ public class BankService {
         try {
             String url = accountsServiceUrl + "/api/accounts/username/" + username;
             log.debug("Fetching accounts from: {}", url);
-            var response = restTemplate.exchange(url, HttpMethod.GET, null,
+            HttpHeaders headers = createHeadersWithAuth();
+            HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+            var response = restTemplate.exchange(url, HttpMethod.GET, requestEntity,
                 new ParameterizedTypeReference<List<Map<String, Object>>>() {});
             return response.getBody() != null ? response.getBody() : List.of();
         } catch (Exception e) {
@@ -229,9 +233,8 @@ public class BankService {
             }
             
             log.debug("Creating account for user: {} with currency: {} at URL: {}", username, currency, url);
-            
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpHeaders headers = createHeadersWithAuth();
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(new HashMap<>(), headers);
             
             restTemplate.exchange(url, HttpMethod.POST, request, 
@@ -245,7 +248,9 @@ public class BankService {
     public List<UserDataDTO> getAllUsers() {
         try {
             String url = accountsServiceUrl + "/api/accounts/users";
-            return restTemplate.exchange(url, HttpMethod.GET, null, 
+            HttpHeaders headers = createHeadersWithAuth();
+            HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+            return restTemplate.exchange(url, HttpMethod.GET, requestEntity,
                 new ParameterizedTypeReference<List<UserDataDTO>>() {}).getBody();
         } catch (Exception e) {
             log.error("Error getting all users", e);
@@ -261,10 +266,9 @@ public class BankService {
             profileData.put("name", name);
             profileData.put("birthdate", birthdate);
             
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = createHeadersWithAuth();
             HttpEntity<Map<String, String>> request = new HttpEntity<>(profileData, headers);
-            
+
             restTemplate.put(url, request);
         } catch (Exception e) {
             log.error("Error updating user profile for: {}", username, e);
@@ -279,10 +283,9 @@ public class BankService {
             Map<String, String> passwordData = new HashMap<>();
             passwordData.put("password", password);
             
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = createHeadersWithAuth();
             HttpEntity<Map<String, String>> request = new HttpEntity<>(passwordData, headers);
-            
+
             restTemplate.put(url, request);
         } catch (Exception e) {
             log.error("Error updating password for: {}", username, e);
@@ -499,11 +502,10 @@ public class BankService {
             String url = accountsServiceUrl + "/api/accounts/users/" + userId + "/accounts";
             log.debug("Creating account for user ID: {} at URL: {}", userId, url);
             
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = createHeadersWithAuth();
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(new HashMap<>(), headers);
-            
-            var response = restTemplate.exchange(url, HttpMethod.POST, request, 
+
+            var response = restTemplate.exchange(url, HttpMethod.POST, request,
                 new ParameterizedTypeReference<Map<String, Object>>() {});
             
             Map<String, Object> responseBody = response.getBody();
@@ -517,7 +519,8 @@ public class BankService {
             }
             
             String accountsUrl = accountsServiceUrl + "/api/accounts/users/" + userId + "/accounts";
-            var accountsResponse = restTemplate.exchange(accountsUrl, HttpMethod.GET, null,
+            HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+            var accountsResponse = restTemplate.exchange(accountsUrl, HttpMethod.GET, requestEntity,
                 new ParameterizedTypeReference<List<Map<String, Object>>>() {});
             
             List<Map<String, Object>> accounts = accountsResponse.getBody();

@@ -25,11 +25,20 @@ KAFKA_TOPICS=(
   "exchange-rates"
 )
 
-# 1. Check/Start Minikube
-if ! command minikube version &> /dev/null; then
-    echo "❌ Minikube is not installed. Please install it first."
-    exit 1
-fi
+# 1. Check Prerequisites
+echo -e "${BLUE}🔍 Checking prerequisites...${NC}"
+
+REQUIRED_TOOLS=("minikube" "docker" "mvn" "kubectl" "helm")
+for tool in "${REQUIRED_TOOLS[@]}"; do
+    if ! command -v "$tool" &> /dev/null; then
+        echo "❌ $tool is not installed. Please install it first."
+        exit 1
+    fi
+done
+
+echo -e "${GREEN}✅ All prerequisites are installed${NC}"
+
+# 2. Check/Start Minikube
 
 echo -e "${BLUE}Checking Minikube status...${NC}"
 if ! minikube status > /dev/null 2>&1; then
@@ -40,7 +49,7 @@ else
     echo -e "${GREEN}✅ Minikube is running${NC}"
 fi
 
-# 2. Deploy Kafka (Bitnami, KRaft)
+# 3. Deploy Kafka (Bitnami, KRaft)
 echo -e "${BLUE}📡 Deploying Kafka (Bitnami) in namespace '${KAFKA_NAMESPACE}'...${NC}"
 
 # Navigate to repo root (script dir)
@@ -78,7 +87,65 @@ for topic in "${KAFKA_TOPICS[@]}"; do
     --config min.insync.replicas=1 || true
 done
 
-# 3. Deploy with Helm
+# 4. Build Java Services
+echo -e "${BLUE}🔨 Building Java services with Maven...${NC}"
+if ! command -v mvn &> /dev/null; then
+    echo "❌ Maven is not installed. Please install Maven first."
+    exit 1
+fi
+mvn clean package -DskipTests
+
+# 5. Build Docker Images
+echo -e "${BLUE}🐳 Building Docker images...${NC}"
+if ! command -v docker &> /dev/null; then
+    echo "❌ Docker is not installed. Please install Docker first."
+    exit 1
+fi
+
+# Services with 'latest' tag
+LATEST_SERVICES=(
+  "accounts-service"
+  "blocker-service"
+  "cash-service"
+  "exchange-service"
+  "notifications-service"
+  "transfer-service"
+)
+
+# Services with 'fixed' tag
+FIXED_SERVICES=(
+  "auth-server"
+  "exchange-generator-service"
+  "front-ui"
+)
+
+echo "Building services with 'latest' tag..."
+for service in "${LATEST_SERVICES[@]}"; do
+  echo "Building ${service}:latest..."
+  docker build -t "${service}:latest" -f "${service}/Dockerfile" .
+done
+
+echo "Building services with 'fixed' tag..."
+for service in "${FIXED_SERVICES[@]}"; do
+  echo "Building ${service}:fixed..."
+  docker build -t "${service}:fixed" -f "${service}/Dockerfile" .
+done
+
+# 6. Load Images into Minikube
+echo -e "${BLUE}📦 Loading images into Minikube...${NC}"
+echo "Loading 'latest' tag images..."
+for service in "${LATEST_SERVICES[@]}"; do
+  echo "Loading ${service}:latest..."
+  minikube image load "${service}:latest"
+done
+
+echo "Loading 'fixed' tag images..."
+for service in "${FIXED_SERVICES[@]}"; do
+  echo "Loading ${service}:fixed..."
+  minikube image load "${service}:fixed"
+done
+
+# 7. Deploy with Helm
 echo -e "${BLUE}☸️  Deploying Helm Charts...${NC}"
 
 cd "$SCRIPT_DIR/helm"
@@ -91,7 +158,9 @@ helm dependency update my-bank-app
 echo "🚀 Installing/Upgrading 'my-bank-app' release..."
 helm upgrade --install my-bank-app ./my-bank-app \
   --set kafka.enabled=false \
-  --set global.kafka.bootstrapServers=kafka.kafka.svc.cluster.local:9092
+  --set global.kafka.bootstrapServers=kafka.kafka.svc.cluster.local:9092 \
+  --wait \
+  --timeout 15m
 
 echo -e "${GREEN}✅ Deployment commands executed successfully!${NC}"
 echo ""
@@ -105,5 +174,4 @@ echo "   - If NOT using minikube tunnel: add \"$(minikube ip) bank.local\" to /e
 echo "   - If using minikube tunnel: add '127.0.0.1 bank.local' to /etc/hosts and open http://bank.local/"
 echo "   - Or port-forward: kubectl port-forward svc/front-ui 8086:8086 and open http://localhost:8086"
 echo "--------------------------------------------------------"
-
 
