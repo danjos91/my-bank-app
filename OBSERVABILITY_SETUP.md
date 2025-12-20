@@ -15,10 +15,8 @@ The MyBank App now includes a comprehensive observability stack with:
 - Prometheus: Running in `observability` namespace  
 - Grafana: Running in `observability` namespace
 - Alertmanager: Running in `observability` namespace
-
-⚠️ **Pending:**
-- ELK Stack: Elasticsearch deployment in progress (may take time)
-- Microservices: Need rebuild with observability dependencies
+- Elasticsearch: Running in `observability` namespace
+- Kibana: Running in `observability` namespace (may take 2-3 minutes to fully initialize)
 
 ## Quick Access
 
@@ -45,6 +43,13 @@ kubectl port-forward -n observability svc/kube-prometheus-stack-prometheus 9090:
 ```bash
 kubectl port-forward -n observability svc/elasticsearch-elasticsearch-simple-kibana 5601:5601
 # Open http://localhost:5601
+# Note: Kibana may take 2-3 minutes to fully initialize after deployment
+```
+
+**Important**: If you see "Connection refused" when port-forwarding Kibana, wait a few minutes for Kibana to finish initializing. You can check the status with:
+```bash
+kubectl logs -n observability -l app.kubernetes.io/component=kibana --tail=20
+# Look for "Server running" or "Kibana is now available"
 ```
 
 ## Next Steps
@@ -157,6 +162,14 @@ The following custom metrics are implemented:
 
 ## Troubleshooting
 
+### Kibana Connection Refused
+- **Symptom**: Port-forward fails with "Connection refused"
+- **Solution**: Kibana takes 2-3 minutes to fully initialize. Wait and check logs:
+  ```bash
+  kubectl logs -n observability -l app.kubernetes.io/component=kibana --tail=20
+  ```
+  Look for "Server running" message. Once you see it, Kibana is ready.
+
 ### Prometheus endpoint not available
 - Services need rebuild with `micrometer-registry-prometheus` dependency
 - Check actuator endpoints: `curl http://service:port/actuator`
@@ -170,11 +183,17 @@ The following custom metrics are implemented:
 - Verify Kafka topic `application-logs` exists
 - Check Logstash is configured to consume from Kafka
 - Verify logback-spring.xml has Kafka appender enabled
+- Create index pattern in Kibana: Go to Stack Management > Index Patterns > Create index pattern
 
 ### Grafana dashboards empty
 - Ensure Prometheus is scraping microservice endpoints
 - Check ServiceMonitor resources are created
 - Verify metrics are being exposed at `/actuator/prometheus`
+
+### Elasticsearch/Kibana Pod Restarts
+- Check resource limits: `kubectl describe pod -n observability <pod-name>`
+- Verify Minikube has enough resources: `minikube start --cpus 4 --memory 8192`
+- Check logs for errors: `kubectl logs -n observability <pod-name>`
 
 ## CI/CD Integration
 
@@ -185,4 +204,3 @@ The observability stack is integrated into Jenkins pipelines:
 ## Documentation
 
 See `README.md` for detailed observability documentation and access instructions.
-
