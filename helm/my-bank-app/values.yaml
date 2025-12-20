@@ -83,3 +83,37 @@ kafka:
   persistence:
     enabled: true
     size: 1Gi
+
+# Observability components
+zipkin:
+  enabled: false
+  service:
+    type: ClusterIP
+    port: 9411
+
+prometheus:
+  enabled: false
+  prometheus-stack:
+    prometheus:
+      prometheusSpec:
+        serviceMonitorSelectorNilUsesHelmValues: false
+    grafana:
+      service:
+        type: ClusterIP
+      adminPassword: admin
+
+elk:
+  enabled: false
+  elasticsearch:
+    master:
+      replicas: 1
+    data:
+      replicas: 1
+    coordinating:
+      replicas: 1
+  kibana:
+    service:
+      type: ClusterIP
+    elasticsearch:
+      hosts:
+        - elasticsearch:9200
