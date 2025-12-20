@@ -10,7 +10,7 @@ spec:
   containers:
     - name: wget
       image: busybox
-      command: ['wget']
+      command: ['sh', '-c']
       args: ['-qO-', 'http://{{ include "exchange-service.fullname" . }}:{{ .Values.service.port }}/actuator/health']
   restartPolicy: Never
 
