@@ -1,6 +1,7 @@
 package io.github.danjos.mybankapp.accounts.service;
 
 import io.github.danjos.mybankapp.accounts.kafka.KafkaNotificationProducer;
+import io.github.danjos.mybankapp.accounts.metrics.AccountMetrics;
 import io.github.danjos.mybankapp.accounts.dto.AccountDTO;
 import io.github.danjos.mybankapp.accounts.entity.Account;
 import io.github.danjos.mybankapp.accounts.entity.Currency;
@@ -33,6 +34,9 @@ public class AccountService {
     @Autowired
     private KafkaNotificationProducer kafkaNotificationProducer;
     
+    @Autowired
+    private AccountMetrics accountMetrics;
+    
     public Account createAccount(Long userId) {
         return createAccount(userId, Currency.RUB);
     }
@@ -52,6 +56,9 @@ public class AccountService {
                 .currency(currency)
                 .build();
         Account savedAccount = accountRepository.save(account);
+        
+        // Record metrics
+        accountMetrics.recordAccountCreation(currency.name());
         
         // Send notification via Kafka
         try {

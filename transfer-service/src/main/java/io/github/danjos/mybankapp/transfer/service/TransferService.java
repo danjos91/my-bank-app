@@ -11,6 +11,7 @@ import io.github.danjos.mybankapp.transfer.dto.TransferRequestDTO;
 import io.github.danjos.mybankapp.transfer.entity.Currency;
 import io.github.danjos.mybankapp.transfer.entity.Transfer;
 import io.github.danjos.mybankapp.transfer.repository.TransferRepository;
+import io.github.danjos.mybankapp.transfer.metrics.TransferMetrics;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class TransferService {
     private final ExchangeClient exchangeClient;
     private final KafkaNotificationProducer kafkaNotificationProducer;
     private final io.github.danjos.mybankapp.transfer.client.BlockerClient blockerClient;
+    private final TransferMetrics transferMetrics;
     
     @Transactional
     @CircuitBreaker(name = "transfer-service", fallbackMethod = "createTransferFallback")
@@ -42,6 +44,7 @@ public class TransferService {
     public TransferDTO createTransfer(TransferRequestDTO requestDTO) {
         log.info("Creating transfer from account {} to account {} for amount {}", 
                 requestDTO.getFromAccountId(), requestDTO.getToAccountId(), requestDTO.getAmount());
+        var timer = transferMetrics.startTransferTimer();
         
         // Validate transfer request
         if (!requestDTO.isValidTransfer()) {
@@ -73,6 +76,7 @@ public class TransferService {
         BigDecimal convertedAmount = requestDTO.getAmount();
         if (!fromCurrency.equals(toCurrency)) {
             log.info("Converting {} {} to {}", requestDTO.getAmount(), fromCurrency, toCurrency);
+            transferMetrics.recordCurrencyConversion(fromCurrency.name(), toCurrency.name());
             ConversionRequestDTO conversionRequest = ConversionRequestDTO.builder()
                     .fromCurrency(fromCurrency)
                     .toCurrency(toCurrency)
@@ -123,6 +127,10 @@ public class TransferService {
             // Create notifications
             createTransferNotifications(transfer, fromAccount.getUserId(), toAccount.getUserId());
             
+            // Record metrics
+            transferMetrics.recordTransfer(requestDTO.getAmount(), fromCurrency.name(), toCurrency.name(), true);
+            transferMetrics.recordTransferDuration(timer, fromCurrency.name(), toCurrency.name(), true);
+            
             log.info("Transfer {} completed successfully", transfer.getId());
             return convertToDTO(transfer);
             
@@ -130,6 +138,11 @@ public class TransferService {
             log.error("Error executing transfer: {}", e.getMessage());
             transfer.markAsFailed();
             transfer = transferRepository.save(transfer);
+            
+            // Record failed transfer metrics
+            transferMetrics.recordTransfer(requestDTO.getAmount(), fromCurrency.name(), toCurrency.name(), false);
+            transferMetrics.recordTransferDuration(timer, fromCurrency.name(), toCurrency.name(), false);
+            
             throw new RuntimeException("Transfer failed: " + e.getMessage());
         }
     }
