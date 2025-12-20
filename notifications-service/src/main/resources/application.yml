@@ -10,10 +10,20 @@ management:
   endpoint:
     health:
       show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
 
 spring:
   application:
     name: notifications-service
+  zipkin:
+    base-url: http://zipkin:9411
   
   # Database configuration
   datasource:
