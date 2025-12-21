@@ -163,6 +163,16 @@ pipeline {
                         --timeout 5m || true
                     """
                     
+                    // Deploy Logstash (Kafka to Elasticsearch pipeline)
+                    sh """
+                        helm upgrade --install logstash ./helm/logstash \
+                        --namespace ${OBSERVABILITY_NAMESPACE} \
+                        --set kafka.bootstrapServers=kafka.kafka.svc.cluster.local:9092 \
+                        --set elasticsearch.host=elasticsearch.${OBSERVABILITY_NAMESPACE}.svc.cluster.local \
+                        --wait \
+                        --timeout 5m || true
+                    """
+                    
                     echo 'Observability stack deployment completed!'
                 }
             }
