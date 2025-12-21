@@ -17,6 +17,7 @@ The MyBank App now includes a comprehensive observability stack with:
 - Alertmanager: Running in `observability` namespace
 - Elasticsearch: Running in `observability` namespace
 - Kibana: Running in `observability` namespace (may take 2-3 minutes to fully initialize)
+- Logstash: Running in `observability` namespace (consumes logs from Kafka)
 
 ## Quick Access
 
@@ -123,8 +124,27 @@ Alert rules are in `helm/prometheus/alerts/`:
 All microservices have been configured with:
 - **Zipkin Tracing**: `spring.zipkin.base-url=http://zipkin.observability.svc.cluster.local:9411`
 - **Prometheus Metrics**: `management.endpoints.web.exposure.include=prometheus`
-- **JSON Logging**: Logback configured for ELK ingestion
-- **Kafka Logging**: Logs sent to `application-logs` topic
+- **JSON Logging**: Logback configured with LogstashEncoder for structured JSON output
+- **Kafka Logging**: Logs sent to `application-logs` topic via logback-kafka-appender
+- **Trace Correlation**: All logs include `traceId` and `spanId` fields from Micrometer MDC
+
+### Logging Pipeline
+
+The logging pipeline works as follows:
+1. Microservices log using Slf4j/Logback with JSON encoding (LogstashEncoder)
+2. Logs are sent to Kafka topic `application-logs` via KafkaAppender
+3. Logstash consumes from Kafka and forwards to Elasticsearch
+4. Logs can be viewed and searched in Kibana with trace correlation
+
+Each log entry contains:
+- `service`: Name of the microservice
+- `traceId`: Distributed trace ID for request correlation
+- `spanId`: Span ID within the trace
+- `level`: Log level (INFO, WARN, ERROR, etc.)
+- `logger`: Logger name (class name)
+- `message`: Log message
+- `thread`: Thread name
+- `@timestamp`: Timestamp of the log event
 
 ### Environment Variables
 
@@ -180,10 +200,20 @@ The following custom metrics are implemented:
 - Ensure services are making HTTP calls (traces only appear on request)
 
 ### No logs in Kibana
-- Verify Kafka topic `application-logs` exists
-- Check Logstash is configured to consume from Kafka
-- Verify logback-spring.xml has Kafka appender enabled
-- Create index pattern in Kibana: Go to Stack Management > Index Patterns > Create index pattern
+- Verify Kafka topic `application-logs` exists:
+  ```bash
+  kubectl exec -n kafka kafka-0 -- kafka-topics.sh --list --bootstrap-server localhost:9092
+  ```
+- Check Logstash is running and consuming from Kafka:
+  ```bash
+  kubectl logs -n observability -l app.kubernetes.io/name=logstash --tail=50
+  ```
+- Verify logback-spring.xml has Kafka appender enabled (check for `ASYNC_KAFKA` appender)
+- Create index pattern in Kibana: 
+  1. Go to Stack Management > Index Patterns
+  2. Create index pattern: `application-logs-*`
+  3. Select `@timestamp` as time field
+- Search logs by traceId: `traceId: "your-trace-id-here"`
 
 ### Grafana dashboards empty
 - Ensure Prometheus is scraping microservice endpoints
