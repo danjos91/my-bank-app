@@ -8,6 +8,10 @@
 ![Jenkins](https://img.shields.io/badge/jenkins-%232C5263.svg?style=for-the-badge&logo=jenkins&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Zipkin](https://img.shields.io/badge/Zipkin-1F4788?style=for-the-badge&logo=zipkin&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?style=for-the-badge&logo=elasticsearch&logoColor=white)
 
 An event-driven microservices banking platform built with Spring Boot, Apache Kafka, PostgreSQL, and Kubernetes. It supports user management, multi-currency accounts, money transfers with currency conversion, real-time notifications, and exchange rate management. Deployment is handled with **Helm Charts** and **Jenkins CI/CD**, including automated Kafka provisioning.
 
@@ -20,17 +24,11 @@ An event-driven microservices banking platform built with Spring Boot, Apache Ka
 - 🔐 **OAuth2**: Auth Server running in Kubernetes.
 - 🌐 **Ingress**: Front UI exposed via Ingress Controller.
 - 💱 **Multi-Currency**: RUB, USD, and CNY with automatic conversion.
+- 📊 **Observability Stack**: Comprehensive monitoring with Zipkin (distributed tracing), Prometheus (metrics), Grafana (dashboards), and ELK (log aggregation).
+- 🔍 **Distributed Tracing**: End-to-end request tracing across all microservices with Zipkin.
+- 📈 **Metrics & Alerts**: Custom business metrics, JVM metrics, and Prometheus alerts for application health.
+- 📝 **Structured Logging**: JSON-formatted logs with ELK stack integration for centralized log analysis.
 
-## 💱 Multi-Currency & Key Features
-
-This application supports complex banking operations including:
-
-- **Multi-Currency Accounts**: Users can create accounts in **RUB**, **USD**, and **CNY**.
-- **Currency Conversion**: Automatic real-time conversion for transfers between different currencies (e.g., USD → RUB → CNY).
-- **Exchange Service**: Dedicated microservice for managing exchange rates.
-- **Exchange Generator**: Emits `exchange-rates` events every second via Kafka.
-- **Blocker Service**: Monitors transactions and blocks suspicious activity based on thresholds (e.g., transactions > 10,000 RUB).
-- **Notifications**: Kafka-backed real-time alerts for all account activities.
 
 ## 🚀 Quick Start (Kubernetes)
 
