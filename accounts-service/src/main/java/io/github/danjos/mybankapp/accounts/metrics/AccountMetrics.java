@@ -25,9 +25,10 @@ public class AccountMetrics {
     }
     
     public void recordAccountBalance(BigDecimal balance, String currency) {
-        meterRegistry.gauge("account.balance", 
-                java.util.Map.of("currency", currency), 
-                balance.doubleValue());
+        Gauge.builder("account.balance", balance, b -> b.doubleValue())
+                .tag("currency", currency)
+                .description("Account balance")
+                .register(meterRegistry);
     }
     
     public void updateTotalBalance(BigDecimal total) {
