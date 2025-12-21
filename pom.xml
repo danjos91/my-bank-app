@@ -113,6 +113,12 @@
                 <artifactId>logstash-logback-encoder</artifactId>
                 <version>7.4</version>
             </dependency>
+            <!-- Kafka appender for logback -->
+            <dependency>
+                <groupId>com.github.danielwegener</groupId>
+                <artifactId>logback-kafka-appender</artifactId>
+                <version>0.2.0-RC2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     
