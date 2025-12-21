@@ -3,6 +3,8 @@ package io.github.danjos.mybankapp.accounts.service;
 import io.github.danjos.mybankapp.accounts.dto.AccountDTO;
 import io.github.danjos.mybankapp.accounts.entity.Account;
 import io.github.danjos.mybankapp.accounts.entity.User;
+import io.github.danjos.mybankapp.accounts.kafka.KafkaNotificationProducer;
+import io.github.danjos.mybankapp.accounts.metrics.AccountMetrics;
 import io.github.danjos.mybankapp.accounts.repository.AccountRepository;
 import io.github.danjos.mybankapp.accounts.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +34,12 @@ class AccountServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private KafkaNotificationProducer kafkaNotificationProducer;
+
+    @Mock
+    private AccountMetrics accountMetrics;
 
     @InjectMocks
     private AccountService accountService;
