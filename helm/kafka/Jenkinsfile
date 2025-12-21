@@ -183,6 +183,22 @@ pipeline {
             }
         }
 
+        stage('Deploy Logstash') {
+            steps {
+                echo 'Deploying Logstash for Kafka to Elasticsearch pipeline...'
+                script {
+                    sh """
+                        helm upgrade --install logstash ./helm/logstash \
+                        --namespace ${OBSERVABILITY_NAMESPACE} \
+                        --set kafka.bootstrapServers=kafka.kafka.svc.cluster.local:9092 \
+                        --set elasticsearch.host=elasticsearch.observability.svc.cluster.local \
+                        --wait \
+                        --timeout 10m
+                    """
+                }
+            }
+        }
+
         stage('Deploy Kafka to Production') {
             input {
                 message "Deploy Kafka to Production?"
