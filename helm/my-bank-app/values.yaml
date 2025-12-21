@@ -41,6 +41,7 @@ front-ui:
     tag: "fixed"
   ingress:
     enabled: true
+    className: nginx
     hosts:
       - host: bank.local
         paths:

@@ -41,6 +41,8 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://auth-server:8085
+  zipkin:
+    base-url: http://zipkin:9411
 
 management:
   endpoints:
@@ -58,10 +60,6 @@ management:
     enabled: true
     sampling:
       probability: 1.0
-
-spring:
-  zipkin:
-    base-url: http://zipkin:9411
 
 logging:
   time-zone: Europe/Moscow

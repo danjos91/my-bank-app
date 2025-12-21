@@ -28,7 +28,7 @@ KAFKA_TOPICS=(
 
 OBSERVABILITY_NAMESPACE="observability"
 ZIPKIN_RELEASE="zipkin"
-ZIPKIN_CHART="oci://registry-1.docker.io/bitnamicharts/openzipkin"
+ZIPKIN_CHART="./helm/zipkin"
 ZIPKIN_VERSION="1.0.0"
 PROMETHEUS_STACK_RELEASE="kube-prometheus-stack"
 PROMETHEUS_STACK_CHART="prometheus-community/kube-prometheus-stack"
@@ -111,14 +111,15 @@ helm repo update
 
 # Deploy Zipkin
 echo -e "${BLUE}📈 Deploying Zipkin...${NC}"
+cd "$SCRIPT_DIR"
 helm upgrade --install "${ZIPKIN_RELEASE}" "${ZIPKIN_CHART}" \
-  --version "${ZIPKIN_VERSION}" \
   --namespace "${OBSERVABILITY_NAMESPACE}" \
   --create-namespace \
   --set service.type=ClusterIP \
   --set service.port=9411 \
   --wait \
   --timeout 5m || echo "⚠️  Zipkin deployment had issues, continuing..."
+cd "$SCRIPT_DIR"
 
 # Deploy Prometheus and Grafana Stack
 echo -e "${BLUE}📊 Deploying Prometheus and Grafana...${NC}"

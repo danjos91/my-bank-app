@@ -15,6 +15,8 @@ spring:
         enable.idempotence: true
         max.in.flight.requests.per.connection: 5
         spring.json.add.type.headers: false
+  zipkin:
+    base-url: http://zipkin:9411
 
 services:
   exchange:
@@ -40,10 +42,6 @@ management:
     enabled: true
     sampling:
       probability: 1.0
-
-spring:
-  zipkin:
-    base-url: http://zipkin:9411
 
 logging:
   time-zone: Europe/Moscow

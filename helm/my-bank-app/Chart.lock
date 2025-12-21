@@ -29,5 +29,14 @@ dependencies:
 - name: kafka
   repository: oci://registry-1.docker.io/bitnamicharts
   version: 30.1.5
-digest: sha256:5d07238b1f3cc83e08f4897ae6c22edf31846fd83483ec520421182f2442d64b
-generated: "2025-12-12T01:38:04.970838463+03:00"
+- name: kube-prometheus-stack
+  repository: https://prometheus-community.github.io/helm-charts
+  version: 55.0.0
+- name: elasticsearch
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 21.0.0
+- name: kibana
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 12.0.0
+digest: sha256:024a7d48699dbdd70d691e188243d0ff4cb8ea05a3d798573ff3d0a501d72269
+generated: "2025-12-21T15:01:41.175240214+03:00"
