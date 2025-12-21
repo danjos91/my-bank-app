@@ -35,6 +35,8 @@ PROMETHEUS_STACK_CHART="prometheus-community/kube-prometheus-stack"
 PROMETHEUS_STACK_VERSION="55.0.0"
 ELASTICSEARCH_RELEASE="elasticsearch"
 ELASTICSEARCH_CHART="./helm/elasticsearch-simple"
+LOGSTASH_RELEASE="logstash"
+LOGSTASH_CHART="./helm/logstash"
 
 # 1. Check Prerequisites
 echo -e "${BLUE}🔍 Checking prerequisites...${NC}"
@@ -141,6 +143,18 @@ helm upgrade --install "${ELASTICSEARCH_RELEASE}" "${ELASTICSEARCH_CHART}" \
   --create-namespace \
   --wait \
   --timeout 10m || echo "⚠️  Elasticsearch/Kibana deployment had issues, continuing..."
+cd "$SCRIPT_DIR"
+
+# Deploy Logstash (Kafka to Elasticsearch pipeline)
+echo -e "${BLUE}📝 Deploying Logstash (Kafka to Elasticsearch pipeline)...${NC}"
+cd "$SCRIPT_DIR"
+helm upgrade --install "${LOGSTASH_RELEASE}" "${LOGSTASH_CHART}" \
+  --namespace "${OBSERVABILITY_NAMESPACE}" \
+  --create-namespace \
+  --set kafka.bootstrapServers=kafka.kafka.svc.cluster.local:9092 \
+  --set elasticsearch.host=elasticsearch.observability.svc.cluster.local \
+  --wait \
+  --timeout 10m || echo "⚠️  Logstash deployment had issues, continuing..."
 cd "$SCRIPT_DIR"
 
 echo -e "${GREEN}✅ Observability stack deployment initiated${NC}"
