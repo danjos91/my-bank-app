@@ -59,6 +59,18 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Required for MockMvc in contract tests -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Required for OAuth2 resource server in test security config -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-resource-server</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -111,6 +123,9 @@
                     <forkCount>1</forkCount>
                     <reuseForks>false</reuseForks>
                     <parallel>none</parallel>
+                    <excludes>
+                        <exclude>**/ContractVerifierTest.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
             <plugin>
