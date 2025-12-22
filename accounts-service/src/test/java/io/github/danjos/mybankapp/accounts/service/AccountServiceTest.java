@@ -4,7 +4,6 @@ import io.github.danjos.mybankapp.accounts.dto.AccountDTO;
 import io.github.danjos.mybankapp.accounts.entity.Account;
 import io.github.danjos.mybankapp.accounts.entity.User;
 import io.github.danjos.mybankapp.accounts.kafka.KafkaNotificationProducer;
-import io.github.danjos.mybankapp.accounts.metrics.AccountMetrics;
 import io.github.danjos.mybankapp.accounts.repository.AccountRepository;
 import io.github.danjos.mybankapp.accounts.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +22,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,9 +35,6 @@ class AccountServiceTest {
 
     @Mock
     private KafkaNotificationProducer kafkaNotificationProducer;
-
-    @Mock
-    private AccountMetrics accountMetrics;
 
     @InjectMocks
     private AccountService accountService;
