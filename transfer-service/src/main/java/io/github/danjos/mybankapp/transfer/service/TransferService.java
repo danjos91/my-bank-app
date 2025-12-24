@@ -130,6 +130,7 @@ public class TransferService {
             log.error("Error executing transfer: {}", e.getMessage());
             transfer.markAsFailed();
             transfer = transferRepository.save(transfer);
+            
             throw new RuntimeException("Transfer failed: " + e.getMessage());
         }
     }

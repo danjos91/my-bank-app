@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "logstash.fullname" . }}-config
+  labels:
+    {{- include "logstash.labels" . | nindent 4 }}
+data:
+  logstash.yml: |
+    http.host: "0.0.0.0"
+    path.config: /usr/share/logstash/pipeline
+    pipeline.workers: {{ .Values.pipeline.workers }}
+    pipeline.batch.size: {{ .Values.pipeline.batchSize }}
+  
+  pipelines.yml: |
+    - pipeline.id: kafka-to-elasticsearch
+      path.config: "/usr/share/logstash/pipeline/kafka-to-elasticsearch.conf"
+  
+  kafka-to-elasticsearch.conf: |
+    input {
+      kafka {
+        bootstrap_servers => "{{ .Values.kafka.bootstrapServers }}"
+        topics => ["{{ .Values.kafka.topic }}"]
+        group_id => "{{ .Values.kafka.consumerGroup }}"
+        codec => json
+        consumer_threads => 1
+        decorate_events => true
+        auto_offset_reset => "earliest"
+      }
+    }
+    
+    filter {
+      # Parse the JSON message if it's not already parsed
+      if [message] {
+        json {
+          source => "message"
+          target => "parsed"
+          skip_on_invalid_json => true
+        }
+        
+        if [parsed] {
+          mutate {
+            rename => { "[parsed][service]" => "service" }
+            rename => { "[parsed][traceId]" => "traceId" }
+            rename => { "[parsed][spanId]" => "spanId" }
+            rename => { "[parsed][@timestamp]" => "@timestamp" }
+            rename => { "[parsed][level]" => "level" }
+            rename => { "[parsed][logger_name]" => "logger" }
+            rename => { "[parsed][message]" => "log_message" }
+            rename => { "[parsed][thread_name]" => "thread" }
+            remove_field => ["parsed", "message"]
+          }
+        }
+      }
+      
+      # Add index date suffix
+      ruby {
+        code => "event.set('[@metadata][index_day]', event.get('@timestamp').time.strftime('%Y.%m.%d'))"
+      }
+      
+      # Ensure traceId and spanId are present for correlation
+      if ![traceId] {
+        mutate {
+          add_field => { "traceId" => "unknown" }
+        }
+      }
+      if ![spanId] {
+        mutate {
+          add_field => { "spanId" => "unknown" }
+        }
+      }
+    }
+    
+    output {
+      elasticsearch {
+        hosts => ["http://{{ .Values.elasticsearch.host }}:{{ .Values.elasticsearch.port }}"]
+        index => "{{ .Values.elasticsearch.index }}-%{[@metadata][index_day]}"
+        action => "index"
+      }
+      
+      # Uncomment for debugging
+      # stdout { codec => rubydebug }
+    }
+

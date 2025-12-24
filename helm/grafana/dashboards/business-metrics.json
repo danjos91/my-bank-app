@@ -1,0 +1,133 @@
+{
+  "dashboard": {
+    "title": "Business Metrics - My Bank App",
+    "tags": ["business", "banking"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Deposit Count",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(cash_deposit_count_total[5m])",
+            "legendFormat": "{{currency}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Withdrawal Count",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(cash_withdrawal_count_total[5m])",
+            "legendFormat": "{{currency}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Deposit Amount",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(cash_deposit_amount_total[5m])",
+            "legendFormat": "{{currency}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Withdrawal Amount",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(cash_withdrawal_amount_total[5m])",
+            "legendFormat": "{{currency}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Transfer Count",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(transfer_count_total[5m])",
+            "legendFormat": "{{from_currency}} -> {{to_currency}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Transfer Amount",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(transfer_amount_total[5m])",
+            "legendFormat": "{{from_currency}} -> {{to_currency}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "Account Creation Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(account_created_count_total[5m])",
+            "legendFormat": "{{currency}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 8,
+        "title": "Total Account Balance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "account_total_balance",
+            "legendFormat": "Total Balance"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "id": 9,
+        "title": "Transaction Errors",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(cash_deposit_errors_total[5m]) + rate(cash_withdrawal_errors_total[5m])",
+            "legendFormat": "Errors"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+      },
+      {
+        "id": 10,
+        "title": "Transfer Success Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(transfer_count_total{status=\"success\"}[5m]) / rate(transfer_count_total[5m]) * 100",
+            "legendFormat": "Success Rate %"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+      }
+    ]
+  }
+}
+

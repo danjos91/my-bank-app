@@ -1,0 +1,7 @@
+apiVersion: v2
+name: zipkin
+description: Zipkin distributed tracing server
+type: application
+version: 1.0.0
+appVersion: "2.24"
+

@@ -38,4 +38,25 @@ dependencies:
     repository: "oci://registry-1.docker.io/bitnamicharts"
     alias: kafka
     condition: kafka.enabled
+  # Zipkin is deployed separately in observability namespace, not as a dependency
+  # - name: openzipkin
+  #   version: "1.0.0"
+  #   repository: "oci://registry-1.docker.io/bitnamicharts"
+  #   alias: zipkin
+  #   condition: zipkin.enabled
+  - name: kube-prometheus-stack
+    version: "55.0.0"
+    repository: "https://prometheus-community.github.io/helm-charts"
+    alias: prometheus-stack
+    condition: prometheus.enabled
+  - name: elasticsearch
+    version: "21.0.0"
+    repository: "oci://registry-1.docker.io/bitnamicharts"
+    alias: elasticsearch
+    condition: elk.enabled
+  - name: kibana
+    version: "12.0.0"
+    repository: "oci://registry-1.docker.io/bitnamicharts"
+    alias: kibana
+    condition: elk.enabled
 

@@ -1,4 +1,4 @@
-# MyBank App - Microservices Banking Application (v3.0)
+# MyBank App - Microservices Banking Application (v4.0)
 
 ![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
@@ -8,8 +8,12 @@
 ![Jenkins](https://img.shields.io/badge/jenkins-%232C5263.svg?style=for-the-badge&logo=jenkins&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Zipkin](https://img.shields.io/badge/Zipkin-1F4788?style=for-the-badge&logo=zipkin&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?style=for-the-badge&logo=elasticsearch&logoColor=white)
 
-An event-driven microservices banking platform built with Spring Boot, Apache Kafka, PostgreSQL, and Kubernetes. It supports user management, multi-currency accounts, money transfers with currency conversion, real-time notifications, and exchange rate management. Deployment is handled with **Helm Charts** and **Jenkins CI/CD**, including automated Kafka provisioning.
+An event-driven microservices banking platform built with Spring Boot, Apache Kafka, PostgreSQL, and Kubernetes. It supports user management, multi-currency accounts, money transfers with currency conversion, real-time notifications, and exchange rate management. Deployment is handled with **Helm Charts** and **Jenkins CI/CD**, including automated Kafka provisioning. The platform includes a comprehensive **observability stack** with Zipkin for distributed tracing, Prometheus for metrics collection, Grafana for visualization, and ELK (Elasticsearch, Logstash, Kibana) for centralized log aggregation.
 
 **Features:**
 - ☁️ **Kubernetes Native**: Uses K8s Services, ConfigMaps, and Secrets (no Eureka/Config Server).
@@ -20,17 +24,11 @@ An event-driven microservices banking platform built with Spring Boot, Apache Ka
 - 🔐 **OAuth2**: Auth Server running in Kubernetes.
 - 🌐 **Ingress**: Front UI exposed via Ingress Controller.
 - 💱 **Multi-Currency**: RUB, USD, and CNY with automatic conversion.
+- 📊 **Observability Stack**: Comprehensive monitoring with Zipkin (distributed tracing), Prometheus (metrics), Grafana (dashboards), and ELK (log aggregation).
+- 🔍 **Distributed Tracing**: End-to-end request tracing across all microservices with Zipkin.
+- 📈 **Metrics & Alerts**: Custom business metrics, JVM metrics, and Prometheus alerts for application health.
+- 📝 **Structured Logging**: JSON-formatted logs with ELK stack integration for centralized log analysis.
 
-## 💱 Multi-Currency & Key Features
-
-This application supports complex banking operations including:
-
-- **Multi-Currency Accounts**: Users can create accounts in **RUB**, **USD**, and **CNY**.
-- **Currency Conversion**: Automatic real-time conversion for transfers between different currencies (e.g., USD → RUB → CNY).
-- **Exchange Service**: Dedicated microservice for managing exchange rates.
-- **Exchange Generator**: Emits `exchange-rates` events every second via Kafka.
-- **Blocker Service**: Monitors transactions and blocks suspicious activity based on thresholds (e.g., transactions > 10,000 RUB).
-- **Notifications**: Kafka-backed real-time alerts for all account activities.
 
 ## 🚀 Quick Start (Kubernetes)
 
@@ -285,6 +283,154 @@ This project includes `Jenkinsfile` for each microservice, a Kafka-specific pipe
    - Definition: Pipeline script from SCM -> Git
    - Repository URL: (Your Git Repo URL)
    - Script Path: `Jenkinsfile` (for the umbrella project) or `accounts-service/Jenkinsfile` (for individual services).
+
+## 📊 Observability Stack
+
+The application includes a comprehensive observability stack for monitoring, tracing, and logging:
+
+### Components
+
+- **Zipkin**: Distributed tracing for request flows across microservices
+- **Prometheus**: Metrics collection and storage
+- **Grafana**: Visualization and dashboards for metrics
+- **ELK Stack**: Log aggregation (Elasticsearch, Logstash, Kibana)
+
+### Deployment
+
+Observability components are automatically deployed via Jenkins pipelines:
+
+1. **Kafka Pipeline** (`helm/kafka/Jenkinsfile`): Deploys Zipkin, Prometheus, Grafana, and ELK stack
+2. **Umbrella Pipeline** (`Jenkinsfile`): Includes observability deployment stages
+
+### Accessing Dashboards
+
+#### Zipkin (Distributed Tracing)
+```bash
+# Port-forward Zipkin service
+kubectl port-forward -n observability svc/zipkin 9411:9411
+# Access at http://localhost:9411
+```
+
+#### Grafana (Metrics Visualization)
+```bash
+# Port-forward Grafana service
+kubectl port-forward -n observability svc/kube-prometheus-stack-grafana 3000:80
+# Access at http://localhost:3000
+# Default credentials: admin / admin
+```
+
+#### Prometheus (Metrics Query)
+```bash
+# Port-forward Prometheus service
+kubectl port-forward -n observability svc/kube-prometheus-stack-prometheus 9090:9090
+# Access at http://localhost:9090
+```
+
+#### Kibana (Log Analysis)
+```bash
+# Port-forward Kibana service
+kubectl port-forward -n observability svc/kibana 5601:5601
+# Access at http://localhost:5601
+```
+
+### Available Dashboards
+
+Grafana dashboards are located in `helm/grafana/dashboards/`:
+
+1. **Spring Boot Application Metrics**: HTTP request rates, response times, error rates
+2. **JVM Metrics**: Heap memory, GC pauses, thread counts, CPU usage
+3. **Business Metrics**: Deposit/withdrawal counts, transfer metrics, account creation rates
+4. **System Metrics**: Pod CPU/memory usage, service-level metrics
+
+To import dashboards into Grafana:
+1. Access Grafana UI
+2. Go to Dashboards → Import
+3. Upload JSON files from `helm/grafana/dashboards/`
+
+### Prometheus Alerts
+
+Alert rules are defined in `helm/prometheus/alerts/`:
+
+- **Application Alerts**: High error rates, slow response times, high memory/CPU usage
+- **Business Alerts**: Transaction errors, transfer failures, unusual transaction volumes
+
+Alerts are automatically configured when deploying Prometheus via Helm chart.
+
+### Metrics Endpoints
+
+All microservices expose Prometheus metrics at:
+```
+http://<service-name>:<port>/actuator/prometheus
+```
+
+Example:
+```bash
+curl http://accounts-service:8081/actuator/prometheus
+```
+
+### Custom Business Metrics
+
+The application tracks custom business metrics:
+
+- `cash.deposit.count`: Number of deposits by currency
+- `cash.deposit.amount`: Total deposit amounts by currency
+- `cash.withdrawal.count`: Number of withdrawals by currency
+- `transfer.count`: Transfer counts by currency pair and status
+- `transfer.amount`: Transfer amounts by currency pair
+- `account.created.count`: Account creation counts by currency
+- `account.total_balance`: Total balance across all accounts
+
+### Tracing
+
+Distributed tracing is enabled for all microservices. Traces are sent to Zipkin at `http://zipkin.observability.svc.cluster.local:9411`.
+
+To view traces:
+1. Generate some traffic to the application
+2. Access Zipkin UI
+3. Search for traces by service name or trace ID
+
+### Logging
+
+All microservices output structured JSON logs via Logback, configured in `logback-spring.xml` files. Logs are:
+- Output to stdout/stderr (captured by Kubernetes)
+- Structured in JSON format for easy parsing
+- Tagged with service name for filtering
+
+For ELK integration, configure a log shipper (Filebeat/Fluentd) to:
+1. Read logs from Kubernetes pods
+2. Send to Kafka `application-logs` topic
+3. Logstash consumes from Kafka and indexes to Elasticsearch
+
+### Configuration
+
+Observability can be enabled/disabled per service via Helm values:
+
+```yaml
+observability:
+  enabled: true
+  zipkinUrl: http://zipkin.observability.svc.cluster.local:9411
+```
+
+In the umbrella chart (`helm/my-bank-app/values.yaml`):
+
+```yaml
+zipkin:
+  enabled: true
+
+prometheus:
+  enabled: true
+
+elk:
+  enabled: true
+```
+
+### CI/CD Integration
+
+The Jenkins pipelines automatically:
+1. Deploy observability components to the `observability` namespace
+2. Configure service discovery for metrics scraping
+3. Set up dashboards and alerts
+4. Create required Kafka topics for log aggregation
 
 ## 👤 Test Users
 

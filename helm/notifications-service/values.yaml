@@ -42,3 +42,7 @@ db:
   persistence:
     size: 1Gi
     storageClass: standard
+
+observability:
+  enabled: true
+  zipkinUrl: http://zipkin.observability.svc.cluster.local:9411

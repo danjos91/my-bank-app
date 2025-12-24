@@ -23,13 +23,35 @@ KAFKA_TOPICS=(
   "transfer-failed"
   "notification-event"
   "exchange-rates"
+  "application-logs"
 )
 
-# 1. Check/Start Minikube
-if ! command minikube version &> /dev/null; then
-    echo "❌ Minikube is not installed. Please install it first."
-    exit 1
-fi
+OBSERVABILITY_NAMESPACE="observability"
+ZIPKIN_RELEASE="zipkin"
+ZIPKIN_CHART="./helm/zipkin"
+ZIPKIN_VERSION="1.0.0"
+PROMETHEUS_STACK_RELEASE="kube-prometheus-stack"
+PROMETHEUS_STACK_CHART="prometheus-community/kube-prometheus-stack"
+PROMETHEUS_STACK_VERSION="55.0.0"
+ELASTICSEARCH_RELEASE="elasticsearch"
+ELASTICSEARCH_CHART="./helm/elasticsearch-simple"
+LOGSTASH_RELEASE="logstash"
+LOGSTASH_CHART="./helm/logstash"
+
+# 1. Check Prerequisites
+echo -e "${BLUE}🔍 Checking prerequisites...${NC}"
+
+REQUIRED_TOOLS=("minikube" "docker" "mvn" "kubectl" "helm")
+for tool in "${REQUIRED_TOOLS[@]}"; do
+    if ! command -v "$tool" &> /dev/null; then
+        echo "❌ $tool is not installed. Please install it first."
+        exit 1
+    fi
+done
+
+echo -e "${GREEN}✅ All prerequisites are installed${NC}"
+
+# 2. Check/Start Minikube
 
 echo -e "${BLUE}Checking Minikube status...${NC}"
 if ! minikube status > /dev/null 2>&1; then
@@ -40,7 +62,7 @@ else
     echo -e "${GREEN}✅ Minikube is running${NC}"
 fi
 
-# 2. Deploy Kafka (Bitnami, KRaft)
+# 3. Deploy Kafka (Bitnami, KRaft)
 echo -e "${BLUE}📡 Deploying Kafka (Bitnami) in namespace '${KAFKA_NAMESPACE}'...${NC}"
 
 # Navigate to repo root (script dir)
@@ -78,7 +100,124 @@ for topic in "${KAFKA_TOPICS[@]}"; do
     --config min.insync.replicas=1 || true
 done
 
-# 3. Deploy with Helm
+# 3.5. Deploy Observability Stack
+echo -e "${BLUE}📊 Deploying Observability Stack (Zipkin, Prometheus, Grafana, ELK)...${NC}"
+
+# Create observability namespace
+kubectl create namespace "${OBSERVABILITY_NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
+
+# Add Prometheus Helm repository
+echo "Adding Prometheus Helm repository..."
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
+helm repo update
+
+# Deploy Zipkin
+echo -e "${BLUE}📈 Deploying Zipkin...${NC}"
+cd "$SCRIPT_DIR"
+helm upgrade --install "${ZIPKIN_RELEASE}" "${ZIPKIN_CHART}" \
+  --namespace "${OBSERVABILITY_NAMESPACE}" \
+  --create-namespace \
+  --set service.type=ClusterIP \
+  --set service.port=9411 \
+  --wait \
+  --timeout 5m || echo "⚠️  Zipkin deployment had issues, continuing..."
+cd "$SCRIPT_DIR"
+
+# Deploy Prometheus and Grafana Stack
+echo -e "${BLUE}📊 Deploying Prometheus and Grafana...${NC}"
+helm upgrade --install "${PROMETHEUS_STACK_RELEASE}" "${PROMETHEUS_STACK_CHART}" \
+  --version "${PROMETHEUS_STACK_VERSION}" \
+  --namespace "${OBSERVABILITY_NAMESPACE}" \
+  --create-namespace \
+  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
+  --set grafana.service.type=ClusterIP \
+  --set grafana.adminPassword=admin \
+  --wait \
+  --timeout 10m || echo "⚠️  Prometheus/Grafana deployment had issues, continuing..."
+
+# Deploy Elasticsearch (lightweight single-node setup for Minikube)
+echo -e "${BLUE}📝 Deploying Elasticsearch and Kibana (lightweight single-node)...${NC}"
+cd "$SCRIPT_DIR"
+helm upgrade --install "${ELASTICSEARCH_RELEASE}" "${ELASTICSEARCH_CHART}" \
+  --namespace "${OBSERVABILITY_NAMESPACE}" \
+  --create-namespace \
+  --wait \
+  --timeout 10m || echo "⚠️  Elasticsearch/Kibana deployment had issues, continuing..."
+cd "$SCRIPT_DIR"
+
+# Deploy Logstash (Kafka to Elasticsearch pipeline)
+echo -e "${BLUE}📝 Deploying Logstash (Kafka to Elasticsearch pipeline)...${NC}"
+cd "$SCRIPT_DIR"
+helm upgrade --install "${LOGSTASH_RELEASE}" "${LOGSTASH_CHART}" \
+  --namespace "${OBSERVABILITY_NAMESPACE}" \
+  --create-namespace \
+  --set kafka.bootstrapServers=kafka.kafka.svc.cluster.local:9092 \
+  --set elasticsearch.host=elasticsearch.observability.svc.cluster.local \
+  --wait \
+  --timeout 10m || echo "⚠️  Logstash deployment had issues, continuing..."
+cd "$SCRIPT_DIR"
+
+echo -e "${GREEN}✅ Observability stack deployment initiated${NC}"
+
+# 4. Build Java Services
+echo -e "${BLUE}🔨 Building Java services with Maven...${NC}"
+if ! command -v mvn &> /dev/null; then
+    echo "❌ Maven is not installed. Please install Maven first."
+    exit 1
+fi
+mvn clean package -DskipTests
+
+# 5. Build Docker Images
+echo -e "${BLUE}🐳 Building Docker images...${NC}"
+if ! command -v docker &> /dev/null; then
+    echo "❌ Docker is not installed. Please install Docker first."
+    exit 1
+fi
+
+# Services with 'latest' tag
+LATEST_SERVICES=(
+  "accounts-service"
+  "blocker-service"
+  "cash-service"
+  "exchange-service"
+  "notifications-service"
+  "transfer-service"
+)
+
+# Services with 'fixed' tag
+FIXED_SERVICES=(
+  "auth-server"
+  "exchange-generator-service"
+  "front-ui"
+)
+
+echo "Building services with 'latest' tag..."
+for service in "${LATEST_SERVICES[@]}"; do
+  echo "Building ${service}:latest..."
+  docker build -t "${service}:latest" -f "${service}/Dockerfile" .
+done
+
+echo "Building services with 'fixed' tag..."
+for service in "${FIXED_SERVICES[@]}"; do
+  echo "Building ${service}:fixed..."
+  docker build -t "${service}:fixed" -f "${service}/Dockerfile" .
+done
+
+# 6. Load Images into Minikube
+echo -e "${BLUE}📦 Loading images into Minikube...${NC}"
+echo "Loading 'latest' tag images..."
+for service in "${LATEST_SERVICES[@]}"; do
+  echo "Loading ${service}:latest..."
+  minikube image load "${service}:latest"
+done
+
+echo "Loading 'fixed' tag images..."
+for service in "${FIXED_SERVICES[@]}"; do
+  echo "Loading ${service}:fixed..."
+  minikube image load "${service}:fixed"
+done
+
+# 7. Deploy with Helm
 echo -e "${BLUE}☸️  Deploying Helm Charts...${NC}"
 
 cd "$SCRIPT_DIR/helm"
@@ -91,7 +230,9 @@ helm dependency update my-bank-app
 echo "🚀 Installing/Upgrading 'my-bank-app' release..."
 helm upgrade --install my-bank-app ./my-bank-app \
   --set kafka.enabled=false \
-  --set global.kafka.bootstrapServers=kafka.kafka.svc.cluster.local:9092
+  --set global.kafka.bootstrapServers=kafka.kafka.svc.cluster.local:9092 \
+  --wait \
+  --timeout 15m
 
 echo -e "${GREEN}✅ Deployment commands executed successfully!${NC}"
 echo ""
@@ -104,6 +245,22 @@ echo "2. Once pods are running, access the UI:"
 echo "   - If NOT using minikube tunnel: add \"$(minikube ip) bank.local\" to /etc/hosts and open http://bank.local/"
 echo "   - If using minikube tunnel: add '127.0.0.1 bank.local' to /etc/hosts and open http://bank.local/"
 echo "   - Or port-forward: kubectl port-forward svc/front-ui 8086:8086 and open http://localhost:8086"
+echo ""
+echo "3. Access Observability Dashboards:"
+echo "   - Zipkin (Tracing):"
+echo "     kubectl port-forward -n ${OBSERVABILITY_NAMESPACE} svc/${ZIPKIN_RELEASE} 9411:9411"
+echo "     Then open http://localhost:9411"
+echo ""
+echo "   - Grafana (Metrics):"
+echo "     kubectl port-forward -n ${OBSERVABILITY_NAMESPACE} svc/${PROMETHEUS_STACK_RELEASE}-grafana 3000:80"
+echo "     Then open http://localhost:3000 (admin/admin)"
+echo ""
+echo "   - Prometheus (Metrics Query):"
+echo "     kubectl port-forward -n ${OBSERVABILITY_NAMESPACE} svc/${PROMETHEUS_STACK_RELEASE}-prometheus 9090:9090"
+echo "     Then open http://localhost:9090"
+echo ""
+echo "   - Kibana (Logs):"
+echo "     kubectl port-forward -n ${OBSERVABILITY_NAMESPACE} svc/${ELASTICSEARCH_RELEASE}-elasticsearch-simple-kibana 5601:5601"
+echo "     Then open http://localhost:5601"
 echo "--------------------------------------------------------"
-
 

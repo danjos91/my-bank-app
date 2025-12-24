@@ -1,0 +1,33 @@
+image:
+  repository: docker.elastic.co/logstash/logstash
+  tag: "8.11.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 5044
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+kafka:
+  bootstrapServers: "kafka.kafka.svc.cluster.local:9092"
+  topic: "application-logs"
+  consumerGroup: "logstash-consumer"
+
+elasticsearch:
+  host: "elasticsearch.observability.svc.cluster.local"
+  port: 9200
+  index: "application-logs"
+
+pipeline:
+  workers: 2
+  batchSize: 125
+

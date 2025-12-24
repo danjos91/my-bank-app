@@ -3,7 +3,9 @@ package io.github.danjos.mybankapp.cash.service;
 import io.github.danjos.mybankapp.cash.client.AccountsClient;
 import io.github.danjos.mybankapp.cash.client.BlockerClient;
 import io.github.danjos.mybankapp.cash.kafka.KafkaNotificationProducer;
+import io.github.danjos.mybankapp.cash.metrics.CashMetrics;
 import io.github.danjos.mybankapp.cash.dto.AccountDTO;
+import io.micrometer.core.instrument.Timer;
 import io.github.danjos.mybankapp.cash.dto.CashTransactionDTO;
 import io.github.danjos.mybankapp.cash.dto.DepositRequestDTO;
 import io.github.danjos.mybankapp.cash.dto.WithdrawalRequestDTO;
@@ -50,6 +52,12 @@ class CashServiceTest {
     @Mock
     private BlockerClient blockerClient;
 
+    @Mock
+    private CashMetrics cashMetrics;
+
+    @Mock
+    private Timer.Sample timerSample;
+
     @InjectMocks
     private CashService cashService;
 
@@ -85,6 +93,10 @@ class CashServiceTest {
                 .build();
         lenient().when(blockerClient.checkTransaction(any(BigDecimal.class), anyString()))
                 .thenReturn(approvedResponse);
+        
+        // Mock CashMetrics timer methods
+        lenient().when(cashMetrics.startDepositTimer()).thenReturn(timerSample);
+        lenient().when(cashMetrics.startWithdrawalTimer()).thenReturn(timerSample);
     }
 
     @Test
@@ -172,7 +184,7 @@ class CashServiceTest {
     }
 
     @Test
-    void withdraw_InsufficientBalance_ThrowsIllegalArgumentException() {
+    void withdraw_InsufficientBalance_ThrowsRuntimeException() {
         // Given
         AccountDTO accountDTO = AccountDTO.builder()
                 .id(1L)
@@ -186,9 +198,9 @@ class CashServiceTest {
         when(accountsClient.getAccount(1L)).thenReturn(accountDTO);
 
         // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> cashService.withdraw(withdrawalRequest));
-        assertTrue(exception.getMessage().contains("Insufficient balance"));
+        assertTrue(exception.getMessage().contains("Withdrawal failed") && exception.getMessage().contains("Insufficient balance"));
         verify(accountsClient).getAccount(1L);
         verify(cashTransactionRepository, never()).save(any(CashTransaction.class));
         verify(accountsClient, never()).subtractFromAccountBalance(anyLong(), any(BigDecimal.class));

@@ -34,4 +34,10 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     
     @Query("SELECT SUM(a.balance) FROM Account a WHERE a.user.id = :userId")
     java.math.BigDecimal getTotalBalanceByUserId(@Param("userId") Long userId);
+    
+    @Query("SELECT COALESCE(SUM(a.balance), 0) FROM Account a")
+    java.math.BigDecimal getTotalBalance();
+    
+    @Query("SELECT COALESCE(SUM(a.balance), 0) FROM Account a WHERE a.currency = :currency")
+    java.math.BigDecimal getTotalBalanceByCurrency(@Param("currency") Currency currency);
 }

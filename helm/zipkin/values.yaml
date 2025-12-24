@@ -1,0 +1,17 @@
+image:
+  repository: openzipkin/zipkin
+  tag: "2.24"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 9411
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+

@@ -27,6 +27,8 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://auth-server:8085
+  zipkin:
+    base-url: http://zipkin:9411
 
 blocker:
   threshold:
@@ -61,10 +63,18 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
 
 logging:
   time-zone: Europe/Moscow

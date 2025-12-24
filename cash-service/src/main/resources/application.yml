@@ -38,6 +38,8 @@ spring:
       retries: 3
       properties:
         enable.idempotence: true
+  zipkin:
+    base-url: http://zipkin:9411
 
 resilience4j:
   fallback:
@@ -65,10 +67,18 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,circuitbreakers
+        include: health,info,metrics,circuitbreakers,prometheus
   endpoint:
     health:
       show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
 
 logging:
   time-zone: Europe/Moscow
